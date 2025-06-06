@@ -18,6 +18,7 @@ export default function BarcodeDetectionPage() {
     errors,
     startCamera,
     stopCamera,
+    switchCamera,
     captureAndProcess,
     drawDetections,
     updateCanvasSize,
@@ -88,6 +89,8 @@ export default function BarcodeDetectionPage() {
               detections={detections}
               startCamera={startCamera}
               stopCamera={stopCamera}
+              switchCamera={switchCamera}
+              captureAndProcess={captureAndProcess}
               drawDetections={drawDetections}
               updateCanvasSize={updateCanvasSize}
             />

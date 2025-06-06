@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { Camera, VideoOff, Loader } from "lucide-react";
+import { Camera, Video, VideoOff, Loader } from "lucide-react";
 import { Detection } from "../types/detection";
 import { ControlButtons } from "./ControlButtons";
 
@@ -14,6 +14,8 @@ interface CameraSectionProps {
   detections: Detection[];
   startCamera: () => void;
   stopCamera: () => void;
+  switchCamera: () => void;
+  captureAndProcess: () => void;
   drawDetections: () => void;
   updateCanvasSize: () => void;
 }
@@ -27,6 +29,8 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
   detections,
   startCamera,
   stopCamera,
+  switchCamera,
+  captureAndProcess,
   drawDetections,
   updateCanvasSize,
 }) => {
@@ -65,8 +69,11 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
 
         <ControlButtons
           isStreaming={isStreaming}
+          processingQueue={processingQueue}
           startCamera={startCamera}
           stopCamera={stopCamera}
+          switchCamera={switchCamera}
+          captureAndProcess={captureAndProcess}
         />
       </div>
 
@@ -138,6 +145,24 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
               </div>
             </div>
           )}
+        </div>
+
+        {/* Info Bar */}
+        <div className="bg-gray-700/30 px-4 py-2 border-t border-gray-600/30">
+          <div className="flex items-center justify-between text-xs text-gray-400">
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-1">
+                <Video size={12} />
+                1280x720
+              </span>
+              <span>Auto Focus</span>
+              <span>Real-time Detection</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span>AI Ready</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
