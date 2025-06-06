@@ -65,9 +65,9 @@ export default function BarcodeDetectionPage() {
               {/* Title Section */}
               <div className="text-center">
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold flex items-center justify-center gap-2 sm:gap-3">
-                  <div className="bg-fn-green/10 p-2 rounded-lg border border-fn-green/20">
+                  {/* <div className="bg-fn-green/10 p-2 rounded-lg border border-fn-green/20">
                     <Camera className="fn-green" size={24} />
-                  </div>
+                  </div> */}
                   <span className="fn-gradient-text">ระบบตรวจจับ Barcode</span>
                   <Sparkles className="fn-red" size={20} />
                 </h1>
