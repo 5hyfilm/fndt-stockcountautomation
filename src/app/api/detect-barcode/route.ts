@@ -21,23 +21,31 @@ export async function POST(request: NextRequest) {
 
     // สร้าง FormData ใหม่เพื่อส่งไปยัง Python backend
     const pythonFormData = new FormData();
-    pythonFormData.append("image", imageFile);
+    pythonFormData.append("file", imageFile);
 
     // ส่งไปยัง Python backend
-    const pythonResponse = await fetch(
-      `${PYTHON_BACKEND_URL}/api/detect-barcode`,
-      {
-        method: "POST",
-        body: pythonFormData,
-      }
-    );
+    const pythonResponse = await fetch(`${PYTHON_BACKEND_URL}/scan-file`, {
+      method: "POST",
+      body: pythonFormData,
+    });
 
     if (!pythonResponse.ok) {
       throw new Error(`Python backend error: ${pythonResponse.status}`);
     }
 
     const result = await pythonResponse.json();
-    return NextResponse.json(result);
+
+    // แปลงผลลัพธ์ให้ตรงกับ format ที่ frontend ต้องการ
+    const response = {
+      success: result.success || false,
+      detections: [],
+      barcodes: result.results || [],
+      confidence: result.results?.[0]?.confidence || 0,
+      rotation_angle: result.results?.[0]?.rotation_angle || 0,
+      decode_method: result.results?.[0]?.decode_method || "",
+    };
+
+    return NextResponse.json(response);
   } catch (error: any) {
     console.error("API Error:", error);
     return NextResponse.json(
@@ -48,4 +56,14 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function GET() {
+  return NextResponse.json({
+    message: "Barcode Detection API",
+    status: "running",
+    endpoints: {
+      POST: "/api/detect-barcode - Upload image for barcode detection",
+    },
+  });
 }
