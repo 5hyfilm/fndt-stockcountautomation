@@ -10,10 +10,10 @@ import {
 } from "../types/detection";
 
 export const useBarcodeDetection = () => {
-  // Refs
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  // Refs - ใช้ type ที่ไม่ strict
+  const videoRef = useRef<HTMLVideoElement>(null!);
+  const canvasRef = useRef<HTMLCanvasElement>(null!);
+  const containerRef = useRef<HTMLDivElement>(null!);
   const streamRef = useRef<MediaStream | null>(null);
 
   // State
@@ -50,16 +50,15 @@ export const useBarcodeDetection = () => {
         audio: false,
       });
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+      const video = videoRef.current;
+      if (video) {
+        video.srcObject = stream;
         streamRef.current = stream;
         setIsStreaming(true);
 
         // Wait for video to load
-        await new Promise((resolve) => {
-          if (videoRef.current) {
-            videoRef.current.onloadedmetadata = () => resolve(true);
-          }
+        await new Promise<void>((resolve) => {
+          video.onloadedmetadata = () => resolve();
         });
 
         updateCanvasSize();
@@ -83,8 +82,9 @@ export const useBarcodeDetection = () => {
       streamRef.current = null;
     }
 
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
+    const video = videoRef.current;
+    if (video) {
+      video.srcObject = null;
     }
 
     setIsStreaming(false);
@@ -130,11 +130,12 @@ export const useBarcodeDetection = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Get video dimensions
-    const videoRect = video.getBoundingClientRect();
     const containerRect = canvas.getBoundingClientRect();
+    const videoWidth = video.videoWidth || 1;
+    const videoHeight = video.videoHeight || 1;
 
-    const scaleX = containerRect.width / video.videoWidth;
-    const scaleY = containerRect.height / video.videoHeight;
+    const scaleX = containerRect.width / videoWidth;
+    const scaleY = containerRect.height / videoHeight;
 
     // Draw detection boxes
     detections.forEach((detection, index) => {
@@ -177,7 +178,8 @@ export const useBarcodeDetection = () => {
 
   // Capture and process frame
   const captureAndProcess = useCallback(async () => {
-    if (!videoRef.current || processingQueue >= 3) return;
+    const video = videoRef.current;
+    if (!video || processingQueue >= 3) return;
 
     try {
       setProcessingQueue((prev) => prev + 1);
@@ -189,17 +191,21 @@ export const useBarcodeDetection = () => {
 
       if (!ctx) return;
 
-      captureCanvas.width = videoRef.current.videoWidth;
-      captureCanvas.height = videoRef.current.videoHeight;
+      captureCanvas.width = video.videoWidth || 640;
+      captureCanvas.height = video.videoHeight || 480;
 
       // Draw video frame to canvas
-      ctx.drawImage(videoRef.current, 0, 0);
+      ctx.drawImage(video, 0, 0);
 
       // Convert to blob
-      const blob = await new Promise<Blob>((resolve) => {
+      const blob = await new Promise<Blob>((resolve, reject) => {
         captureCanvas.toBlob(
           (blob) => {
-            if (blob) resolve(blob);
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error("Failed to create blob"));
+            }
           },
           "image/jpeg",
           0.8
@@ -252,6 +258,7 @@ export const useBarcodeDetection = () => {
       stopCamera();
       setTimeout(() => startCamera(), 100);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoConstraints.facingMode]);
 
   // Cleanup on unmount

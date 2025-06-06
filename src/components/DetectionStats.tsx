@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Settings, Activity, Smartphone, Zap } from "lucide-react";
-import { Detection } from "../types/detection";
+import { Stats, VideoConstraints } from "../types/detection";
 
 interface DetectionStatsProps {
   stats: Stats;
