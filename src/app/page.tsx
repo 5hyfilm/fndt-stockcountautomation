@@ -171,11 +171,11 @@ export default function BarcodeDetectionPage() {
             </div>
 
             {/* Quick Barcode Display */}
-            {lastDetectedCode && (
+            {/* {lastDetectedCode && (
               <div className="lg:hidden">
                 <DetectionsList lastDetectedCode={lastDetectedCode} />
               </div>
-            )}
+            )} */}
           </div>
         </div>
 
