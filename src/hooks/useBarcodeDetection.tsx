@@ -1,3 +1,4 @@
+// src/hooks/useBarcodeDetection.tsx - Updated Version
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
@@ -8,9 +9,11 @@ import {
   BarcodeData,
   APIResponse,
 } from "../types/detection";
+import { Product } from "../types/product";
+import { useProductInfo } from "./useProductInfo";
 
 export const useBarcodeDetection = () => {
-  // Refs - ใช้ type ที่ไม่ strict
+  // Refs
   const videoRef = useRef<HTMLVideoElement>(null!);
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const containerRef = useRef<HTMLDivElement>(null!);
@@ -35,10 +38,21 @@ export const useBarcodeDetection = () => {
     facingMode: "environment",
   });
 
+  // Product info hook
+  const {
+    product,
+    isLoading: isLoadingProduct,
+    error: productError,
+    updateBarcode,
+    clearProduct,
+    clearError: clearProductError,
+  } = useProductInfo();
+
   // Clear error
   const clearError = useCallback(() => {
     setErrors(null);
-  }, []);
+    clearProductError();
+  }, [clearProductError]);
 
   // Start camera
   const startCamera = useCallback(async () => {
@@ -56,7 +70,6 @@ export const useBarcodeDetection = () => {
         streamRef.current = stream;
         setIsStreaming(true);
 
-        // Wait for video to load
         await new Promise<void>((resolve) => {
           video.onloadedmetadata = () => resolve();
         });
@@ -90,7 +103,9 @@ export const useBarcodeDetection = () => {
     setIsStreaming(false);
     setDetections([]);
     setProcessingQueue(0);
-  }, []);
+    setLastDetectedCode("");
+    clearProduct();
+  }, [clearProduct]);
 
   // Switch camera
   const switchCamera = useCallback(() => {
@@ -126,10 +141,8 @@ export const useBarcodeDetection = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Get video dimensions
     const containerRect = canvas.getBoundingClientRect();
     const videoWidth = video.videoWidth || 1;
     const videoHeight = video.videoHeight || 1;
@@ -137,44 +150,56 @@ export const useBarcodeDetection = () => {
     const scaleX = containerRect.width / videoWidth;
     const scaleY = containerRect.height / videoHeight;
 
-    // Draw detection boxes
-    detections.forEach((detection, index) => {
+    detections.forEach((detection) => {
       const x = detection.xmin * scaleX;
       const y = detection.ymin * scaleY;
       const width = (detection.xmax - detection.xmin) * scaleX;
       const height = (detection.ymax - detection.ymin) * scaleY;
 
-      // Draw bounding box
-      ctx.strokeStyle = "#00ff00";
-      ctx.lineWidth = 2;
+      // Draw detection box with enhanced styling
+      ctx.strokeStyle = product ? "#10B981" : "#EF4444"; // Green if product found, red if not
+      ctx.lineWidth = 3;
       ctx.strokeRect(x, y, width, height);
 
       // Draw confidence label
-      ctx.fillStyle = "#00ff00";
-      ctx.font = "12px Arial";
-      ctx.fillText(`${(detection.confidence * 100).toFixed(1)}%`, x, y - 5);
+      ctx.fillStyle = product ? "#10B981" : "#EF4444";
+      ctx.font = "bold 14px Arial";
+      const confidence = `${(detection.confidence * 100).toFixed(1)}%`;
+      ctx.fillText(confidence, x, y - 8);
 
-      // Draw corner markers
-      const markerSize = 10;
-      ctx.fillStyle = "#00ff00";
+      // Draw product name if available
+      if (product) {
+        ctx.fillStyle = "#059669";
+        ctx.font = "12px Arial";
+        const maxWidth = width - 10;
+        const productName =
+          product.name.length > 20
+            ? product.name.substring(0, 20) + "..."
+            : product.name;
+        ctx.fillText(productName, x + 5, y + height - 8, maxWidth);
+      }
+
+      // Enhanced corner markers
+      const markerSize = 15;
+      ctx.fillStyle = product ? "#10B981" : "#EF4444";
 
       // Top-left
-      ctx.fillRect(x - 1, y - 1, markerSize, 2);
-      ctx.fillRect(x - 1, y - 1, 2, markerSize);
+      ctx.fillRect(x - 2, y - 2, markerSize, 3);
+      ctx.fillRect(x - 2, y - 2, 3, markerSize);
 
       // Top-right
-      ctx.fillRect(x + width - markerSize + 1, y - 1, markerSize, 2);
-      ctx.fillRect(x + width - 1, y - 1, 2, markerSize);
+      ctx.fillRect(x + width - markerSize + 2, y - 2, markerSize, 3);
+      ctx.fillRect(x + width - 1, y - 2, 3, markerSize);
 
       // Bottom-left
-      ctx.fillRect(x - 1, y + height - 1, markerSize, 2);
-      ctx.fillRect(x - 1, y + height - markerSize + 1, 2, markerSize);
+      ctx.fillRect(x - 2, y + height - 1, markerSize, 3);
+      ctx.fillRect(x - 2, y + height - markerSize + 2, 3, markerSize);
 
       // Bottom-right
-      ctx.fillRect(x + width - markerSize + 1, y + height - 1, markerSize, 2);
-      ctx.fillRect(x + width - 1, y + height - markerSize + 1, 2, markerSize);
+      ctx.fillRect(x + width - markerSize + 2, y + height - 1, markerSize, 3);
+      ctx.fillRect(x + width - 1, y + height - markerSize + 2, 3, markerSize);
     });
-  }, [detections]);
+  }, [detections, product]);
 
   // Capture and process frame
   const captureAndProcess = useCallback(async () => {
@@ -185,7 +210,6 @@ export const useBarcodeDetection = () => {
       setProcessingQueue((prev) => prev + 1);
       const startTime = Date.now();
 
-      // Create canvas for capture
       const captureCanvas = document.createElement("canvas");
       const ctx = captureCanvas.getContext("2d");
 
@@ -194,10 +218,8 @@ export const useBarcodeDetection = () => {
       captureCanvas.width = video.videoWidth || 640;
       captureCanvas.height = video.videoHeight || 480;
 
-      // Draw video frame to canvas
       ctx.drawImage(video, 0, 0);
 
-      // Convert to blob
       const blob = await new Promise<Blob>((resolve, reject) => {
         captureCanvas.toBlob(
           (blob) => {
@@ -212,7 +234,6 @@ export const useBarcodeDetection = () => {
         );
       });
 
-      // Send to API
       const formData = new FormData();
       formData.append("image", blob, "frame.jpg");
 
@@ -230,10 +251,20 @@ export const useBarcodeDetection = () => {
 
         if (result.barcodes && result.barcodes.length > 0) {
           const latestBarcode = result.barcodes[0];
-          setLastDetectedCode(latestBarcode.data);
+          const barcodeData = latestBarcode.data;
+
+          setLastDetectedCode(barcodeData);
+
+          // Auto-fetch product info when new barcode is detected
+          if (barcodeData && barcodeData !== lastDetectedCode) {
+            console.log(
+              "🔍 New barcode detected, fetching product info:",
+              barcodeData
+            );
+            updateBarcode(barcodeData);
+          }
         }
 
-        // Update stats
         setStats({
           rotation: result.rotation_angle || 0,
           method: result.decode_method || "",
@@ -250,7 +281,7 @@ export const useBarcodeDetection = () => {
     } finally {
       setProcessingQueue((prev) => Math.max(0, prev - 1));
     }
-  }, [processingQueue]);
+  }, [processingQueue, lastDetectedCode, updateBarcode]);
 
   // Auto-restart camera when constraints change
   useEffect(() => {
@@ -284,6 +315,11 @@ export const useBarcodeDetection = () => {
     stats,
     errors,
     videoConstraints,
+
+    // Product info
+    product,
+    isLoadingProduct,
+    productError,
 
     // Actions
     startCamera,
