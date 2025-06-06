@@ -1,4 +1,4 @@
-// src/data/products.ts
+// src/data/products.ts - Enhanced version
 import { Product, ProductCategory, ProductStatus } from "../types/product";
 
 export const MOCK_PRODUCTS: Product[] = [
@@ -243,11 +243,112 @@ export const MOCK_PRODUCTS: Product[] = [
     created_at: "2024-01-01T00:00:00Z",
     updated_at: "2024-01-01T00:00:00Z",
   },
+  // เพิ่มบาร์โค้ดทดสอบเพิ่มเติม
+  {
+    id: "9",
+    barcode: "123456789012",
+    name: "ทดสอบ 12 หลัก",
+    name_en: "Test 12 digits",
+    category: ProductCategory.OTHER,
+    brand: "TEST",
+    description: "บาร์โค้ด 12 หลัก",
+    size: "1pcs",
+    unit: "ชิ้น",
+    price: 1.0,
+    currency: "THB",
+    sku: "TEST-12",
+    status: ProductStatus.ACTIVE,
+    created_at: "2024-01-01T00:00:00Z",
+    updated_at: "2024-01-01T00:00:00Z",
+  },
+  {
+    id: "10",
+    barcode: "01234567890128",
+    name: "ทดสอบ 14 หลัก",
+    name_en: "Test 14 digits",
+    category: ProductCategory.OTHER,
+    brand: "TEST",
+    description: "บาร์โค้ด 14 หลัก",
+    size: "1pcs",
+    unit: "ชิ้น",
+    price: 1.0,
+    currency: "THB",
+    sku: "TEST-14",
+    status: ProductStatus.ACTIVE,
+    created_at: "2024-01-01T00:00:00Z",
+    updated_at: "2024-01-01T00:00:00Z",
+  },
 ];
 
-// Helper functions
-export const findProductByBarcode = (barcode: string): Product | undefined => {
-  return MOCK_PRODUCTS.find((product) => product.barcode === barcode);
+// Helper function to normalize barcode
+export const normalizeBarcode = (barcode: string): string => {
+  return barcode.trim().replace(/[^0-9]/g, "");
+};
+
+// Enhanced barcode matching function
+export const findProductByBarcode = (
+  inputBarcode: string
+): Product | undefined => {
+  const searchBarcode = normalizeBarcode(inputBarcode);
+
+  console.log("🔍 Searching for barcode:", searchBarcode);
+  console.log(
+    "📋 Available products:",
+    MOCK_PRODUCTS.map((p) => ({
+      barcode: p.barcode,
+      name: p.name,
+    }))
+  );
+
+  // Try exact match first
+  let product = MOCK_PRODUCTS.find(
+    (product) => normalizeBarcode(product.barcode) === searchBarcode
+  );
+
+  // If not found, try partial matches (for different barcode formats)
+  if (!product) {
+    // Try matching last 12 digits (for 13-digit barcodes)
+    if (searchBarcode.length >= 12) {
+      const last12 = searchBarcode.slice(-12);
+      product = MOCK_PRODUCTS.find(
+        (product) => normalizeBarcode(product.barcode).slice(-12) === last12
+      );
+    }
+
+    // Try matching first 12 digits (for 14-digit barcodes)
+    if (!product && searchBarcode.length >= 12) {
+      const first12 = searchBarcode.slice(0, 12);
+      product = MOCK_PRODUCTS.find(
+        (product) => normalizeBarcode(product.barcode).slice(0, 12) === first12
+      );
+    }
+
+    // Try without leading zeros
+    if (!product) {
+      const withoutLeadingZeros = searchBarcode.replace(/^0+/, "");
+      product = MOCK_PRODUCTS.find(
+        (product) =>
+          normalizeBarcode(product.barcode).replace(/^0+/, "") ===
+          withoutLeadingZeros
+      );
+    }
+
+    // Try with leading zeros (pad to 13 digits)
+    if (!product && searchBarcode.length < 13) {
+      const padded = searchBarcode.padStart(13, "0");
+      product = MOCK_PRODUCTS.find(
+        (product) => normalizeBarcode(product.barcode) === padded
+      );
+    }
+  }
+
+  if (product) {
+    console.log("✅ Product found:", product.name);
+  } else {
+    console.log("❌ No product found for barcode:", searchBarcode);
+  }
+
+  return product;
 };
 
 export const searchProducts = (params: {
@@ -299,4 +400,16 @@ export const getProductStats = () => {
     categories,
     brands,
   };
+};
+
+// Debug function
+export const debugBarcodeMatching = () => {
+  console.log("📊 Barcode Debug Info:");
+  MOCK_PRODUCTS.forEach((product, index) => {
+    console.log(
+      `${index + 1}. ${product.name}: ${product.barcode} (${
+        product.barcode.length
+      } digits)`
+    );
+  });
 };

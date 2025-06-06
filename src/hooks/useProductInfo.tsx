@@ -1,4 +1,4 @@
-// src/hooks/useProductInfo.tsx
+// src/hooks/useProductInfo.tsx - Enhanced version
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
@@ -22,22 +22,39 @@ export const useProductInfo = () => {
     setError(null);
   }, []);
 
+  // Normalize barcode for consistency
+  const normalizeBarcode = useCallback((barcode: string): string => {
+    return barcode.trim().replace(/[^0-9]/g, "");
+  }, []);
+
   // Fetch product by barcode
   const fetchProductByBarcode = useCallback(
     async (barcode: string) => {
-      if (!barcode || barcode === lastSearchedBarcode) {
+      const normalizedBarcode = normalizeBarcode(barcode);
+
+      if (
+        !normalizedBarcode ||
+        normalizedBarcode === normalizeBarcode(lastSearchedBarcode)
+      ) {
+        console.log(
+          "🔄 Skipping fetch - same barcode or empty:",
+          normalizedBarcode
+        );
         return;
       }
 
       setIsLoading(true);
       setError(null);
-      setLastSearchedBarcode(barcode);
+      setLastSearchedBarcode(normalizedBarcode);
 
       try {
-        console.log("🔍 Fetching product for barcode:", barcode);
+        console.log("🔍 Fetching product for barcode:", normalizedBarcode);
+        console.log("📏 Barcode length:", normalizedBarcode.length);
 
         const response = await fetch(
-          `/api/products/lookup?barcode=${encodeURIComponent(barcode)}`,
+          `/api/products/lookup?barcode=${encodeURIComponent(
+            normalizedBarcode
+          )}`,
           {
             method: "GET",
             headers: {
@@ -46,7 +63,14 @@ export const useProductInfo = () => {
           }
         );
 
+        console.log("📡 API Response status:", response.status);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
         const result: ProductResponse = await response.json();
+        console.log("📄 API Result:", result);
 
         if (result.success && result.data) {
           console.log("✅ Product found:", result.data.name);
@@ -55,6 +79,12 @@ export const useProductInfo = () => {
         } else {
           console.log("❌ Product not found:", result.error);
           setProduct(null);
+
+          // Show debug info if available
+          if (result.debug) {
+            console.log("🐛 Debug info:", result.debug);
+          }
+
           setError(result.error || "ไม่พบข้อมูลสินค้า");
         }
       } catch (err: any) {
@@ -65,18 +95,36 @@ export const useProductInfo = () => {
         setIsLoading(false);
       }
     },
-    [lastSearchedBarcode]
+    [lastSearchedBarcode, normalizeBarcode]
   );
 
   // Auto-fetch when barcode changes
   const updateBarcode = useCallback(
     (barcode: string) => {
-      if (barcode && barcode !== lastSearchedBarcode) {
-        fetchProductByBarcode(barcode);
+      const normalizedBarcode = normalizeBarcode(barcode);
+      const lastNormalized = normalizeBarcode(lastSearchedBarcode);
+
+      if (normalizedBarcode && normalizedBarcode !== lastNormalized) {
+        console.log("🔄 Barcode changed:", {
+          old: lastNormalized,
+          new: normalizedBarcode,
+        });
+        fetchProductByBarcode(normalizedBarcode);
       }
     },
-    [fetchProductByBarcode, lastSearchedBarcode]
+    [fetchProductByBarcode, lastSearchedBarcode, normalizeBarcode]
   );
+
+  // Debug log when product changes
+  useEffect(() => {
+    if (product) {
+      console.log("🎯 Product updated:", {
+        name: product.name,
+        barcode: product.barcode,
+        brand: product.brand,
+      });
+    }
+  }, [product]);
 
   return {
     // State
