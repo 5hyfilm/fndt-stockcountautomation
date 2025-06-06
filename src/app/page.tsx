@@ -83,7 +83,7 @@ export default function BarcodeDetectionPage() {
           </div>
 
           {/* Status Bar */}
-          <div className="flex items-center justify-center gap-4 text-xs text-gray-600">
+          {/* <div className="flex items-center justify-center gap-4 text-xs text-gray-600">
             <div className="flex items-center gap-1">
               <div
                 className={`w-2 h-2 rounded-full ${
@@ -108,7 +108,7 @@ export default function BarcodeDetectionPage() {
                 </span>
               </div>
             )}
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -180,7 +180,7 @@ export default function BarcodeDetectionPage() {
         </div>
 
         {/* Mobile Tips */}
-        <div className="xl:hidden mt-6 bg-white rounded-lg p-4 text-center border border-gray-200 shadow-sm">
+        {/* <div className="xl:hidden mt-6 bg-white rounded-lg p-4 text-center border border-gray-200 shadow-sm">
           <p className="text-gray-700 text-sm mb-2">💡 เคล็ดลับสำหรับมือถือ</p>
           <div className="text-xs text-gray-500 space-y-1">
             <p>• ใช้ในแนวนอนเพื่อประสบการณ์ที่ดีที่สุด</p>
@@ -188,7 +188,7 @@ export default function BarcodeDetectionPage() {
             <p>• ให้แสงเพียงพอเพื่อการสแกนที่แม่นยำ</p>
             <p>• ระบบจะแสดงข้อมูลสินค้าอัตโนมัติเมื่อสแกนสำเร็จ</p>
           </div>
-        </div>
+        </div> */}
 
         {/* Product Stats - Desktop Only */}
         <div className="hidden xl:block mt-6">
