@@ -15,6 +15,7 @@ export default function BarcodeDetectionPage() {
     isStreaming,
     detections,
     processingQueue,
+    lastDetectedCode,
     errors,
     startCamera,
     stopCamera,
@@ -96,9 +97,9 @@ export default function BarcodeDetectionPage() {
             />
           </div>
 
-          {/* Results Sidebar - เหลือแค่รายการตรวจจับ */}
+          {/* Results Sidebar - แสดงเฉพาะเลขที่ decode ได้ */}
           <div className="xl:col-span-1">
-            <DetectionsList detections={detections} />
+            <DetectionsList lastDetectedCode={lastDetectedCode} />
           </div>
         </div>
 
