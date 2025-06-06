@@ -17,22 +17,22 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   if (!error) return null;
 
   return (
-    <div className="bg-red-900/90 backdrop-blur-sm border border-red-500/50 rounded-xl p-4 shadow-2xl animate-in slide-in-from-top duration-300">
+    <div className="bg-red-50 border border-fn-red/30 rounded-xl p-4 shadow-lg animate-in slide-in-from-top duration-300">
       <div className="flex items-start gap-3">
-        <div className="bg-red-500/20 p-2 rounded-lg">
-          <AlertTriangle className="text-red-400 flex-shrink-0" size={20} />
+        <div className="bg-fn-red/10 p-2 rounded-lg border border-fn-red/20">
+          <AlertTriangle className="fn-red flex-shrink-0" size={20} />
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="text-red-400 font-semibold mb-1">เกิดข้อผิดพลาด</h3>
-          <p className="text-red-200 text-sm leading-relaxed break-words">
+          <h3 className="fn-red font-semibold mb-1">เกิดข้อผิดพลาด</h3>
+          <p className="text-gray-700 text-sm leading-relaxed break-words">
             {error}
           </p>
 
           {onRetry && (
             <button
               onClick={onRetry}
-              className="mt-3 bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm transition-colors"
+              className="mt-3 bg-fn-red hover:bg-fn-red/90 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm transition-colors border border-fn-red shadow-sm"
             >
               <RefreshCw size={14} />
               ลองใหม่
@@ -42,7 +42,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
 
         <button
           onClick={onDismiss}
-          className="text-red-400 hover:text-red-300 flex-shrink-0 p-1 hover:bg-red-500/20 rounded transition-colors"
+          className="fn-red hover:text-red-600 flex-shrink-0 p-1 hover:bg-fn-red/10 rounded transition-colors"
         >
           <X size={18} />
         </button>

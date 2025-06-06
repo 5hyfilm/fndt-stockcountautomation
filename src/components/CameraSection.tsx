@@ -52,16 +52,18 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
   }, [updateCanvasSize]);
 
   return (
-    <div className="bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-700 overflow-hidden">
+    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
       {/* Header */}
-      <div className="bg-gray-700/50 px-4 py-3 border-b border-gray-600/50 flex items-center justify-between">
+      <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="bg-blue-500/20 p-2 rounded-lg">
-            <Camera className="text-blue-400" size={20} />
+          <div className="bg-fn-green/10 p-2 rounded-lg border border-fn-green/20">
+            <Camera className="fn-green" size={20} />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-white">กล้องตรวจจับ</h2>
-            <p className="text-xs text-gray-400">
+            <h2 className="text-lg font-semibold text-gray-900">
+              กล้องตรวจจับ
+            </h2>
+            <p className="text-xs text-gray-600">
               {isStreaming ? "🟢 กำลังทำงาน" : "🔴 หยุดทำงาน"}
             </p>
           </div>
@@ -78,7 +80,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
       </div>
 
       {/* Camera Container */}
-      <div className="relative bg-black">
+      <div className="relative bg-gray-900">
         <div
           ref={containerRef}
           className="relative w-full"
@@ -102,17 +104,17 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
 
           {/* Center Guide */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-64 h-64 border-2 border-blue-400/50 rounded-lg">
-              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-400"></div>
-              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-400"></div>
-              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-400"></div>
-              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-400"></div>
+            <div className="w-64 h-64 border-2 border-fn-green/70 rounded-lg">
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-fn-green"></div>
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-fn-green"></div>
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-fn-green"></div>
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-fn-green"></div>
             </div>
           </div>
 
           {/* Processing Indicator */}
           {/* {processingQueue > 0 && (
-            <div className="absolute top-4 right-4 bg-orange-600/90 backdrop-blur-sm px-3 py-2 rounded-lg flex items-center gap-2">
+            <div className="absolute top-4 right-4 bg-orange-500/90 backdrop-blur-sm px-3 py-2 rounded-lg flex items-center gap-2 text-white border border-orange-400">
               <Loader className="animate-spin" size={16} />
               <span className="text-sm font-medium">
                 ประมวลผล... ({processingQueue})
@@ -122,7 +124,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
 
           {/* Detection Counter */}
           {detections.length > 0 && (
-            <div className="absolute top-4 left-4 bg-green-600/90 backdrop-blur-sm px-3 py-2 rounded-lg">
+            <div className="absolute top-4 left-4 bg-fn-green/90 backdrop-blur-sm px-3 py-2 rounded-lg text-white border border-fn-green">
               <span className="text-sm font-medium">
                 พบ {detections.length} บาร์โค้ด
               </span>
@@ -131,12 +133,12 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
 
           {/* No Stream Overlay */}
           {!isStreaming && (
-            <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center">
+            <div className="absolute inset-0 bg-gray-100/95 backdrop-blur-sm flex items-center justify-center">
               <div className="text-center">
-                <div className="bg-gray-700 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                  <VideoOff className="text-gray-400" size={32} />
+                <div className="bg-gray-200 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 border border-gray-300">
+                  <VideoOff className="text-gray-500" size={32} />
                 </div>
-                <p className="text-gray-300 text-lg font-medium mb-2">
+                <p className="text-gray-700 text-lg font-medium mb-2">
                   กล้องไม่ได้เปิดใช้งาน
                 </p>
                 <p className="text-gray-500 text-sm">

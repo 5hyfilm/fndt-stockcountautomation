@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import { Camera, Sparkles } from "lucide-react";
+import Image from "next/image";
 import { useBarcodeDetection } from "../hooks/useBarcodeDetection";
 import { CameraSection } from "../components/CameraSection";
 import { DetectionsList } from "../components/DetectionsList";
@@ -42,22 +43,40 @@ export default function BarcodeDetectionPage() {
   }, [isStreaming, captureAndProcess]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+    <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* Header */}
-      <div className="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700/50 sticky top-0 z-40">
+      <div className="bg-white/95 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40 shadow-sm">
         <div className="container mx-auto px-4 py-4">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-center flex items-center justify-center gap-2 sm:gap-3">
-            <div className="bg-blue-500/20 p-2 rounded-lg">
-              <Camera className="text-blue-400" size={24} />
+          {/* Top Section with Logo */}
+          <div className="flex items-center justify-center mb-4">
+            <div className="flex items-center gap-3">
+              {/* F&N Logo */}
+              <div className="bg-gray-100 backdrop-blur-sm rounded-xl p-2 border border-gray-300 shadow-sm">
+                <Image
+                  src="/fn-logo.png"
+                  alt="F&N Logo"
+                  width={48}
+                  height={48}
+                  className="w-12 h-12 object-contain"
+                  priority
+                />
+              </div>
+
+              {/* Title Section */}
+              <div className="text-center">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold flex items-center justify-center gap-2 sm:gap-3">
+                  <div className="bg-fn-green/10 p-2 rounded-lg border border-fn-green/20">
+                    <Camera className="fn-green" size={24} />
+                  </div>
+                  <span className="fn-gradient-text">ระบบตรวจจับ Barcode</span>
+                  <Sparkles className="fn-red" size={20} />
+                </h1>
+                <p className="text-gray-600 text-sm mt-2">
+                  F&N Quality Control System | AI-Powered Real-time Detection
+                </p>
+              </div>
             </div>
-            <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              ระบบตรวจจับ Barcode
-            </span>
-            <Sparkles className="text-yellow-400" size={20} />
-          </h1>
-          <p className="text-center text-gray-400 text-sm mt-2">
-            AI-Powered Real-time Detection
-          </p>
+          </div>
         </div>
       </div>
 
@@ -104,8 +123,8 @@ export default function BarcodeDetectionPage() {
         </div>
 
         {/* Mobile Tips */}
-        <div className="xl:hidden mt-6 bg-gray-800/50 rounded-lg p-4 text-center border border-gray-700/50">
-          <p className="text-gray-400 text-sm mb-2">💡 เคล็ดลับสำหรับมือถือ</p>
+        <div className="xl:hidden mt-6 bg-white rounded-lg p-4 text-center border border-gray-200 shadow-sm">
+          <p className="text-gray-700 text-sm mb-2">💡 เคล็ดลับสำหรับมือถือ</p>
           <div className="text-xs text-gray-500 space-y-1">
             <p>• ใช้ในแนวนอนเพื่อประสบการณ์ที่ดีที่สุด</p>
             <p>• วางบาร์โค้ดให้อยู่ตรงกลางหน้าจอ</p>
@@ -115,11 +134,14 @@ export default function BarcodeDetectionPage() {
       </div>
 
       {/* Footer */}
-      <div className="bg-gray-800/30 border-t border-gray-700/50 mt-8">
+      <div className="bg-white/80 border-t border-gray-200 mt-8 shadow-sm">
         <div className="container mx-auto px-4 py-4 text-center">
-          <p className="text-xs sm:text-sm text-gray-400">
-            ระบบตรวจจับ Barcode แบบ Real-time |
-            <span className="text-blue-400"> พัฒนาด้วย Next.js & AI</span>
+          <p className="text-xs sm:text-sm text-gray-600">
+            F&N Quality Control System | ระบบตรวจจับ Barcode แบบ Real-time |
+            <span className="fn-green font-medium">
+              {" "}
+              พัฒนาด้วย Next.js & AI
+            </span>
           </p>
         </div>
       </div>

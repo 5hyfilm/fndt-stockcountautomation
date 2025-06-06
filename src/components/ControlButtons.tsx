@@ -25,7 +25,7 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
       {!isStreaming ? (
         <button
           onClick={startCamera}
-          className="bg-green-600 hover:bg-green-700 px-3 py-2 sm:px-4 rounded-lg flex items-center gap-2 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
+          className="bg-fn-green hover:bg-fn-green/90 text-white px-3 py-2 sm:px-4 rounded-lg flex items-center gap-2 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 border border-fn-green"
         >
           <Play size={16} />
           <span className="hidden xs:inline">เริ่ม</span>
@@ -33,7 +33,7 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
       ) : (
         <button
           onClick={stopCamera}
-          className="bg-red-600 hover:bg-red-700 px-3 py-2 sm:px-4 rounded-lg flex items-center gap-2 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
+          className="bg-fn-red hover:bg-fn-red/90 text-white px-3 py-2 sm:px-4 rounded-lg flex items-center gap-2 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 border border-fn-red"
         >
           <Pause size={16} />
           <span className="hidden xs:inline">หยุด</span>
@@ -43,7 +43,7 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
       {/* <button
         onClick={switchCamera}
         disabled={!isStreaming}
-        className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:opacity-50 disabled:transform-none px-3 py-2 sm:px-4 rounded-lg flex items-center gap-2 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
+        className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 disabled:opacity-50 disabled:transform-none text-white px-3 py-2 sm:px-4 rounded-lg flex items-center gap-2 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 border border-gray-600"
       >
         <RotateCcw size={16} />
         <span className="hidden xs:inline">สลับ</span>
@@ -52,7 +52,7 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
       {/* <button
         onClick={captureAndProcess}
         disabled={!isStreaming}
-        className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 disabled:transform-none px-3 py-2 sm:px-4 rounded-lg flex items-center gap-2 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 min-w-[80px] justify-center"
+        className="bg-fn-green hover:bg-fn-green/90 disabled:bg-gray-400 disabled:opacity-50 disabled:transform-none text-white px-3 py-2 sm:px-4 rounded-lg flex items-center gap-2 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 min-w-[80px] justify-center border border-fn-green"
       >
         <Zap size={16} />
         <span className="hidden sm:inline">
