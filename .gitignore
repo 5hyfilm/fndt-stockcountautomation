@@ -39,3 +39,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+backend/env/
+backend/venv/
+backend/.env/
+backend/.venv/
+env/
+venv/
+.env/
+.venv/
+ENV/
+VENV/
+barcode_env/
