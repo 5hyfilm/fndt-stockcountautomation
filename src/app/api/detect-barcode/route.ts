@@ -48,28 +48,45 @@ export async function POST(request: NextRequest) {
     try {
       // สร้าง FormData สำหรับส่งไป Python backend
       const pythonFormData = new FormData();
-      pythonFormData.append("file", imageFile);
+      pythonFormData.append("image", imageFile); // เปลี่ยนจาก "file" เป็น "image"
 
       console.log("📤 Sending to Python backend...");
 
-      // ส่งไปยัง Python backend
-      const pythonResponse = await fetch(`${backendUrl}/scan-file`, {
-        method: "POST",
-        body: pythonFormData,
-        headers: {
-          // ไม่ต้องตั้ง Content-Type เพื่อให้ browser ตั้ง boundary อัตโนมัติ
-        },
-      });
+      // ตรวจสอบว่าใช้ Flask หรือ FastAPI
+      // ลองเรียก Flask endpoint ก่อน
+      let pythonResponse;
+      let endpoint = "/api/detect-barcode"; // Flask endpoint
+
+      try {
+        console.log(`🔄 Trying Flask endpoint: ${endpoint}`);
+        pythonResponse = await fetch(`${backendUrl}${endpoint}`, {
+          method: "POST",
+          body: pythonFormData,
+        });
+
+        if (!pythonResponse.ok) {
+          throw new Error(`Flask backend error: ${pythonResponse.status}`);
+        }
+      } catch (flaskError) {
+        console.log("⚠️ Flask endpoint failed, trying FastAPI...");
+        // ถ้า Flask ไม่ได้ ลอง FastAPI
+        endpoint = "/scan-file"; // FastAPI endpoint
+        pythonFormData.delete("image");
+        pythonFormData.append("file", imageFile); // FastAPI ใช้ "file"
+
+        pythonResponse = await fetch(`${backendUrl}${endpoint}`, {
+          method: "POST",
+          body: pythonFormData,
+        });
+
+        if (!pythonResponse.ok) {
+          const errorText = await pythonResponse.text();
+          console.log("❌ Both backends failed:", errorText);
+          throw new Error(`Both backends failed: ${pythonResponse.status}`);
+        }
+      }
 
       console.log("📥 Python backend response status:", pythonResponse.status);
-
-      if (!pythonResponse.ok) {
-        const errorText = await pythonResponse.text();
-        console.log("❌ Python backend error:", errorText);
-        throw new Error(
-          `Python backend error: ${pythonResponse.status} - ${errorText}`
-        );
-      }
 
       const result: PythonBackendResponse = await pythonResponse.json();
       console.log("✅ Python backend result:", result);
@@ -97,7 +114,7 @@ export async function POST(request: NextRequest) {
           ? backendError.message
           : "Unknown backend error";
 
-      // ถ้าเชื่อมต่อ backend ไม่ได้ ให้ส่ง mock response
+      // ส่ง mock response เมื่อไม่สามารถเชื่อมต่อได้
       return NextResponse.json({
         success: false,
         error: `ไม่สามารถเชื่อมต่อ backend ได้: ${errorMessage}`,
