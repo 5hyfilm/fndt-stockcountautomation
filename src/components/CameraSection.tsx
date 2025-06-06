@@ -111,14 +111,14 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
           </div>
 
           {/* Processing Indicator */}
-          {processingQueue > 0 && (
+          {/* {processingQueue > 0 && (
             <div className="absolute top-4 right-4 bg-orange-600/90 backdrop-blur-sm px-3 py-2 rounded-lg flex items-center gap-2">
               <Loader className="animate-spin" size={16} />
               <span className="text-sm font-medium">
                 ประมวลผล... ({processingQueue})
               </span>
             </div>
-          )}
+          )} */}
 
           {/* Detection Counter */}
           {detections.length > 0 && (
