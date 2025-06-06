@@ -72,7 +72,7 @@ export default function BarcodeDetectionPage() {
                   <Sparkles className="fn-red" size={20} />
                 </h1>
                 <p className="text-gray-600 text-sm mt-2">
-                  F&N Quality Control System | AI-Powered Real-time Detection
+                  F&N Inventory Tracking
                 </p>
               </div>
             </div>
