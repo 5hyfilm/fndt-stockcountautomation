@@ -4,8 +4,6 @@ import React, { useEffect } from "react";
 import { Camera, Sparkles } from "lucide-react";
 import { useBarcodeDetection } from "../hooks/useBarcodeDetection";
 import { CameraSection } from "../components/CameraSection";
-import { DetectionStats } from "../components/DetectionStats";
-import { LastDetectedCode } from "../components/LastDetectedCode";
 import { DetectionsList } from "../components/DetectionsList";
 import { ErrorDisplay } from "../components/ErrorDisplay";
 
@@ -17,10 +15,7 @@ export default function BarcodeDetectionPage() {
     isStreaming,
     detections,
     processingQueue,
-    lastDetectedCode,
-    stats,
     errors,
-    videoConstraints,
     startCamera,
     stopCamera,
     switchCamera,
@@ -82,9 +77,9 @@ export default function BarcodeDetectionPage() {
         )}
 
         {/* Layout Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 lg:gap-6">
           {/* Camera Section */}
-          <div className="xl:col-span-2">
+          <div className="xl:col-span-3">
             <CameraSection
               videoRef={videoRef}
               canvasRef={canvasRef}
@@ -101,19 +96,8 @@ export default function BarcodeDetectionPage() {
             />
           </div>
 
-          {/* Results Sidebar */}
-          <div className="space-y-4 lg:space-y-6">
-            {/* Detection Stats */}
-            <DetectionStats
-              stats={stats}
-              videoConstraints={videoConstraints}
-              processingQueue={processingQueue}
-            />
-
-            {/* Last Detected Code */}
-            <LastDetectedCode code={lastDetectedCode} />
-
-            {/* Detections List */}
+          {/* Results Sidebar - เหลือแค่รายการตรวจจับ */}
+          <div className="xl:col-span-1">
             <DetectionsList detections={detections} />
           </div>
         </div>
