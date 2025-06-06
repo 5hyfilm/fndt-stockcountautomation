@@ -4,6 +4,18 @@ import { NextRequest, NextResponse } from "next/server";
 const PYTHON_BACKEND_URL =
   process.env.PYTHON_BACKEND_URL || "http://localhost:8000";
 
+interface PythonBackendResponse {
+  success: boolean;
+  detections?: any[];
+  results?: any[];
+  barcodes?: any[];
+  confidence?: number;
+  rotation_angle?: number;
+  decode_method?: string;
+  barcodes_found?: number;
+  error?: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log("🚀 API route called");
@@ -59,7 +71,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const result = await pythonResponse.json();
+      const result: PythonBackendResponse = await pythonResponse.json();
       console.log("✅ Python backend result:", result);
 
       // แปลงผลลัพธ์ให้ตรงกับ format ที่ frontend ต้องการ
@@ -77,7 +89,7 @@ export async function POST(request: NextRequest) {
 
       console.log("📤 Sending response:", response);
       return NextResponse.json(response);
-    } catch (backendError) {
+    } catch (backendError: unknown) {
       console.error("❌ Backend connection error:", backendError);
 
       const errorMessage =
@@ -97,7 +109,7 @@ export async function POST(request: NextRequest) {
         mock: true,
       });
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("💥 API Error:", error);
 
     const errorMessage =

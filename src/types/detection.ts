@@ -24,7 +24,7 @@ export interface VideoConstraints {
 export interface BarcodeData {
   data: string;
   type: string;
-  timestamp?: number;
+  timestamp?: string;
   confidence?: number;
   rotation_angle?: number;
   decode_method?: string;
@@ -46,9 +46,13 @@ export interface APIResponse {
   decode_method?: string;
   filename?: string;
   barcodes_found?: number;
+  mock?: boolean;
   results?: Array<{
     type: string;
     data: string;
+    confidence?: number;
+    rotation_angle?: number;
+    decode_method?: string;
     position: {
       x: number;
       y: number;
@@ -86,15 +90,45 @@ export interface DetectionResult {
   error?: string;
 }
 
-// Ref types ที่ไม่ strict
-export interface VideoElementRef {
-  current: HTMLVideoElement | null;
+// Error types for better error handling
+export interface CameraError extends Error {
+  name:
+    | "NotAllowedError"
+    | "NotFoundError"
+    | "NotReadableError"
+    | "OverconstrainedError"
+    | "SecurityError"
+    | "TypeError"
+    | "AbortError";
 }
 
-export interface CanvasElementRef {
-  current: HTMLCanvasElement | null;
+export interface ApiError extends Error {
+  status?: number;
+  code?: string;
 }
 
-export interface DivElementRef {
-  current: HTMLDivElement | null;
+// Hook return type for better type safety
+export interface UseBarcodeDetectionReturn {
+  // Refs
+  videoRef: React.RefObject<HTMLVideoElement>;
+  canvasRef: React.RefObject<HTMLCanvasElement>;
+  containerRef: React.RefObject<HTMLDivElement>;
+
+  // State
+  isStreaming: boolean;
+  detections: Detection[];
+  processingQueue: number;
+  lastDetectedCode: string;
+  stats: Stats;
+  errors: string | null;
+  videoConstraints: VideoConstraints;
+
+  // Actions
+  startCamera: () => Promise<void>;
+  stopCamera: () => void;
+  switchCamera: () => void;
+  captureAndProcess: () => Promise<void>;
+  drawDetections: () => void;
+  updateCanvasSize: () => void;
+  clearError: () => void;
 }
