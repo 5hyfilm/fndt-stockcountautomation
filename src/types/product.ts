@@ -1,3 +1,4 @@
+// src/types/product.ts - Updated with debug property
 export interface Product {
   id: string;
   barcode: string;
@@ -71,10 +72,17 @@ export interface ProductSearchParams {
   offset?: number;
 }
 
+// Updated ProductResponse interface with debug property
 export interface ProductResponse {
   success: boolean;
   data?: Product;
   error?: string;
+  debug?: {
+    searchedBarcode?: string;
+    cleanBarcode?: string;
+    availableBarcodes?: string[];
+    [key: string]: any; // Allow for additional debug properties
+  };
 }
 
 export interface ProductListResponse {
@@ -82,4 +90,10 @@ export interface ProductListResponse {
   data?: Product[];
   total?: number;
   error?: string;
+  stats?: {
+    totalProducts: number;
+    activeProducts: number;
+    categories: number;
+    brands: number;
+  };
 }
