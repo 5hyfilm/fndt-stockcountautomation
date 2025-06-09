@@ -1,52 +1,41 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
-  typescript: {
-    // ป้องกันไม่ให้ build หยุดเมื่อมี TypeScript errors
-    ignoreBuildErrors: false,
-  },
-  eslint: {
-    // ป้องกันไม่ให้ build หยุดเมื่อมี ESLint errors
-    ignoreDuringBuilds: false,
-  },
-  // ปิด Turbopack เพื่อแก้ปัญหา TypeScript API routes
-  // experimental: {
-  //   turbo: undefined,
-  // },
-
-  // การตั้งค่าสำหรับ API routes
-  async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        destination: "/api/:path*",
-      },
-    ];
+// next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Enable static file serving
+  experimental: {
+    // This ensures CSV files in public folder are properly served
+    serverComponentsExternalPackages: ["papaparse"],
   },
 
-  // Headers สำหรับ CORS ถ้าจำเป็น
+  // Headers for proper CSV serving
   async headers() {
     return [
       {
-        source: "/api/:path*",
+        source: "/product_list_csv.csv",
         headers: [
           {
-            key: "Access-Control-Allow-Origin",
-            value: "*",
+            key: "Content-Type",
+            value: "text/csv",
           },
           {
-            key: "Access-Control-Allow-Methods",
-            value: "GET, POST, PUT, DELETE, OPTIONS",
-          },
-          {
-            key: "Access-Control-Allow-Headers",
-            value: "Content-Type, Authorization",
+            key: "Cache-Control",
+            value: "public, max-age=3600, must-revalidate",
           },
         ],
       },
     ];
   },
+
+  // Handle webpack configuration for CSV parsing
+  webpack: (config) => {
+    // Handle CSV files
+    config.module.rules.push({
+      test: /\.csv$/,
+      type: "asset/resource",
+    });
+
+    return config;
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig;

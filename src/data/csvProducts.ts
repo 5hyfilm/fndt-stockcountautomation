@@ -1,4 +1,4 @@
-// src/data/csvProducts.ts - Fixed CSV Product Data Handler with Fallback
+// src/data/csvProducts.ts - Fixed version with proper file handling
 import Papa from "papaparse";
 import { Product, ProductCategory, ProductStatus } from "../types/product";
 import {
@@ -6,6 +6,8 @@ import {
   findFallbackProductByBarcode,
   getFallbackStats,
 } from "./fallbackProducts";
+import { promises as fs } from "fs";
+import path from "path";
 
 // CSV Row interface based on the actual CSV structure
 interface CSVProductRow {
@@ -171,6 +173,92 @@ let csvProducts: Product[] = [];
 let csvLoaded = false;
 let csvLoading = false;
 
+// Function to read CSV file with proper environment handling
+const readCSVFile = async (): Promise<string> => {
+  // Check if we're in browser environment
+  if (typeof window !== "undefined") {
+    console.log("🌐 Loading CSV from browser environment...");
+
+    // Browser environment - use fetch with proper base URL
+    const baseUrl = window.location.origin;
+    const csvUrl = `${baseUrl}/product_list_csv.csv`;
+
+    console.log("📡 Fetching from:", csvUrl);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const response = await fetch(csvUrl, {
+        signal: controller.signal,
+        cache: "no-cache",
+        headers: {
+          Accept: "text/csv, text/plain, */*",
+        },
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch CSV: HTTP ${response.status} ${response.statusText}`
+        );
+      }
+
+      const csvText = await response.text();
+      console.log("✅ CSV loaded from browser, size:", csvText.length);
+      return csvText;
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === "AbortError") {
+        throw new Error("Failed to fetch CSV: Request timeout");
+      }
+      throw new Error(`Failed to fetch CSV: ${fetchError.message}`);
+    }
+  } else {
+    console.log("🖥️ Loading CSV from server environment...");
+
+    // Server environment - use fs to read file
+    try {
+      const csvPath = path.join(
+        process.cwd(),
+        "public",
+        "product_list_csv.csv"
+      );
+      console.log("📂 Reading from path:", csvPath);
+
+      const csvText = await fs.readFile(csvPath, "utf-8");
+      console.log("✅ CSV loaded from server, size:", csvText.length);
+      return csvText;
+    } catch (fsError: any) {
+      console.error("❌ Server file read error:", fsError);
+
+      // Fallback to fetch in server environment (for edge cases)
+      console.log("🔄 Trying fetch fallback in server...");
+      const csvUrl = `${
+        process.env.NEXTAUTH_URL || "http://localhost:3000"
+      }/product_list_csv.csv`;
+
+      try {
+        const response = await fetch(csvUrl, {
+          signal: AbortSignal.timeout(10000),
+          cache: "no-cache",
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        return await response.text();
+      } catch (fetchFallbackError: any) {
+        throw new Error(
+          `Both fs and fetch failed: ${fsError.message} | ${fetchFallbackError.message}`
+        );
+      }
+    }
+  }
+};
+
 export const loadCSVProducts = async (): Promise<Product[]> => {
   if (csvLoaded && csvProducts.length > 0) {
     console.log("📋 Using cached CSV products:", csvProducts.length);
@@ -196,40 +284,10 @@ export const loadCSVProducts = async (): Promise<Product[]> => {
   csvLoading = true;
 
   try {
-    console.log("🔄 Loading CSV product data from file...");
+    console.log("🔄 Loading CSV product data...");
 
-    // Fetch CSV file from public directory with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-    let response: Response;
-    try {
-      response = await fetch("/product_list_csv.csv", {
-        signal: controller.signal,
-        cache: "no-cache", // Ensure fresh data
-      });
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId);
-      if (fetchError.name === "AbortError") {
-        throw new Error("Failed to fetch CSV: Request timeout");
-      }
-      throw new Error(`Failed to fetch CSV: ${fetchError.message}`);
-    }
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch CSV: ${response.status} ${response.statusText}`
-      );
-    }
-
-    let csvText: string;
-    try {
-      csvText = await response.text();
-    } catch (textError) {
-      throw new Error("Failed to read CSV file content");
-    }
+    // Read CSV file using environment-appropriate method
+    const csvText = await readCSVFile();
 
     if (!csvText || csvText.trim().length === 0) {
       throw new Error("CSV file is empty or invalid");
@@ -423,39 +481,72 @@ export const searchProducts = async (params: {
   brand?: string;
   status?: ProductStatus;
 }): Promise<Product[]> => {
-  const products = await loadCSVProducts();
+  try {
+    const products = await loadCSVProducts();
 
-  return products.filter((product) => {
-    if (
-      params.name &&
-      !product.name.toLowerCase().includes(params.name.toLowerCase()) &&
-      !product.name_en?.toLowerCase().includes(params.name.toLowerCase())
-    ) {
-      return false;
-    }
-    if (params.category && product.category !== params.category) {
-      return false;
-    }
-    if (params.brand && product.brand !== params.brand) {
-      return false;
-    }
-    if (params.status && product.status !== params.status) {
-      return false;
-    }
-    return true;
-  });
+    return products.filter((product) => {
+      if (
+        params.name &&
+        !product.name.toLowerCase().includes(params.name.toLowerCase()) &&
+        !product.name_en?.toLowerCase().includes(params.name.toLowerCase())
+      ) {
+        return false;
+      }
+      if (params.category && product.category !== params.category) {
+        return false;
+      }
+      if (params.brand && product.brand !== params.brand) {
+        return false;
+      }
+      if (params.status && product.status !== params.status) {
+        return false;
+      }
+      return true;
+    });
+  } catch (error) {
+    console.warn("⚠️ Using fallback products for search:", error);
+    return FALLBACK_PRODUCTS.filter((product) => {
+      if (
+        params.name &&
+        !product.name.toLowerCase().includes(params.name.toLowerCase()) &&
+        !product.name_en?.toLowerCase().includes(params.name.toLowerCase())
+      ) {
+        return false;
+      }
+      if (params.category && product.category !== params.category) {
+        return false;
+      }
+      if (params.brand && product.brand !== params.brand) {
+        return false;
+      }
+      if (params.status && product.status !== params.status) {
+        return false;
+      }
+      return true;
+    });
+  }
 };
 
 export const getProductsByCategory = async (
   category: ProductCategory
 ): Promise<Product[]> => {
-  const products = await loadCSVProducts();
-  return products.filter((product) => product.category === category);
+  try {
+    const products = await loadCSVProducts();
+    return products.filter((product) => product.category === category);
+  } catch (error) {
+    console.warn("⚠️ Using fallback products for category search:", error);
+    return FALLBACK_PRODUCTS.filter((product) => product.category === category);
+  }
 };
 
 export const getAllBrands = async (): Promise<string[]> => {
-  const products = await loadCSVProducts();
-  return [...new Set(products.map((product) => product.brand))];
+  try {
+    const products = await loadCSVProducts();
+    return [...new Set(products.map((product) => product.brand))];
+  } catch (error) {
+    console.warn("⚠️ Using fallback products for brands:", error);
+    return [...new Set(FALLBACK_PRODUCTS.map((product) => product.brand))];
+  }
 };
 
 export const getProductStats = async () => {
@@ -482,13 +573,24 @@ export const getProductStats = async () => {
 
 // Debug function
 export const debugBarcodeMatching = async () => {
-  const products = await loadCSVProducts();
-  console.log("📊 Barcode Debug Info:");
-  products.slice(0, 10).forEach((product, index) => {
-    console.log(
-      `${index + 1}. ${product.name}: ${product.barcode} (${
-        product.barcode.length
-      } digits) - ${product.brand}`
-    );
-  });
+  try {
+    const products = await loadCSVProducts();
+    console.log("📊 Barcode Debug Info:");
+    products.slice(0, 10).forEach((product, index) => {
+      console.log(
+        `${index + 1}. ${product.name}: ${product.barcode} (${
+          product.barcode.length
+        } digits) - ${product.brand}`
+      );
+    });
+  } catch (error) {
+    console.log("📊 Fallback Barcode Debug Info:");
+    FALLBACK_PRODUCTS.slice(0, 5).forEach((product, index) => {
+      console.log(
+        `${index + 1}. ${product.name}: ${product.barcode} (${
+          product.barcode.length
+        } digits) - ${product.brand}`
+      );
+    });
+  }
 };
