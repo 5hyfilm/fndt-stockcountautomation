@@ -1,4 +1,4 @@
-// src/hooks/useBarcodeDetection.tsx - Updated with inventory integration
+// src/hooks/useBarcodeDetection.tsx - Updated Version
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
@@ -25,7 +25,6 @@ export const useBarcodeDetection = () => {
   const [processingQueue, setProcessingQueue] = useState(0);
   const [lastDetectedCode, setLastDetectedCode] = useState<string>("");
   const [errors, setErrors] = useState<string | null>(null);
-  const [isProcessingPaused, setIsProcessingPaused] = useState(false);
   const [stats, setStats] = useState<Stats>({
     rotation: 0,
     method: "",
@@ -55,26 +54,6 @@ export const useBarcodeDetection = () => {
     clearProductError();
   }, [clearProductError]);
 
-  // Reset detection state (useful after saving inventory)
-  const resetDetectionState = useCallback(() => {
-    setLastDetectedCode("");
-    setDetections([]);
-    clearProduct();
-    setIsProcessingPaused(false);
-    console.log("🔄 Detection state reset - ready for next scan");
-  }, [clearProduct]);
-
-  // Pause/Resume processing
-  const pauseProcessing = useCallback(() => {
-    setIsProcessingPaused(true);
-    console.log("⏸️ Processing paused");
-  }, []);
-
-  const resumeProcessing = useCallback(() => {
-    setIsProcessingPaused(false);
-    console.log("▶️ Processing resumed");
-  }, []);
-
   // Start camera
   const startCamera = useCallback(async () => {
     try {
@@ -96,7 +75,6 @@ export const useBarcodeDetection = () => {
         });
 
         updateCanvasSize();
-        console.log("📹 Camera started successfully");
       }
     } catch (error: any) {
       console.error("Error starting camera:", error);
@@ -126,9 +104,7 @@ export const useBarcodeDetection = () => {
     setDetections([]);
     setProcessingQueue(0);
     setLastDetectedCode("");
-    setIsProcessingPaused(false);
     clearProduct();
-    console.log("📹 Camera stopped");
   }, [clearProduct]);
 
   // Switch camera
@@ -228,7 +204,7 @@ export const useBarcodeDetection = () => {
   // Capture and process frame
   const captureAndProcess = useCallback(async () => {
     const video = videoRef.current;
-    if (!video || processingQueue >= 3 || isProcessingPaused) return;
+    if (!video || processingQueue >= 3) return;
 
     try {
       setProcessingQueue((prev) => prev + 1);
@@ -277,19 +253,14 @@ export const useBarcodeDetection = () => {
           const latestBarcode = result.barcodes[0];
           const barcodeData = latestBarcode.data;
 
-          // Only update if it's a different barcode
-          if (barcodeData && barcodeData !== lastDetectedCode) {
-            setLastDetectedCode(barcodeData);
+          setLastDetectedCode(barcodeData);
 
+          // Auto-fetch product info when new barcode is detected
+          if (barcodeData && barcodeData !== lastDetectedCode) {
             console.log(
               "🔍 New barcode detected, fetching product info:",
               barcodeData
             );
-
-            // Pause processing temporarily to prevent multiple scans
-            setIsProcessingPaused(true);
-
-            // Auto-fetch product info when new barcode is detected
             updateBarcode(barcodeData);
           }
         }
@@ -310,7 +281,7 @@ export const useBarcodeDetection = () => {
     } finally {
       setProcessingQueue((prev) => Math.max(0, prev - 1));
     }
-  }, [processingQueue, lastDetectedCode, updateBarcode, isProcessingPaused]);
+  }, [processingQueue, lastDetectedCode, updateBarcode]);
 
   // Auto-restart camera when constraints change
   useEffect(() => {
@@ -320,21 +291,6 @@ export const useBarcodeDetection = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoConstraints.facingMode]);
-
-  // Resume processing when product loading completes
-  useEffect(() => {
-    if (!isLoadingProduct && isProcessingPaused && lastDetectedCode) {
-      // Auto-resume processing after 2 seconds if no product found
-      const timeoutId = setTimeout(() => {
-        if (!product) {
-          console.log("⏰ No product found, resuming scanning...");
-          setIsProcessingPaused(false);
-        }
-      }, 2000);
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [isLoadingProduct, isProcessingPaused, lastDetectedCode, product]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -359,7 +315,6 @@ export const useBarcodeDetection = () => {
     stats,
     errors,
     videoConstraints,
-    isProcessingPaused,
 
     // Product info
     product,
@@ -374,8 +329,5 @@ export const useBarcodeDetection = () => {
     drawDetections,
     updateCanvasSize,
     clearError,
-    resetDetectionState,
-    pauseProcessing,
-    resumeProcessing,
   };
 };
