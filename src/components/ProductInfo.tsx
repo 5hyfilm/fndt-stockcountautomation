@@ -1,4 +1,4 @@
-// src/components/ProductInfo.tsx - Updated with Multi-Barcode Support
+// src/components/ProductInfo.tsx - Updated with Multi-Barcode Support and Quantity Input
 "use client";
 
 import React, { useState } from "react";
@@ -17,6 +17,9 @@ import {
   Tag,
   Weight,
   Coffee,
+  Plus,
+  Minus,
+  ShoppingCart,
 } from "lucide-react";
 import { Product, ProductCategory } from "../types/product";
 import { BarcodeUnitDisplay } from "./BarcodeUnitDisplay";
@@ -77,6 +80,8 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
   const [copied, setCopied] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showNutrition, setShowNutrition] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [showQuantityInput, setShowQuantityInput] = useState(false);
 
   const copyBarcode = async () => {
     const codeToCopy = barcode || product?.barcode;
@@ -90,6 +95,49 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
       console.error("Failed to copy barcode:", err);
     }
   };
+
+  // ฟังก์ชันจัดการจำนวนสินค้า
+  const handleQuantityChange = (value: number) => {
+    if (value >= 1 && value <= 999) {
+      setQuantity(value);
+    }
+  };
+
+  const increaseQuantity = () => {
+    if (quantity < 999) {
+      setQuantity(quantity + 1);
+    }
+  };
+
+  const decreaseQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(quantity - 1);
+    }
+  };
+
+  const handleAddToCart = () => {
+    // ฟังก์ชันนี้จะใช้ในอนาคตสำหรับเพิ่มลงตะกร้า
+    console.log(`Added ${quantity} of ${product?.name} to cart`);
+    alert(
+      `เพิ่ม ${product?.name} จำนวน ${quantity} ${
+        product?.unit || "ชิ้น"
+      } แล้ว!`
+    );
+
+    // Reset quantity และซ่อน input
+    setQuantity(1);
+    setShowQuantityInput(false);
+  };
+
+  // แสดง quantity input เมื่อพบสินค้า
+  React.useEffect(() => {
+    if (product && !error) {
+      setShowQuantityInput(true);
+    } else {
+      setShowQuantityInput(false);
+      setQuantity(1);
+    }
+  }, [product, error]);
 
   if (isLoading) {
     return (
@@ -230,6 +278,81 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
             </div>
           )}
         </div>
+
+        {/* Quantity Input Section */}
+        {showQuantityInput && (
+          <div className="bg-gradient-to-r from-fn-green/10 to-fn-red/10 border border-fn-green/30 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="bg-fn-green/20 p-2 rounded-lg">
+                <ShoppingCart size={16} className="fn-green" />
+              </div>
+              <span className="text-lg font-semibold text-gray-800">
+                เพิ่มลงตะกร้า
+              </span>
+            </div>
+
+            <div className="flex items-center gap-4">
+              {/* Quantity Controls */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 min-w-[60px]">
+                  จำนวน:
+                </span>
+                <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                  <button
+                    onClick={decreaseQuantity}
+                    disabled={quantity <= 1}
+                    className="bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 px-3 py-2 transition-colors"
+                  >
+                    <Minus size={16} />
+                  </button>
+                  <input
+                    type="number"
+                    value={quantity}
+                    onChange={(e) =>
+                      handleQuantityChange(parseInt(e.target.value) || 1)
+                    }
+                    min="1"
+                    max="999"
+                    className="w-16 text-center py-2 border-none outline-none bg-white text-gray-900 font-medium"
+                  />
+                  <button
+                    onClick={increaseQuantity}
+                    disabled={quantity >= 999}
+                    className="bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 px-3 py-2 transition-colors"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+                <span className="text-sm text-gray-600">
+                  {product.unit || "ชิ้น"}
+                </span>
+              </div>
+
+              {/* Add to Cart Button */}
+              <button
+                onClick={handleAddToCart}
+                className="bg-fn-green hover:bg-fn-green/90 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 border border-fn-green ml-auto"
+              >
+                <ShoppingCart size={16} />
+                <span>เพิ่มลงตะกร้า</span>
+              </button>
+            </div>
+
+            {/* Unit Type Display */}
+            {product.barcodes?.scannedType && (
+              <div className="mt-3 text-xs text-gray-600 bg-white/50 rounded p-2">
+                📦 หน่วยที่สแกน:{" "}
+                {product.barcodes.scannedType === "ea"
+                  ? "ชิ้น (Each)"
+                  : product.barcodes.scannedType === "dsp"
+                  ? "แพ็ค (Display Pack)"
+                  : product.barcodes.scannedType === "cs"
+                  ? "ลัง (Case/Carton)"
+                  : "ไม่ทราบ"}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Description */}
         {product.description && (
