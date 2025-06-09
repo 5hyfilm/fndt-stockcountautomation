@@ -1,16 +1,33 @@
-// src/app/page.tsx - Updated Version
+// src/app/page.tsx - Updated Version with Inventory Management
 "use client";
 
-import React, { useEffect } from "react";
-import { Camera, Sparkles, Package, Info } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import {
+  Camera,
+  Sparkles,
+  Package,
+  Info,
+  History,
+  Settings,
+} from "lucide-react";
 import Image from "next/image";
 import { useBarcodeDetection } from "../hooks/useBarcodeDetection";
+import { useInventory } from "../hooks/useInventory";
 import { CameraSection } from "../components/CameraSection";
 import { DetectionsList } from "../components/DetectionsList";
 import { ProductInfo } from "../components/ProductInfo";
+import { QuantityInput } from "../components/QuantityInput";
+import { SessionManager } from "../components/SessionManager";
+import { InventoryHistory } from "../components/InventoryHistory";
+import { ScanStatusDisplay } from "../components/ScanStatusDisplay";
 import { ErrorDisplay } from "../components/ErrorDisplay";
 
 export default function BarcodeDetectionPage() {
+  const [activeTab, setActiveTab] = useState<"scan" | "history" | "session">(
+    "scan"
+  );
+  const [showQuantityInput, setShowQuantityInput] = useState(false);
+
   const {
     videoRef,
     canvasRef,
@@ -32,11 +49,20 @@ export default function BarcodeDetectionPage() {
     clearError,
   } = useBarcodeDetection();
 
+  const {
+    saveInventoryItem,
+    currentSession,
+    hasActiveSession,
+    isLoading: isInventoryLoading,
+    error: inventoryError,
+    clearError: clearInventoryError,
+  } = useInventory();
+
   // ประมวลผลอัตโนมัติ Real-time
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
-    if (isStreaming) {
+    if (isStreaming && !showQuantityInput) {
       interval = setInterval(() => {
         captureAndProcess();
       }, 300);
@@ -45,7 +71,47 @@ export default function BarcodeDetectionPage() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isStreaming, captureAndProcess]);
+  }, [isStreaming, captureAndProcess, showQuantityInput]);
+
+  // แสดง QuantityInput เมื่อสแกนสินค้าสำเร็จ
+  useEffect(() => {
+    if (product && lastDetectedCode && !showQuantityInput) {
+      setShowQuantityInput(true);
+    }
+  }, [product, lastDetectedCode, showQuantityInput]);
+
+  // Handle saving inventory
+  const handleSaveInventory = async (
+    quantity: number,
+    unit: "ea" | "dsp" | "cs",
+    notes?: string
+  ) => {
+    if (!product) return;
+
+    try {
+      const result = await saveInventoryItem(product, quantity, unit, notes);
+
+      if (result.success) {
+        console.log("✅ Inventory saved successfully");
+        // Reset the scanning state
+        setShowQuantityInput(false);
+        // Continue scanning for next item
+      } else {
+        console.error("❌ Failed to save inventory:", result.error);
+      }
+    } catch (error) {
+      console.error("❌ Error saving inventory:", error);
+    }
+  };
+
+  const handleClearAllErrors = () => {
+    clearError();
+    clearInventoryError();
+  };
+
+  const handleCancelQuantityInput = () => {
+    setShowQuantityInput(false);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -69,9 +135,6 @@ export default function BarcodeDetectionPage() {
               {/* Title Section */}
               <div className="text-center">
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold flex items-center justify-center gap-2 sm:gap-3">
-                  {/* <div className="bg-fn-green/10 p-2 rounded-lg border border-fn-green/20">
-                    <Camera className="fn-green" size={24} />
-                  </div> */}
                   <span className="fn-gradient-text">ระบบตรวจจับ Barcode</span>
                   <Sparkles className="fn-red" size={20} />
                 </h1>
@@ -82,113 +145,196 @@ export default function BarcodeDetectionPage() {
             </div>
           </div>
 
-          {/* Status Bar */}
-          {/* <div className="flex items-center justify-center gap-4 text-xs text-gray-600">
-            <div className="flex items-center gap-1">
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  isStreaming ? "bg-green-500" : "bg-red-500"
+          {/* Tab Navigation */}
+          <div className="flex justify-center">
+            <div className="bg-gray-100 rounded-xl p-1 flex">
+              <button
+                onClick={() => setActiveTab("scan")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === "scan"
+                    ? "bg-white text-fn-green shadow-sm"
+                    : "text-gray-600 hover:text-gray-800"
                 }`}
-              ></div>
-              <span>{isStreaming ? "กล้องทำงาน" : "กล้องหยุด"}</span>
+              >
+                <Camera size={16} className="inline mr-2" />
+                สแกน
+              </button>
+              <button
+                onClick={() => setActiveTab("session")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === "session"
+                    ? "bg-white text-fn-green shadow-sm"
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+              >
+                <Settings size={16} className="inline mr-2" />
+                เซชัน
+              </button>
+              <button
+                onClick={() => setActiveTab("history")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === "history"
+                    ? "bg-white text-fn-green shadow-sm"
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+              >
+                <History size={16} className="inline mr-2" />
+                ประวัติ
+              </button>
             </div>
-
-            {lastDetectedCode && (
-              <div className="flex items-center gap-1">
-                <Package size={12} className="fn-green" />
-                <span>สแกนแล้ว: {lastDetectedCode.substring(0, 8)}...</span>
-              </div>
-            )}
-
-            {product && (
-              <div className="flex items-center gap-1">
-                <Info size={12} className="text-blue-500" />
-                <span className="text-blue-600 font-medium">
-                  {product.name}
-                </span>
-              </div>
-            )}
-          </div> */}
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-4 sm:py-6">
         {/* Error Display */}
-        {(errors || productError) && (
+        {(errors || productError || inventoryError) && (
           <div className="mb-4">
             <ErrorDisplay
-              error={errors || productError || ""}
-              onDismiss={clearError}
+              error={errors || productError || inventoryError || ""}
+              onDismiss={handleClearAllErrors}
               onRetry={() => {
-                clearError();
+                handleClearAllErrors();
                 if (!isStreaming) startCamera();
               }}
             />
           </div>
         )}
 
-        {/* Layout Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 lg:gap-6">
-          {/* Camera Section */}
-          <div className="xl:col-span-3">
-            <CameraSection
-              videoRef={videoRef}
-              canvasRef={canvasRef}
-              containerRef={containerRef}
-              isStreaming={isStreaming}
-              processingQueue={processingQueue}
-              detections={detections}
-              startCamera={startCamera}
-              stopCamera={stopCamera}
-              switchCamera={switchCamera}
-              captureAndProcess={captureAndProcess}
-              drawDetections={drawDetections}
-              updateCanvasSize={updateCanvasSize}
-            />
+        {/* Session Warning */}
+        {activeTab === "scan" && !hasActiveSession && (
+          <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-amber-800">
+              <Info size={16} />
+              <span className="text-sm">
+                <strong>แนะนำ:</strong>{" "}
+                สร้างเซชันใหม่ก่อนเริ่มสแกนเพื่อจัดกลุ่มข้อมูล
+              </span>
+              <button
+                onClick={() => setActiveTab("session")}
+                className="ml-auto bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded text-sm"
+              >
+                สร้างเซชัน
+              </button>
+            </div>
           </div>
+        )}
 
-          {/* Results Sidebar */}
-          <div className="xl:col-span-2 space-y-4">
-            {/* Product Information */}
-            <div>
-              <div className="mb-3 flex items-center gap-2">
-                <Package className="fn-green" size={20} />
-                <h3 className="text-lg font-semibold text-gray-900">
-                  ข้อมูลสินค้า
-                </h3>
-                {isLoadingProduct && (
-                  <div className="animate-spin w-4 h-4 border-2 border-fn-green border-t-transparent rounded-full"></div>
-                )}
-              </div>
-
-              <ProductInfo
-                product={product}
-                barcode={lastDetectedCode}
-                isLoading={isLoadingProduct}
-                error={productError || undefined}
+        {/* Tab Content */}
+        {activeTab === "scan" && (
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 lg:gap-6">
+            {/* Camera Section */}
+            <div className="xl:col-span-3">
+              <CameraSection
+                videoRef={videoRef}
+                canvasRef={canvasRef}
+                containerRef={containerRef}
+                isStreaming={isStreaming}
+                processingQueue={processingQueue}
+                detections={detections}
+                startCamera={startCamera}
+                stopCamera={stopCamera}
+                switchCamera={switchCamera}
+                captureAndProcess={captureAndProcess}
+                drawDetections={drawDetections}
+                updateCanvasSize={updateCanvasSize}
               />
             </div>
 
-            {/* Quick Barcode Display */}
-            {/* {lastDetectedCode && (
-              <div className="lg:hidden">
-                <DetectionsList lastDetectedCode={lastDetectedCode} />
-              </div>
-            )} */}
-          </div>
-        </div>
+            {/* Results Sidebar */}
+            <div className="xl:col-span-2 space-y-4">
+              {/* Quantity Input (if product scanned) */}
+              {showQuantityInput && product ? (
+                <div>
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Package className="fn-green" size={20} />
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        บันทึกจำนวน
+                      </h3>
+                    </div>
+                    <button
+                      onClick={handleCancelQuantityInput}
+                      className="text-gray-500 hover:text-gray-700 text-sm"
+                    >
+                      ข้าม
+                    </button>
+                  </div>
 
-        {/* Mobile Tips */}
-        {/* <div className="xl:hidden mt-6 bg-white rounded-lg p-4 text-center border border-gray-200 shadow-sm">
-          <p className="text-gray-700 text-sm mb-2">💡 เคล็ดลับสำหรับมือถือ</p>
-          <div className="text-xs text-gray-500 space-y-1">
-            <p>• ใช้ในแนวนอนเพื่อประสบการณ์ที่ดีที่สุด</p>
-            <p>• วางบาร์โค้ดให้อยู่ตรงกลางหน้าจอ</p>
-            <p>• ให้แสงเพียงพอเพื่อการสแกนที่แม่นยำ</p>
-            <p>• ระบบจะแสดงข้อมูลสินค้าอัตโนมัติเมื่อสแกนสำเร็จ</p>
+                  <QuantityInput
+                    product={product}
+                    onSave={handleSaveInventory}
+                    isLoading={isInventoryLoading}
+                  />
+                </div>
+              ) : (
+                /* Product Information */
+                <div>
+                  <div className="mb-3 flex items-center gap-2">
+                    <Package className="fn-green" size={20} />
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      ข้อมูลสินค้า
+                    </h3>
+                    {isLoadingProduct && (
+                      <div className="animate-spin w-4 h-4 border-2 border-fn-green border-t-transparent rounded-full"></div>
+                    )}
+                  </div>
+
+                  <ProductInfo
+                    product={product}
+                    barcode={lastDetectedCode}
+                    isLoading={isLoadingProduct}
+                    error={productError || undefined}
+                  />
+                </div>
+              )}
+            </div>
           </div>
-        </div> */}
+        )}
+
+        {activeTab === "session" && (
+          <div className="max-w-2xl mx-auto">
+            <SessionManager />
+          </div>
+        )}
+
+        {activeTab === "history" && (
+          <div className="max-w-4xl mx-auto">
+            <InventoryHistory showFilters={true} showSession={true} />
+          </div>
+        )}
+
+        {/* Instructions for Scan Tab */}
+        {activeTab === "scan" && (
+          <div className="mt-6 bg-white rounded-lg p-4 text-center border border-gray-200 shadow-sm">
+            <h4 className="font-medium text-gray-900 mb-2">
+              💡 วิธีใช้งานระบบ
+            </h4>
+            <div className="text-sm text-gray-600 space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                    1
+                  </div>
+                  <span>เริ่มกล้องและสแกน barcode</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="bg-green-100 text-green-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                    2
+                  </div>
+                  <span>กรอกจำนวนสินค้าที่พบ</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="bg-purple-100 text-purple-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                    3
+                  </div>
+                  <span>บันทึกและสแกนต่อ</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Product Stats - Desktop Only */}
         <div className="hidden xl:block mt-6">
@@ -208,10 +354,10 @@ export default function BarcodeDetectionPage() {
               </div>
               <div>
                 <div className="text-2xl font-bold text-orange-600">
-                  {product ? "✅" : "⏳"}
+                  {hasActiveSession ? "🟢" : "🔴"}
                 </div>
                 <div className="text-xs text-gray-600">
-                  {product ? "พบสินค้า" : "รอสแกน"}
+                  {hasActiveSession ? "เซชันทำงาน" : "ไม่มีเซชัน"}
                 </div>
               </div>
             </div>
@@ -223,16 +369,17 @@ export default function BarcodeDetectionPage() {
       <div className="bg-white/80 border-t border-gray-200 mt-8 shadow-sm">
         <div className="container mx-auto px-4 py-4 text-center">
           <p className="text-xs sm:text-sm text-gray-600">
-            F&N Quality Control System | ระบบตรวจจับ Barcode แบบ Real-time
-            พร้อมข้อมูลสินค้า |
+            F&N Quality Control System | ระบบตรวจจับ Barcode พร้อมการจัดการสต็อก
+            |
             <span className="fn-green font-medium">
               {" "}
               พัฒนาด้วย Next.js & AI
             </span>
           </p>
-          {product && (
+          {currentSession && (
             <p className="text-xs text-gray-500 mt-1">
-              🎯 กำลังแสดงข้อมูล: {product.name} ({product.brand})
+              🎯 เซชันปัจจุบัน: {currentSession.name} (
+              {currentSession.totalItems} รายการ)
             </p>
           )}
         </div>
