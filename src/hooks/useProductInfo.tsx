@@ -1,4 +1,4 @@
-// src/hooks/useProductInfo.tsx - Enhanced version
+// src/hooks/useProductInfo.tsx - Enhanced version with better error handling
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
@@ -60,24 +60,30 @@ export const useProductInfo = () => {
             headers: {
               "Content-Type": "application/json",
             },
+            // Add timeout
+            signal: AbortSignal.timeout(10000), // 10 second timeout
           }
         );
 
         console.log("📡 API Response status:", response.status);
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        let result: ProductResponse;
+
+        try {
+          result = await response.json();
+        } catch (parseError) {
+          console.error("❌ Failed to parse JSON response:", parseError);
+          throw new Error("ไม่สามารถแปลงข้อมูลจาก API ได้");
         }
 
-        const result: ProductResponse = await response.json();
         console.log("📄 API Result:", result);
 
-        if (result.success && result.data) {
+        if (response.ok && result.success && result.data) {
           console.log("✅ Product found:", result.data.name);
           setProduct(result.data);
           setError(null);
         } else {
-          console.log("❌ Product not found:", result.error);
+          console.log("❌ Product not found or API error:", result.error);
           setProduct(null);
 
           // Show debug info if available
@@ -85,12 +91,31 @@ export const useProductInfo = () => {
             console.log("🐛 Debug info:", result.debug);
           }
 
-          setError(result.error || "ไม่พบข้อมูลสินค้า");
+          // Handle different error cases
+          if (response.status === 404) {
+            setError("ไม่พบข้อมูลสินค้าในระบบ");
+          } else if (response.status === 500) {
+            setError("เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง");
+          } else {
+            setError(result.error || "ไม่พบข้อมูลสินค้า");
+          }
         }
       } catch (err: any) {
         console.error("❌ Error fetching product:", err);
         setProduct(null);
-        setError(`เกิดข้อผิดพลาดในการค้นหาสินค้า: ${err.message}`);
+
+        // Handle different types of errors
+        if (err.name === "TimeoutError") {
+          setError("การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่");
+        } else if (err.name === "TypeError" && err.message.includes("fetch")) {
+          setError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+        } else if (err.message.includes("AbortError")) {
+          setError("การค้นหาถูกยกเลิก");
+        } else {
+          setError(
+            `เกิดข้อผิดพลาด: ${err.message || "ข้อผิดพลาดที่ไม่ทราบสาเหตุ"}`
+          );
+        }
       } finally {
         setIsLoading(false);
       }
@@ -109,7 +134,14 @@ export const useProductInfo = () => {
           old: lastNormalized,
           new: normalizedBarcode,
         });
-        fetchProductByBarcode(normalizedBarcode);
+
+        // Add a small delay to prevent too many rapid calls
+        const timeoutId = setTimeout(() => {
+          fetchProductByBarcode(normalizedBarcode);
+        }, 300);
+
+        // Cleanup function to cancel if another barcode comes quickly
+        return () => clearTimeout(timeoutId);
       }
     },
     [fetchProductByBarcode, lastSearchedBarcode, normalizeBarcode]
@@ -170,11 +202,20 @@ export const useProductList = () => {
           searchParams.set("offset", params.offset.toString());
 
         const response = await fetch(
-          `/api/products?${searchParams.toString()}`
+          `/api/products?${searchParams.toString()}`,
+          {
+            signal: AbortSignal.timeout(15000), // 15 second timeout
+          }
         );
-        const result = await response.json();
 
-        if (result.success) {
+        let result;
+        try {
+          result = await response.json();
+        } catch (parseError) {
+          throw new Error("ไม่สามารถแปลงข้อมูลจาก API ได้");
+        }
+
+        if (response.ok && result.success) {
           setProducts(result.data || []);
           setTotal(result.total || 0);
           setError(null);
@@ -185,7 +226,14 @@ export const useProductList = () => {
       } catch (err: any) {
         console.error("Error fetching products:", err);
         setProducts([]);
-        setError(`เกิดข้อผิดพลาด: ${err.message}`);
+
+        if (err.name === "TimeoutError") {
+          setError("การเชื่อมต่อใช้เวลานานเกินไป");
+        } else if (err.name === "TypeError" && err.message.includes("fetch")) {
+          setError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+        } else {
+          setError(`เกิดข้อผิดพลาด: ${err.message}`);
+        }
       } finally {
         setIsLoading(false);
       }
