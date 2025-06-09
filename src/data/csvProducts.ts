@@ -1,4 +1,4 @@
-// src/data/csvProducts.ts - Fixed version with proper file handling
+// src/data/csvProducts.ts - Enhanced version with multi-barcode support
 import Papa from "papaparse";
 import { Product, ProductCategory, ProductStatus } from "../types/product";
 import {
@@ -22,6 +22,17 @@ interface CSVProductRow {
   "Bar Code CS": string;
 }
 
+// Enhanced Product interface with multiple barcodes
+interface ProductWithMultipleBarcodes extends Product {
+  barcodes: {
+    ea?: string; // Each unit
+    dsp?: string; // Display pack
+    cs?: string; // Case/Carton
+    primary: string; // Primary barcode for display
+    scannedType?: "ea" | "dsp" | "cs"; // Which barcode was scanned
+  };
+}
+
 // Product group to category mapping
 const PRODUCT_GROUP_MAPPING: Record<string, ProductCategory> = {
   STM: ProductCategory.BEVERAGES, // Sterilized Milk
@@ -32,6 +43,13 @@ const PRODUCT_GROUP_MAPPING: Record<string, ProductCategory> = {
   "Magnolia UHT": ProductCategory.BEVERAGES, // Magnolia UHT
   NUTRISOY: ProductCategory.BEVERAGES, // Nutriwell
   Gummy: ProductCategory.CONFECTIONERY, // Gummy candy
+};
+
+// Unit type descriptions
+const UNIT_TYPES = {
+  ea: "ชิ้น (Each)",
+  dsp: "แพ็ค (Display Pack)",
+  cs: "ลัง (Case/Carton)",
 };
 
 // Brand extraction from description
@@ -58,31 +76,24 @@ const extractBrand = (description: string, thaiDesc: string): string => {
 
 // Clean and format product name
 const formatProductName = (thaiDesc: string, description: string): string => {
-  // Use Thai description if available, otherwise use English
   const name = thaiDesc || description;
-
-  // Remove common prefixes/suffixes and clean up
   return name
-    .replace(/^\d+[xX]\(.*?\)\s*/, "") // Remove pack size prefix like "8X(12X140ml)"
-    .replace(/\s+\d+[xX].*$/, "") // Remove pack size suffix
-    .replace(/\s*TH\s*$/, "") // Remove TH suffix
-    .replace(/\s*FS\s*$/, "") // Remove FS suffix
-    .replace(/\s*P12\s*$/, "") // Remove P12 suffix
-    .replace(/\s*10B\.\s*$/, "") // Remove 10B. suffix
-    .replace(/\s*\(.*?\)\s*$/, "") // Remove parentheses at end
+    .replace(/^\d+[xX]\(.*?\)\s*/, "")
+    .replace(/\s+\d+[xX].*$/, "")
+    .replace(/\s*TH\s*$/, "")
+    .replace(/\s*FS\s*$/, "")
+    .replace(/\s*P12\s*$/, "")
+    .replace(/\s*10B\.\s*$/, "")
+    .replace(/\s*\(.*?\)\s*$/, "")
     .trim();
 };
 
 // Parse pack size to extract size and unit
 const parsePackSize = (packSize: string): { size: string; unit: string } => {
-  // Handle different pack size formats
   const cleanSize = packSize.replace(/[xX\(\)]/g, " ").trim();
-
-  // Extract last meaningful part as size
   const parts = cleanSize.split(/\s+/).filter(Boolean);
   const lastPart = parts[parts.length - 1];
 
-  // Extract unit
   let unit = "ชิ้น";
   let size = packSize;
 
@@ -103,25 +114,44 @@ const parsePackSize = (packSize: string): { size: string; unit: string } => {
   return { size, unit };
 };
 
-// Clean barcode
+// Clean barcode - enhanced version
 const cleanBarcode = (barcode: string): string => {
-  if (!barcode || barcode === "-" || barcode === "nan") return "";
-  return barcode.replace(/\s+/g, "").replace(/^0+/, ""); // Remove spaces and leading zeros
+  if (!barcode || barcode === "-" || barcode === "nan" || barcode.trim() === "")
+    return "";
+
+  // Remove all spaces and non-numeric characters except leading zeros
+  let cleaned = barcode.replace(/\s+/g, "").replace(/[^0-9]/g, "");
+
+  // Don't remove leading zeros as they might be significant in some barcode formats
+  return cleaned;
 };
 
-// Convert CSV row to Product
-const csvRowToProduct = (row: CSVProductRow, index: number): Product | null => {
+// Convert CSV row to Product with multiple barcodes
+const csvRowToProduct = (
+  row: CSVProductRow,
+  index: number
+): ProductWithMultipleBarcodes | null => {
   try {
     const material = row.Material?.trim();
     const description = row.Description?.trim();
     const thaiDesc = row["Thai Desc."]?.trim();
     const packSize = row["Pack Size"]?.trim();
     const productGroup = row["Product Group"]?.trim();
-    const barcodeEA = cleanBarcode(row["Bar Code EA"]);
 
-    // Skip rows without essential data
-    if (!material || !description || !barcodeEA) {
-      console.warn(`Skipping row ${index}: Missing essential data`);
+    // Clean all barcode types
+    const barcodeEA = cleanBarcode(row["Bar Code EA"]);
+    const barcodeDSP = cleanBarcode(row["Bar Code DSP"]);
+    const barcodeCS = cleanBarcode(row["Bar Code CS"]);
+
+    // Skip rows without essential data or any valid barcode
+    if (
+      !material ||
+      !description ||
+      (!barcodeEA && !barcodeDSP && !barcodeCS)
+    ) {
+      console.warn(
+        `Skipping row ${index}: Missing essential data or no valid barcodes`
+      );
       return null;
     }
 
@@ -131,9 +161,18 @@ const csvRowToProduct = (row: CSVProductRow, index: number): Product | null => {
       PRODUCT_GROUP_MAPPING[productGroup] || ProductCategory.OTHER;
     const shelfLife = parseInt(row["Shelflife (Months)"]) || 12;
 
-    const product: Product = {
+    // Determine primary barcode (prefer EA, then DSP, then CS)
+    const primaryBarcode = barcodeEA || barcodeDSP || barcodeCS;
+
+    const product: ProductWithMultipleBarcodes = {
       id: material,
-      barcode: barcodeEA,
+      barcode: primaryBarcode, // Keep original field for compatibility
+      barcodes: {
+        ea: barcodeEA || undefined,
+        dsp: barcodeDSP || undefined,
+        cs: barcodeCS || undefined,
+        primary: primaryBarcode,
+      },
       name: formatProductName(thaiDesc, description),
       name_en: description,
       category,
@@ -141,7 +180,7 @@ const csvRowToProduct = (row: CSVProductRow, index: number): Product | null => {
       description: `${description} - ${thaiDesc}`,
       size,
       unit,
-      price: undefined, // Not available in CSV
+      price: undefined,
       currency: "THB",
       sku: material,
       nutrition_info: undefined,
@@ -150,9 +189,9 @@ const csvRowToProduct = (row: CSVProductRow, index: number): Product | null => {
       storage_instructions: `อายุการเก็บ ${shelfLife} เดือน`,
       country_of_origin: "ไทย",
       barcode_type:
-        barcodeEA.length === 13
+        primaryBarcode.length === 13
           ? "EAN-13"
-          : barcodeEA.length === 12
+          : primaryBarcode.length === 12
           ? "UPC-A"
           : "Other",
       image_url: undefined,
@@ -168,8 +207,59 @@ const csvRowToProduct = (row: CSVProductRow, index: number): Product | null => {
   }
 };
 
+// Enhanced barcode matching function
+const findBarcodeMatch = (
+  searchBarcode: string,
+  product: ProductWithMultipleBarcodes
+): { matched: boolean; type?: "ea" | "dsp" | "cs"; barcode?: string } => {
+  const normalized = normalizeBarcode(searchBarcode);
+
+  // Check each barcode type
+  const barcodes = [
+    { type: "ea" as const, code: product.barcodes.ea },
+    { type: "dsp" as const, code: product.barcodes.dsp },
+    { type: "cs" as const, code: product.barcodes.cs },
+  ];
+
+  for (const { type, code } of barcodes) {
+    if (!code) continue;
+
+    const normalizedCode = normalizeBarcode(code);
+
+    // Exact match
+    if (normalizedCode === normalized) {
+      return { matched: true, type, barcode: code };
+    }
+
+    // Partial matches for different barcode formats
+    if (normalized.length >= 12 && normalizedCode.length >= 12) {
+      // Last 12 digits match
+      if (normalizedCode.slice(-12) === normalized.slice(-12)) {
+        return { matched: true, type, barcode: code };
+      }
+
+      // First 12 digits match
+      if (normalizedCode.slice(0, 12) === normalized.slice(0, 12)) {
+        return { matched: true, type, barcode: code };
+      }
+    }
+
+    // Without leading zeros
+    const codeWithoutZeros = normalizedCode.replace(/^0+/, "");
+    const searchWithoutZeros = normalized.replace(/^0+/, "");
+    if (
+      codeWithoutZeros === searchWithoutZeros &&
+      codeWithoutZeros.length > 0
+    ) {
+      return { matched: true, type, barcode: code };
+    }
+  }
+
+  return { matched: false };
+};
+
 // Load and parse CSV data
-let csvProducts: Product[] = [];
+let csvProducts: ProductWithMultipleBarcodes[] = [];
 let csvLoaded = false;
 let csvLoading = false;
 
@@ -179,7 +269,6 @@ const readCSVFile = async (): Promise<string> => {
   if (typeof window !== "undefined") {
     console.log("🌐 Loading CSV from browser environment...");
 
-    // Browser environment - use fetch with proper base URL
     const baseUrl = window.location.origin;
     const csvUrl = `${baseUrl}/product_list_csv.csv`;
 
@@ -218,7 +307,6 @@ const readCSVFile = async (): Promise<string> => {
   } else {
     console.log("🖥️ Loading CSV from server environment...");
 
-    // Server environment - use fs to read file
     try {
       const csvPath = path.join(
         process.cwd(),
@@ -233,7 +321,7 @@ const readCSVFile = async (): Promise<string> => {
     } catch (fsError: any) {
       console.error("❌ Server file read error:", fsError);
 
-      // Fallback to fetch in server environment (for edge cases)
+      // Fallback to fetch in server environment
       console.log("🔄 Trying fetch fallback in server...");
       const csvUrl = `${
         process.env.NEXTAUTH_URL || "http://localhost:3000"
@@ -259,7 +347,9 @@ const readCSVFile = async (): Promise<string> => {
   }
 };
 
-export const loadCSVProducts = async (): Promise<Product[]> => {
+export const loadCSVProducts = async (): Promise<
+  ProductWithMultipleBarcodes[]
+> => {
   if (csvLoaded && csvProducts.length > 0) {
     console.log("📋 Using cached CSV products:", csvProducts.length);
     return csvProducts;
@@ -267,7 +357,6 @@ export const loadCSVProducts = async (): Promise<Product[]> => {
 
   if (csvLoading) {
     console.log("⏳ CSV already loading...");
-    // Wait for loading to complete with timeout
     const startTime = Date.now();
     while (csvLoading && Date.now() - startTime < 15000) {
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -286,7 +375,6 @@ export const loadCSVProducts = async (): Promise<Product[]> => {
   try {
     console.log("🔄 Loading CSV product data...");
 
-    // Read CSV file using environment-appropriate method
     const csvText = await readCSVFile();
 
     if (!csvText || csvText.trim().length === 0) {
@@ -295,20 +383,18 @@ export const loadCSVProducts = async (): Promise<Product[]> => {
 
     console.log("📄 CSV file loaded, size:", csvText.length, "characters");
 
-    // Parse CSV using Papa Parse with correct types
     let parseResult: Papa.ParseResult<CSVProductRow>;
     try {
       parseResult = Papa.parse<CSVProductRow>(csvText, {
         header: true,
         skipEmptyLines: true,
         transformHeader: (header: string) => header.trim(),
-        dynamicTyping: false, // Keep everything as strings for now
+        dynamicTyping: false,
       });
     } catch (parseError) {
       throw new Error(`Failed to parse CSV: ${parseError}`);
     }
 
-    // Check for critical parsing errors
     if (parseResult.errors && parseResult.errors.length > 0) {
       const criticalErrors = parseResult.errors.filter(
         (error) => error.type === "Delimiter" || error.type === "Quotes"
@@ -332,8 +418,7 @@ export const loadCSVProducts = async (): Promise<Product[]> => {
 
     console.log("📊 CSV parsed successfully:", parseResult.data.length, "rows");
 
-    // Convert CSV rows to Product objects
-    const products: Product[] = [];
+    const products: ProductWithMultipleBarcodes[] = [];
     let successCount = 0;
     let errorCount = 0;
 
@@ -363,12 +448,14 @@ export const loadCSVProducts = async (): Promise<Product[]> => {
     console.log(
       `✅ CSV products loaded successfully: ${products.length} products (${successCount} success, ${errorCount} errors)`
     );
-    console.log(
-      "🏷️ Sample products:",
-      products
-        .slice(0, 3)
-        .map((p) => ({ name: p.name, barcode: p.barcode, brand: p.brand }))
-    );
+
+    // Log sample of barcode types found
+    const sampleWithBarcodes = products.slice(0, 3).map((p) => ({
+      name: p.name,
+      barcodes: p.barcodes,
+      brand: p.brand,
+    }));
+    console.log("🏷️ Sample products with barcodes:", sampleWithBarcodes);
 
     return products;
   } catch (error: any) {
@@ -378,7 +465,6 @@ export const loadCSVProducts = async (): Promise<Product[]> => {
 
     console.error("❌ Error loading CSV products:", error);
 
-    // Re-throw with more specific error message
     if (error.message.includes("fetch")) {
       throw new Error(`Cannot load product data file: ${error.message}`);
     } else if (error.message.includes("parse")) {
@@ -394,7 +480,7 @@ export const normalizeBarcode = (barcode: string): string => {
   return barcode.trim().replace(/[^0-9]/g, "");
 };
 
-// Enhanced barcode matching function
+// Enhanced barcode matching function with multi-barcode support
 export const findProductByBarcode = async (
   inputBarcode: string
 ): Promise<Product | undefined> => {
@@ -405,64 +491,46 @@ export const findProductByBarcode = async (
     console.log("🔍 Searching for barcode:", searchBarcode);
     console.log("📋 Total products available:", products.length);
 
-    // Try exact match first
-    let product = products.find(
-      (product) => normalizeBarcode(product.barcode) === searchBarcode
+    for (const product of products) {
+      const match = findBarcodeMatch(searchBarcode, product);
+
+      if (match.matched) {
+        console.log(
+          `✅ Product found: ${product.name} (${match.type?.toUpperCase()}: ${
+            match.barcode
+          })`
+        );
+        console.log(`📦 Unit type: ${UNIT_TYPES[match.type!]}`);
+
+        // Add scanned type to the product for reference
+        const resultProduct = {
+          ...product,
+          barcodes: {
+            ...product.barcodes,
+            scannedType: match.type,
+          },
+        };
+
+        // For compatibility, keep the matched barcode as the main barcode
+        resultProduct.barcode = match.barcode!;
+
+        return resultProduct;
+      }
+    }
+
+    console.log("❌ No product found for barcode:", searchBarcode);
+    console.log(
+      "🔍 Available barcodes sample:",
+      products.slice(0, 3).map((p) => ({
+        name: p.name,
+        barcodes: p.barcodes,
+      }))
     );
 
-    // If not found, try partial matches (for different barcode formats)
-    if (!product) {
-      // Try matching last 12 digits (for 13-digit barcodes)
-      if (searchBarcode.length >= 12) {
-        const last12 = searchBarcode.slice(-12);
-        product = products.find(
-          (product) => normalizeBarcode(product.barcode).slice(-12) === last12
-        );
-      }
-
-      // Try matching first 12 digits (for 14-digit barcodes)
-      if (!product && searchBarcode.length >= 12) {
-        const first12 = searchBarcode.slice(0, 12);
-        product = products.find(
-          (product) =>
-            normalizeBarcode(product.barcode).slice(0, 12) === first12
-        );
-      }
-
-      // Try without leading zeros
-      if (!product) {
-        const withoutLeadingZeros = searchBarcode.replace(/^0+/, "");
-        product = products.find(
-          (product) =>
-            normalizeBarcode(product.barcode).replace(/^0+/, "") ===
-            withoutLeadingZeros
-        );
-      }
-
-      // Try with leading zeros (pad to 13 digits)
-      if (!product && searchBarcode.length < 13) {
-        const padded = searchBarcode.padStart(13, "0");
-        product = products.find(
-          (product) => normalizeBarcode(product.barcode) === padded
-        );
-      }
-    }
-
-    if (product) {
-      console.log("✅ Product found:", product.name, "Brand:", product.brand);
-    } else {
-      console.log("❌ No product found for barcode:", searchBarcode);
-      console.log(
-        "🔍 Available barcodes sample:",
-        products.slice(0, 5).map((p) => p.barcode)
-      );
-    }
-
-    return product;
+    return undefined;
   } catch (csvError) {
     console.warn("⚠️ CSV loading failed, trying fallback products:", csvError);
 
-    // Use fallback products when CSV fails
     const fallbackProduct = findFallbackProductByBarcode(inputBarcode);
 
     if (fallbackProduct) {
@@ -475,6 +543,7 @@ export const findProductByBarcode = async (
   }
 };
 
+// Export other functions with type compatibility
 export const searchProducts = async (params: {
   name?: string;
   category?: ProductCategory;
@@ -559,11 +628,21 @@ export const getProductStats = async () => {
     const categories = [...new Set(products.map((p) => p.category))].length;
     const brands = [...new Set(products.map((p) => p.brand))].length;
 
+    // Count products by barcode type
+    const barcodeStats = {
+      withEA: products.filter((p) => p.barcodes.ea).length,
+      withDSP: products.filter((p) => p.barcodes.dsp).length,
+      withCS: products.filter((p) => p.barcodes.cs).length,
+    };
+
+    console.log("📊 Barcode coverage:", barcodeStats);
+
     return {
       totalProducts,
       activeProducts,
       categories,
       brands,
+      barcodeStats,
     };
   } catch (error) {
     console.warn("⚠️ Using fallback stats due to CSV error:", error);
@@ -571,18 +650,38 @@ export const getProductStats = async () => {
   }
 };
 
-// Debug function
-export const debugBarcodeMatching = async () => {
+// Enhanced debug function
+export const debugBarcodeMatching = async (testBarcode?: string) => {
   try {
     const products = await loadCSVProducts();
-    console.log("📊 Barcode Debug Info:");
-    products.slice(0, 10).forEach((product, index) => {
-      console.log(
-        `${index + 1}. ${product.name}: ${product.barcode} (${
-          product.barcode.length
-        } digits) - ${product.brand}`
-      );
+    console.log("📊 Enhanced Barcode Debug Info:");
+
+    const sampleProducts = products.slice(0, 10);
+    sampleProducts.forEach((product, index) => {
+      const barcodes = product.barcodes;
+      console.log(`${index + 1}. ${product.name} (${product.brand}):`);
+      if (barcodes.ea) console.log(`   📦 EA: ${barcodes.ea}`);
+      if (barcodes.dsp) console.log(`   📋 DSP: ${barcodes.dsp}`);
+      if (barcodes.cs) console.log(`   📦 CS: ${barcodes.cs}`);
+      console.log(`   🎯 Primary: ${barcodes.primary}`);
     });
+
+    if (testBarcode) {
+      console.log(`\n🔍 Testing barcode: ${testBarcode}`);
+      const result = await findProductByBarcode(testBarcode);
+      if (result) {
+        const productWithBarcodes = result as ProductWithMultipleBarcodes;
+        console.log(`✅ Found: ${result.name}`);
+        console.log(
+          `📦 Scanned type: ${
+            productWithBarcodes.barcodes?.scannedType || "unknown"
+          }`
+        );
+        console.log(`🏷️ Matched barcode: ${result.barcode}`);
+      } else {
+        console.log("❌ Not found");
+      }
+    }
   } catch (error) {
     console.log("📊 Fallback Barcode Debug Info:");
     FALLBACK_PRODUCTS.slice(0, 5).forEach((product, index) => {

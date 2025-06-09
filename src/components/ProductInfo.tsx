@@ -1,4 +1,4 @@
-// src/components/ProductInfo.tsx
+// src/components/ProductInfo.tsx - Updated with Multi-Barcode Support
 "use client";
 
 import React, { useState } from "react";
@@ -19,6 +19,7 @@ import {
   Coffee,
 } from "lucide-react";
 import { Product, ProductCategory } from "../types/product";
+import { BarcodeUnitDisplay } from "./BarcodeUnitDisplay";
 
 interface ProductInfoProps {
   product: Product | null;
@@ -52,6 +53,16 @@ const getCategoryColor = (category: ProductCategory) => {
       return "bg-green-50 text-green-800 border-green-200";
     case ProductCategory.BAKERY:
       return "bg-amber-50 text-amber-800 border-amber-200";
+    case ProductCategory.CONFECTIONERY:
+      return "bg-pink-50 text-pink-800 border-pink-200";
+    case ProductCategory.INSTANT_NOODLES:
+      return "bg-orange-50 text-orange-800 border-orange-200";
+    case ProductCategory.SAUCES:
+      return "bg-red-50 text-red-800 border-red-200";
+    case ProductCategory.SEASONING:
+      return "bg-yellow-50 text-yellow-800 border-yellow-200";
+    case ProductCategory.FROZEN:
+      return "bg-cyan-50 text-cyan-800 border-cyan-200";
     default:
       return "bg-gray-50 text-gray-800 border-gray-200";
   }
@@ -68,10 +79,11 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
   const [showNutrition, setShowNutrition] = useState(false);
 
   const copyBarcode = async () => {
-    if (!barcode) return;
+    const codeToCopy = barcode || product?.barcode;
+    if (!codeToCopy) return;
 
     try {
-      await navigator.clipboard.writeText(barcode);
+      await navigator.clipboard.writeText(codeToCopy);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -234,33 +246,41 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
           </div>
         )}
 
-        {/* Barcode Info */}
-        <div className="bg-gray-50 rounded-lg p-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Scan size={16} className="text-gray-500" />
-              <span className="text-sm text-gray-600">Barcode</span>
+        {/* Enhanced Barcode Info with Multi-Unit Support */}
+        {product.barcodes ? (
+          <BarcodeUnitDisplay
+            barcodes={product.barcodes}
+            scannedBarcode={barcode || product.barcode}
+          />
+        ) : (
+          /* Fallback for products without multiple barcodes */
+          <div className="bg-gray-50 rounded-lg p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Scan size={16} className="text-gray-500" />
+                <span className="text-sm text-gray-600">Barcode</span>
+              </div>
+              <button
+                onClick={copyBarcode}
+                className="text-gray-500 hover:text-gray-700 p-1 rounded"
+              >
+                {copied ? (
+                  <CheckCircle size={16} className="text-green-500" />
+                ) : (
+                  <Copy size={16} />
+                )}
+              </button>
             </div>
-            <button
-              onClick={copyBarcode}
-              className="text-gray-500 hover:text-gray-700 p-1 rounded"
-            >
-              {copied ? (
-                <CheckCircle size={16} className="text-green-500" />
-              ) : (
-                <Copy size={16} />
-              )}
-            </button>
+            <code className="text-sm font-mono text-gray-800 block mt-1">
+              {product.barcode}
+            </code>
+            {product.barcode_type && (
+              <span className="text-xs text-gray-500">
+                ({product.barcode_type})
+              </span>
+            )}
           </div>
-          <code className="text-sm font-mono text-gray-800 block mt-1">
-            {product.barcode}
-          </code>
-          {product.barcode_type && (
-            <span className="text-xs text-gray-500">
-              ({product.barcode_type})
-            </span>
-          )}
-        </div>
+        )}
 
         {/* Additional Details Toggle */}
         <button
@@ -325,6 +345,28 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
                 </p>
               </div>
             )}
+
+            {/* Display scanned barcode type info */}
+            {product.barcodes?.scannedType && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <span className="text-sm text-green-700 font-medium block mb-1">
+                  ข้อมูลการสแกน:
+                </span>
+                <div className="text-xs text-green-600 space-y-1">
+                  <p>
+                    🎯 หน่วยที่สแกน:{" "}
+                    {product.barcodes.scannedType === "ea"
+                      ? "ชิ้น (Each)"
+                      : product.barcodes.scannedType === "dsp"
+                      ? "แพ็ค (Display Pack)"
+                      : product.barcodes.scannedType === "cs"
+                      ? "ลัง (Case/Carton)"
+                      : "ไม่ทราบ"}
+                  </p>
+                  <p>📦 บาร์โค้ดที่ตรงกัน: {barcode}</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -376,7 +418,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
 
                   {product.nutrition_info.carbohydrates && (
                     <div className="flex justify-between">
-                      <span>คาร์โบไहเดรต:</span>
+                      <span>คาร์โบไหเดรต:</span>
                       <span className="font-medium">
                         {product.nutrition_info.carbohydrates} g
                       </span>
