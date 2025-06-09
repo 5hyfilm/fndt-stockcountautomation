@@ -1,10 +1,10 @@
-// src/app/api/products/route.ts
+// src/app/api/products/route.ts - Updated to use CSV
 import { NextRequest, NextResponse } from "next/server";
 import {
-  MOCK_PRODUCTS,
+  loadCSVProducts,
   searchProducts,
   getProductStats,
-} from "@/data/products";
+} from "@/data/csvProducts";
 import { ProductCategory, ProductStatus } from "@/types/product";
 
 export async function GET(request: NextRequest) {
@@ -19,8 +19,20 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
+    console.log("🔍 Product search request:", {
+      name,
+      category,
+      brand,
+      status,
+      limit,
+      offset,
+    });
+
+    // Load CSV products first
+    await loadCSVProducts();
+
     // Search products
-    const filteredProducts = searchProducts({
+    const filteredProducts = await searchProducts({
       name: name || undefined,
       category,
       brand: brand || undefined,
@@ -30,11 +42,15 @@ export async function GET(request: NextRequest) {
     // Apply pagination
     const paginatedProducts = filteredProducts.slice(offset, offset + limit);
 
+    console.log(
+      `📋 Found ${filteredProducts.length} products, returning ${paginatedProducts.length}`
+    );
+
     return NextResponse.json({
       success: true,
       data: paginatedProducts,
       total: filteredProducts.length,
-      stats: getProductStats(),
+      stats: await getProductStats(),
     });
   } catch (error: any) {
     console.error("Error fetching products:", error);
@@ -63,10 +79,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if barcode already exists
-    const existingProduct = MOCK_PRODUCTS.find(
+    // Load CSV products to check for existing barcode
+    const existingProducts = await loadCSVProducts();
+    const existingProduct = existingProducts.find(
       (p) => p.barcode === productData.barcode
     );
+
     if (existingProduct) {
       return NextResponse.json(
         {
@@ -77,7 +95,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create new product (in real app, save to database)
+    // Create new product (in real app, save to database/CSV)
     const newProduct = {
       id: Date.now().toString(),
       ...productData,
@@ -86,13 +104,13 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString(),
     };
 
-    // In real app: save to database
-    // MOCK_PRODUCTS.push(newProduct);
+    // In real app: save to CSV/database
+    console.log("📝 New product would be saved:", newProduct);
 
     return NextResponse.json({
       success: true,
       data: newProduct,
-      message: "เพิ่มสินค้าใหม่เรียบร้อยแล้ว",
+      message: "เพิ่มสินค้าใหม่เรียบร้อยแล้ว (สำหรับ demo เท่านั้น)",
     });
   } catch (error: any) {
     console.error("Error creating product:", error);

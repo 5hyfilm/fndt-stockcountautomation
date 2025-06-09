@@ -1,6 +1,6 @@
-// src/app/api/products/lookup/route.ts
+// src/app/api/products/lookup/route.ts - Updated to use CSV
 import { NextRequest, NextResponse } from "next/server";
-import { findProductByBarcode } from "@/data/products";
+import { findProductByBarcode, loadCSVProducts } from "@/data/csvProducts";
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,43 +21,67 @@ export async function GET(request: NextRequest) {
 
     // Clean barcode (remove spaces, special characters)
     const cleanBarcode = barcode.trim().replace(/[^0-9]/g, "");
-
     console.log("🧹 Clean barcode:", cleanBarcode);
 
-    // Find product by exact barcode match
-    let product = findProductByBarcode(cleanBarcode);
+    try {
+      // Load CSV products and find by barcode
+      await loadCSVProducts(); // Ensure CSV is loaded
+      const product = await findProductByBarcode(cleanBarcode);
 
-    // If not found, try with original barcode
-    if (!product && cleanBarcode !== barcode) {
-      product = findProductByBarcode(barcode.trim());
-    }
+      // If not found with clean barcode, try with original barcode
+      let finalProduct = product;
+      if (!finalProduct && cleanBarcode !== barcode.trim()) {
+        finalProduct = await findProductByBarcode(barcode.trim());
+      }
 
-    if (product) {
-      console.log("✅ Product found:", product.name);
-      return NextResponse.json({
-        success: true,
-        data: product,
-      });
-    } else {
-      console.log("❌ Product not found for barcode:", barcode);
+      if (finalProduct) {
+        console.log(
+          "✅ Product found:",
+          finalProduct.name,
+          "Brand:",
+          finalProduct.brand
+        );
+        return NextResponse.json({
+          success: true,
+          data: finalProduct,
+        });
+      } else {
+        console.log("❌ Product not found for barcode:", barcode);
 
-      // Log all available barcodes for debugging
-      const availableBarcodes = require("@/data/products").MOCK_PRODUCTS.map(
-        (p) => p.barcode
-      );
-      console.log("📋 Available barcodes:", availableBarcodes);
+        // Get all available barcodes for debugging (limited to first 10)
+        const allProducts = await loadCSVProducts();
+        const availableBarcodes = allProducts
+          .slice(0, 10)
+          .map((p) => p.barcode);
 
+        console.log("📋 Sample available barcodes:", availableBarcodes);
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: `ไม่พบสินค้าที่มี barcode: ${barcode}`,
+            debug: {
+              searchedBarcode: barcode,
+              cleanBarcode: cleanBarcode,
+              totalProducts: allProducts.length,
+              sampleBarcodes: availableBarcodes,
+            },
+          },
+          { status: 404 }
+        );
+      }
+    } catch (csvError) {
+      console.error("❌ Error loading CSV data:", csvError);
       return NextResponse.json(
         {
           success: false,
-          error: `ไม่พบสินค้าที่มี barcode: ${barcode}`,
+          error: "เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า",
           debug: {
-            searchedBarcode: barcode,
-            cleanBarcode: cleanBarcode,
-            availableBarcodes: availableBarcodes,
+            csvError:
+              csvError instanceof Error ? csvError.message : String(csvError),
           },
         },
-        { status: 404 }
+        { status: 500 }
       );
     }
   } catch (error: any) {
