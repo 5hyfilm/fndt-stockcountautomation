@@ -1,4 +1,4 @@
-// src/hooks/useBarcodeDetection.tsx - Fixed version with improved barcode stability
+// src/hooks/useBarcodeDetection.tsx - Fixed version
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
@@ -18,9 +18,6 @@ export const useBarcodeDetection = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const containerRef = useRef<HTMLDivElement>(null!);
   const streamRef = useRef<MediaStream | null>(null);
-  const productFetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastProcessedBarcodeRef = useRef<string>("");
-  const processingBarcodeRef = useRef<string>("");
 
   // State
   const [isStreaming, setIsStreaming] = useState(false);
@@ -49,107 +46,55 @@ export const useBarcodeDetection = () => {
   const [isLoadingProduct, setIsLoadingProduct] = useState(false);
   const [productError, setProductError] = useState<string | null>(null);
 
-  // Update barcode and fetch product info with better debouncing
-  const updateBarcode = useCallback(async (barcode: string) => {
-    const normalizedBarcode = normalizeBarcode(barcode);
+  // Update barcode and fetch product info
+  const updateBarcode = useCallback(
+    async (barcode: string) => {
+      const normalizedBarcode = normalizeBarcode(barcode);
 
-    if (!normalizedBarcode) {
-      return;
-    }
-
-    // ป้องกันการเรียกซ้ำด้วย barcode เดิม
-    const lastProcessed = lastProcessedBarcodeRef.current;
-    if (normalizedBarcode === lastProcessed) {
-      console.log("🔄 Skipping duplicate barcode:", normalizedBarcode);
-      return;
-    }
-
-    // ป้องกันการเรียกซ้อนทับ
-    if (processingBarcodeRef.current === normalizedBarcode) {
-      console.log("🔄 Already processing barcode:", normalizedBarcode);
-      return;
-    }
-
-    // ยกเลิก timeout เก่า
-    if (productFetchTimeoutRef.current) {
-      clearTimeout(productFetchTimeoutRef.current);
-      productFetchTimeoutRef.current = null;
-    }
-
-    console.log("🔄 New barcode detected:", {
-      old: lastProcessed,
-      new: normalizedBarcode,
-    });
-
-    // เซ็ต flag ว่ากำลังประมวลผล
-    processingBarcodeRef.current = normalizedBarcode;
-    setIsLoadingProduct(true);
-    setProductError(null);
-
-    try {
-      // ใช้ findProductByBarcode ที่ return barcode type
-      const result = await findProductByBarcode(normalizedBarcode);
-
-      // ตรวจสอบว่ายังเป็น barcode เดิมอยู่หรือไม่ (ป้องกัน race condition)
-      if (processingBarcodeRef.current !== normalizedBarcode) {
-        console.log("🔄 Barcode changed during processing, skipping result");
+      if (
+        !normalizedBarcode ||
+        normalizedBarcode === normalizeBarcode(lastDetectedCode)
+      ) {
         return;
       }
 
-      if (result) {
-        setProduct(result.product);
-        setDetectedBarcodeType(result.barcodeType);
-        setLastDetectedCode(normalizedBarcode);
-        lastProcessedBarcodeRef.current = normalizedBarcode;
-        setProductError(null);
+      console.log("🔄 Barcode changed:", {
+        old: normalizeBarcode(lastDetectedCode),
+        new: normalizedBarcode,
+      });
 
-        console.log(
-          `✅ Product found: ${
-            result.product.name
-          } (${result.barcodeType.toUpperCase()})`
-        );
-      } else {
-        setProduct(null);
-        setDetectedBarcodeType(null);
-        setProductError("ไม่พบข้อมูลสินค้าในระบบ");
-        console.log("❌ Product not found for barcode:", normalizedBarcode);
+      setIsLoadingProduct(true);
+      setProductError(null);
 
-        // อัพเดต lastDetectedCode แม้ไม่พบสินค้า เพื่อแสดง barcode ที่สแกน
-        setLastDetectedCode(normalizedBarcode);
-        lastProcessedBarcodeRef.current = normalizedBarcode;
-      }
-    } catch (error: any) {
-      console.error("❌ Error fetching product:", error);
+      try {
+        // ใช้ findProductByBarcode ที่ return barcode type
+        const result = await findProductByBarcode(normalizedBarcode);
 
-      // ตรวจสอบว่ายังเป็น barcode เดิมอยู่หรือไม่
-      if (processingBarcodeRef.current === normalizedBarcode) {
+        if (result) {
+          setProduct(result.product);
+          setDetectedBarcodeType(result.barcodeType);
+          setLastDetectedCode(normalizedBarcode);
+          console.log(
+            `✅ Product found: ${
+              result.product.name
+            } (${result.barcodeType.toUpperCase()})`
+          );
+        } else {
+          setProduct(null);
+          setDetectedBarcodeType(null);
+          setProductError("ไม่พบข้อมูลสินค้าในระบบ");
+          console.log("❌ Product not found for barcode:", normalizedBarcode);
+        }
+      } catch (error: any) {
+        console.error("❌ Error fetching product:", error);
         setProduct(null);
         setDetectedBarcodeType(null);
         setProductError(error.message || "เกิดข้อผิดพลาดในการค้นหาสินค้า");
-        setLastDetectedCode(normalizedBarcode);
-        lastProcessedBarcodeRef.current = normalizedBarcode;
-      }
-    } finally {
-      // ล้าง processing flag เฉพาะเมื่อเป็น barcode เดิม
-      if (processingBarcodeRef.current === normalizedBarcode) {
-        processingBarcodeRef.current = "";
+      } finally {
         setIsLoadingProduct(false);
       }
-    }
-  }, []);
-
-  // Debounced update barcode function
-  const debouncedUpdateBarcode = useCallback(
-    (barcode: string) => {
-      if (productFetchTimeoutRef.current) {
-        clearTimeout(productFetchTimeoutRef.current);
-      }
-
-      productFetchTimeoutRef.current = setTimeout(() => {
-        updateBarcode(barcode);
-      }, 500); // Debounce 500ms
     },
-    [updateBarcode]
+    [lastDetectedCode]
   );
 
   // Clear error
@@ -163,14 +108,6 @@ export const useBarcodeDetection = () => {
     setProduct(null);
     setDetectedBarcodeType(null);
     setProductError(null);
-    setLastDetectedCode("");
-    lastProcessedBarcodeRef.current = "";
-    processingBarcodeRef.current = "";
-
-    if (productFetchTimeoutRef.current) {
-      clearTimeout(productFetchTimeoutRef.current);
-      productFetchTimeoutRef.current = null;
-    }
   }, []);
 
   // Start camera
@@ -222,10 +159,6 @@ export const useBarcodeDetection = () => {
     setIsStreaming(false);
     setDetections([]);
     setProcessingQueue(0);
-
-    // ล้างข้อมูล barcode ที่เก็บไว้
-    lastProcessedBarcodeRef.current = "";
-    processingBarcodeRef.current = "";
   }, []);
 
   // Switch camera
@@ -330,7 +263,7 @@ export const useBarcodeDetection = () => {
     });
   }, [detections, product, detectedBarcodeType]);
 
-  // Capture and process frame with improved barcode stability
+  // Capture and process frame
   const captureAndProcess = useCallback(async () => {
     const video = videoRef.current;
     if (!video || processingQueue >= 3) return;
@@ -382,10 +315,10 @@ export const useBarcodeDetection = () => {
           const latestBarcode = result.barcodes[0];
           const barcodeData = latestBarcode.data;
 
-          // ใช้ debounced function แทนการเรียกตรงๆ
-          if (barcodeData) {
-            console.log("🔍 Barcode detected from API:", barcodeData);
-            debouncedUpdateBarcode(barcodeData);
+          // Only update if it's a new barcode to prevent unnecessary API calls
+          if (barcodeData && barcodeData !== lastDetectedCode) {
+            console.log("🔍 New barcode detected:", barcodeData);
+            await updateBarcode(barcodeData);
           }
         }
 
@@ -405,7 +338,7 @@ export const useBarcodeDetection = () => {
     } finally {
       setProcessingQueue((prev) => Math.max(0, prev - 1));
     }
-  }, [processingQueue, debouncedUpdateBarcode]);
+  }, [processingQueue, lastDetectedCode, updateBarcode]);
 
   // Manual scan function for inventory tab
   const manualScan = useCallback(async () => {
@@ -447,10 +380,6 @@ export const useBarcodeDetection = () => {
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
-      }
-
-      if (productFetchTimeoutRef.current) {
-        clearTimeout(productFetchTimeoutRef.current);
       }
     };
   }, []);
