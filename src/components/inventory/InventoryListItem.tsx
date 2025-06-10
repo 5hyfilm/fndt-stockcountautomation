@@ -119,9 +119,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
                   <div className="text-lg font-semibold text-gray-900">
                     {item.quantity}
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {item.unit || "ชิ้น"}
-                  </div>
+                  <div className="text-xs text-gray-500">{"ชิ้น"}</div>
                 </div>
 
                 <button

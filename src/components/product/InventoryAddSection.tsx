@@ -174,12 +174,10 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
         {/* Current inventory display */}
         {currentInventoryQuantity > 0 && (
           <div className="mt-3 text-sm text-gray-600 bg-blue-50 p-2 rounded">
-            📦 ปัจจุบันใน Stock: {currentInventoryQuantity}{" "}
-            {product.unit || "ชิ้น"}
+            📦 ปัจจุบันใน Stock: {currentInventoryQuantity} {"ชิ้น"}
             {quantity > 0 && (
               <span className="text-blue-600 font-medium">
-                → จะเป็น {currentInventoryQuantity + quantity}{" "}
-                {product.unit || "ชิ้น"}
+                → จะเป็น {currentInventoryQuantity + quantity} {"ชิ้น"}
               </span>
             )}
           </div>

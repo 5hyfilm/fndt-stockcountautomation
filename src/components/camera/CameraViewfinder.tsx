@@ -3,7 +3,7 @@
 
 import React from "react";
 import { Detection } from "../../types/detection";
-import { CameraGuideFrame } from "./CameraGuideFrame";
+// import { CameraGuideFrame } from "./CameraGuideFrame";
 import { DetectionIndicator } from "./DetectionIndicator";
 import { CameraOffOverlay } from "./CameraOffOverlay";
 
@@ -47,7 +47,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
       />
 
       {/* Camera Guide Frame */}
-      <CameraGuideFrame />
+      {/* <CameraGuideFrame /> */}
 
       {/* Detection Indicator */}
       <DetectionIndicator detections={detections} isStreaming={isStreaming} />

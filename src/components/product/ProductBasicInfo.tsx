@@ -39,7 +39,7 @@ export const ProductBasicInfo: React.FC<ProductBasicInfoProps> = ({
               currentInventoryQuantity > 0 ? "text-green-600" : "text-gray-500"
             }`}
           >
-            {formatQuantity(currentInventoryQuantity, product.unit)}
+            {formatQuantity(currentInventoryQuantity, "ชิ้น")}
           </p>
         </div>
       </div>
