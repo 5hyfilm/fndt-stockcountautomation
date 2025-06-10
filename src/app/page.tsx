@@ -1,4 +1,4 @@
-// src/app/page.tsx - Updated with Inventory Management
+// src/app/page.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -17,11 +17,14 @@ import { CameraSection } from "../components/CameraSection";
 import { ProductInfo } from "../components/ProductInfo";
 import { InventoryDisplay } from "../components/InventoryDisplay";
 import { ErrorDisplay } from "../components/ErrorDisplay";
+import { ExportSuccessToast } from "../components/ExportSuccessToast";
 
 export default function BarcodeDetectionPage() {
   const [activeTab, setActiveTab] = useState<"scanner" | "inventory">(
     "scanner"
   );
+  const [showExportSuccess, setShowExportSuccess] = useState(false);
+  const [exportFileName, setExportFileName] = useState<string>("");
 
   const {
     videoRef,
@@ -86,6 +89,22 @@ export default function BarcodeDetectionPage() {
     return addOrUpdateItem(product, quantity);
   };
 
+  // Handle export with success notification
+  const handleExportInventory = () => {
+    const success = exportInventory();
+    if (success) {
+      // Generate filename for display
+      const now = new Date();
+      const dateStr = now.toISOString().split("T")[0];
+      const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-");
+      const fileName = `FN_Stock_Inventory_${dateStr}_${timeStr}.csv`;
+
+      setExportFileName(fileName);
+      setShowExportSuccess(true);
+    }
+    return success;
+  };
+
   // Clear all errors
   const clearAllErrors = () => {
     clearError();
@@ -94,6 +113,14 @@ export default function BarcodeDetectionPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
+      {/* Export Success Toast */}
+      <ExportSuccessToast
+        show={showExportSuccess}
+        onClose={() => setShowExportSuccess(false)}
+        fileName={exportFileName}
+        itemCount={inventory.length}
+      />
+
       {/* Header */}
       <div className="bg-white/95 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40 shadow-sm">
         <div className="container mx-auto px-4 py-4">
@@ -272,7 +299,7 @@ export default function BarcodeDetectionPage() {
               onUpdateQuantity={updateItemQuantity}
               onRemoveItem={removeItem}
               onClearInventory={clearInventory}
-              onExportInventory={exportInventory}
+              onExportInventory={handleExportInventory}
               onClearError={clearInventoryError}
               onSearch={searchItems}
             />
@@ -334,7 +361,7 @@ export default function BarcodeDetectionPage() {
               <>
                 <p>• ดูรายการสินค้าทั้งหมดใน Stock</p>
                 <p>• แก้ไขจำนวนสินค้าได้ตลอดเวลา</p>
-                <p>• ส่งออกข้อมูลเป็นไฟล์ JSON</p>
+                <p>• ส่งออกข้อมูลเป็นไฟล์ CSV (เปิดใน Excel ได้)</p>
                 <p>• ใช้ตัวกรองเพื่อค้นหาสินค้าได้ง่าย</p>
               </>
             )}
@@ -349,7 +376,7 @@ export default function BarcodeDetectionPage() {
             F&N Stock Management System | ระบบเช็ค Stock และจัดการสินค้า |
             <span className="fn-green font-medium">
               {" "}
-              พัฒนาด้วย Next.js & Local Storage
+              พัฒนาด้วย Next.js & CSV Export
             </span>
           </p>
           <div className="flex justify-center items-center gap-4 mt-2 text-xs text-gray-500">

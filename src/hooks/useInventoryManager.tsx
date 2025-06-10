@@ -292,26 +292,124 @@ export const useInventoryManager = () => {
     [inventory]
   );
 
-  // Export inventory data
+  // Helper function to escape CSV fields
+  const escapeCsvField = (field: string | number): string => {
+    if (typeof field === "number") return field.toString();
+    if (!field) return "";
+
+    // Convert to string and handle special characters
+    const str = field.toString();
+
+    // If field contains comma, double quote, or newline, wrap in quotes and escape internal quotes
+    if (
+      str.includes(",") ||
+      str.includes('"') ||
+      str.includes("\n") ||
+      str.includes("\r")
+    ) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+
+    return str;
+  };
+
+  // Export inventory data as CSV
   const exportInventory = useCallback(() => {
     try {
-      const summary = getInventorySummary();
-      const exportData = {
-        summary,
-        items: inventory,
-        exportDate: new Date().toISOString(),
-        version: CURRENT_VERSION,
-      };
+      if (inventory.length === 0) {
+        setError("ไม่มีข้อมูลสินค้าให้ส่งออก");
+        return false;
+      }
 
-      const dataStr = JSON.stringify(exportData, null, 2);
-      const dataBlob = new Blob([dataStr], { type: "application/json" });
+      // Define CSV headers
+      const headers = [
+        "ลำดับ",
+        "บาร์โค้ด",
+        "ชื่อสินค้า",
+        "แบรนด์",
+        "หมวดหมู่",
+        "ขนาด",
+        "หน่วย",
+        "จำนวนใน Stock",
+        "วันที่อัพเดต",
+        "เวลาอัพเดต",
+      ];
 
-      const url = URL.createObjectURL(dataBlob);
+      // Create CSV content
+      const csvRows: string[] = [];
+
+      // Add headers
+      csvRows.push(headers.map((header) => escapeCsvField(header)).join(","));
+
+      // Add data rows
+      inventory.forEach((item, index) => {
+        const updateDate = new Date(item.lastUpdated);
+        const dateStr = updateDate.toLocaleDateString("th-TH", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        });
+        const timeStr = updateDate.toLocaleTimeString("th-TH", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+
+        const row = [
+          index + 1, // ลำดับ
+          escapeCsvField(item.barcode), // บาร์โค้ด
+          escapeCsvField(item.productName), // ชื่อสินค้า
+          escapeCsvField(item.brand), // แบรนด์
+          escapeCsvField(item.category), // หมวดหมู่
+          escapeCsvField(item.size), // ขนาด
+          escapeCsvField(item.unit), // หน่วย
+          item.quantity, // จำนวนใน Stock
+          escapeCsvField(dateStr), // วันที่อัพเดต
+          escapeCsvField(timeStr), // เวลาอัพเดต
+        ];
+
+        csvRows.push(row.join(","));
+      });
+
+      // Add summary at the end
+      csvRows.push(""); // Empty row
+      csvRows.push("สรุปข้อมูล Stock");
+      csvRows.push(`รายการสินค้าทั้งหมด,${inventory.length} รายการ`);
+      csvRows.push(
+        `จำนวนสินค้าทั้งหมด,${getInventorySummary().totalItems} ชิ้น`
+      );
+      csvRows.push(
+        `หมวดหมู่,${Object.keys(getInventorySummary().categories).length} หมวด`
+      );
+      csvRows.push(
+        `แบรนด์,${Object.keys(getInventorySummary().brands).length} แบรนด์`
+      );
+      csvRows.push(`วันที่ส่งออก,${new Date().toLocaleDateString("th-TH")}`);
+      csvRows.push(`เวลาส่งออก,${new Date().toLocaleTimeString("th-TH")}`);
+
+      // Join all rows
+      const csvContent = csvRows.join("\n");
+
+      // Add BOM for UTF-8 to ensure proper display of Thai characters
+      const BOM = "\uFEFF";
+      const csvWithBOM = BOM + csvContent;
+
+      // Create and download file
+      const blob = new Blob([csvWithBOM], {
+        type: "text/csv;charset=utf-8;",
+      });
+
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
+
+      // Generate filename with current date
+      const now = new Date();
+      const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD format
+      const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-"); // HH-MM-SS format
+
       link.href = url;
-      link.download = `fn_inventory_${
-        new Date().toISOString().split("T")[0]
-      }.json`;
+      link.download = `FN_Stock_Inventory_${dateStr}_${timeStr}.csv`;
+      link.style.display = "none";
 
       document.body.appendChild(link);
       link.click();
@@ -319,14 +417,18 @@ export const useInventoryManager = () => {
 
       URL.revokeObjectURL(url);
 
-      console.log("📤 Exported inventory data");
+      console.log(
+        "📤 Exported inventory data as CSV:",
+        inventory.length,
+        "items"
+      );
       return true;
     } catch (err: any) {
       console.error("❌ Error exporting inventory:", err);
       setError("เกิดข้อผิดพลาดในการส่งออกข้อมูล");
       return false;
     }
-  }, [inventory, getInventorySummary]);
+  }, [inventory, getInventorySummary, escapeCsvField]);
 
   // Clear error
   const clearError = useCallback(() => {

@@ -19,6 +19,7 @@ import {
   Eye,
   Calendar,
   BarChart3,
+  FileText,
 } from "lucide-react";
 import { InventoryItem, InventorySummary } from "../hooks/useInventoryManager";
 
@@ -56,6 +57,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   const [showSummary, setShowSummary] = useState(true);
   const [sortBy, setSortBy] = useState<"name" | "quantity" | "date">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [isExporting, setIsExporting] = useState(false);
 
   // Filter และ sort inventory
   const filteredAndSortedInventory = React.useMemo(() => {
@@ -143,6 +145,29 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   ) => {
     const newQuantity = Math.max(0, currentQuantity + delta);
     onUpdateQuantity(itemId, newQuantity);
+  };
+
+  // Handle export with loading state
+  const handleExport = async () => {
+    if (inventory.length === 0) {
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const success = onExportInventory();
+      if (success) {
+        // Show success message briefly
+        setTimeout(() => {
+          setIsExporting(false);
+        }, 2000);
+      } else {
+        setIsExporting(false);
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      setIsExporting(false);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -263,17 +288,32 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
           </div>
 
           <div className="flex gap-2">
+            {/* Export CSV Button with enhanced styling */}
             <button
-              onClick={onExportInventory}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg flex items-center gap-2 text-sm"
+              onClick={handleExport}
+              disabled={inventory.length === 0 || isExporting}
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all duration-200 border shadow-sm ${
+                inventory.length === 0 || isExporting
+                  ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                  : "bg-green-600 hover:bg-green-700 text-white border-green-600 hover:shadow-md transform hover:scale-105"
+              }`}
             >
-              <Download size={16} />
-              ส่งออก
+              {isExporting ? (
+                <>
+                  <RefreshCw className="animate-spin" size={16} />
+                  กำลังส่งออก...
+                </>
+              ) : (
+                <>
+                  <FileText size={16} />
+                  ส่งออก CSV
+                </>
+              )}
             </button>
 
             <button
               onClick={() => setShowConfirmClear(true)}
-              className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg flex items-center gap-2 text-sm"
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg flex items-center gap-2 text-sm border border-red-600 shadow-sm hover:shadow-md transition-all duration-200"
               disabled={inventory.length === 0}
             >
               <Trash2 size={16} />
@@ -281,6 +321,24 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Export Information */}
+        {inventory.length > 0 && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-green-700 text-sm">
+              <FileText size={16} />
+              <span className="font-medium">ข้อมูลที่จะส่งออก:</span>
+              <span>
+                {inventory.length} รายการสินค้า, {summary.totalItems} ชิ้น
+              </span>
+              <span>•</span>
+              <span>รูปแบบ CSV (เปิดได้ใน Excel)</span>
+            </div>
+            <div className="text-xs text-green-600 mt-1">
+              💡 ไฟล์จะรองรับภาษาไทยและรวมข้อมูลสรุปด้วย
+            </div>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3 items-center">
