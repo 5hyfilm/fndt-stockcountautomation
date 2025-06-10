@@ -1,6 +1,21 @@
 // src/hooks/product/types.ts - Types for Product Info Hooks
 import { Product } from "../../types/product";
 
+// Barcode types enum
+export enum BarcodeType {
+  EAN13 = "EAN13",
+  EAN8 = "EAN8",
+  UPC_A = "UPC_A",
+  UPC_E = "UPC_E",
+  CODE128 = "CODE128",
+  CODE39 = "CODE39",
+  CODE93 = "CODE93",
+  ITF = "ITF",
+  GTIN = "GTIN",
+  QR_CODE = "QR_CODE",
+  UNKNOWN = "UNKNOWN",
+}
+
 // Configuration interfaces
 export interface ProductInfoConfig {
   enableCaching: boolean;
@@ -29,7 +44,7 @@ export interface ProductCacheStats {
 export interface BarcodeValidationResult {
   isValid: boolean;
   normalizedBarcode: string;
-  detectedFormat?: string;
+  detectedFormat?: BarcodeType;
   errors: string[];
   suggestions?: string[];
 }
@@ -93,7 +108,8 @@ export interface UseProductValidatorReturn {
   normalizeBarcode: (barcode: string) => string;
   validateBarcode: (barcode: string) => BarcodeValidationResult;
   isValidBarcodeFormat: (barcode: string) => boolean;
-  suggestBarcodeCorrections: (barcode: string) => string[];
+  suggestBarcodeCorreections: (barcode: string) => string[];
+  detectBarcodeType: (barcode: string) => BarcodeType;
 }
 
 // Error types

@@ -62,16 +62,20 @@ export const findProductByBarcode = async (
     if (fallbackResult) {
       // Convert fallback result to match our interface
       const convertedProduct: ProductWithMultipleBarcodes = {
-        ...fallbackResult.product,
+        ...fallbackResult,
         barcodes: {
-          primary: fallbackResult.product.barcode,
-          ea: fallbackResult.product.barcode,
+          primary: fallbackResult.barcode,
+          ea: fallbackResult.barcode,
         },
         packSize: 1,
       };
       return {
         product: convertedProduct,
-        barcodeType: fallbackResult.barcodeType,
+        barcodeType: (["ea", "dsp", "cs"].includes(
+          fallbackResult.barcode_type as string
+        )
+          ? fallbackResult.barcode_type
+          : "ea") as "ea" | "dsp" | "cs",
       };
     }
     return undefined;

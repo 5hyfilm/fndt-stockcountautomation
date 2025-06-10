@@ -104,6 +104,8 @@ export const csvRowToProduct = (
         cs: csBarcode || undefined,
         primary: primaryBarcode,
       },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
   } catch (error) {
     console.error(`Error converting row ${index}:`, error);

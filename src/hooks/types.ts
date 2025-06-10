@@ -8,14 +8,14 @@ export * from "./barcode/types";
 import {
   UseCameraControlReturn,
   UseDetectionProcessorReturn,
-  UseProductLookupReturn,
+  // UseProductLookupReturn,
   UseCanvasRendererReturn,
 } from "./";
 
 export interface UseBarcodeDetectionReturn
   extends Omit<UseCameraControlReturn, "videoRef">,
     Omit<UseDetectionProcessorReturn, "">,
-    Omit<UseProductLookupReturn, "">,
+    // Omit<UseProductLookupReturn, "">,
     Omit<UseCanvasRendererReturn, ""> {
   // Combined refs
   videoRef: React.RefObject<HTMLVideoElement>;
