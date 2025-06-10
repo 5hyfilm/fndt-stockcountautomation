@@ -1,4 +1,4 @@
-// src/hooks/useBarcodeDetection.tsx - Updated Version
+// src/hooks/useBarcodeDetection.tsx - Updated with Inventory Integration
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
@@ -103,9 +103,10 @@ export const useBarcodeDetection = () => {
     setIsStreaming(false);
     setDetections([]);
     setProcessingQueue(0);
-    setLastDetectedCode("");
-    clearProduct();
-  }, [clearProduct]);
+    // Don't clear lastDetectedCode to maintain product info
+    // setLastDetectedCode("");
+    // clearProduct();
+  }, []);
 
   // Switch camera
   const switchCamera = useCallback(() => {
@@ -253,10 +254,9 @@ export const useBarcodeDetection = () => {
           const latestBarcode = result.barcodes[0];
           const barcodeData = latestBarcode.data;
 
-          setLastDetectedCode(barcodeData);
-
-          // Auto-fetch product info when new barcode is detected
+          // Only update if it's a new barcode to prevent unnecessary API calls
           if (barcodeData && barcodeData !== lastDetectedCode) {
+            setLastDetectedCode(barcodeData);
             console.log(
               "🔍 New barcode detected, fetching product info:",
               barcodeData
@@ -282,6 +282,33 @@ export const useBarcodeDetection = () => {
       setProcessingQueue((prev) => Math.max(0, prev - 1));
     }
   }, [processingQueue, lastDetectedCode, updateBarcode]);
+
+  // Manual scan function for inventory tab
+  const manualScan = useCallback(async () => {
+    if (!isStreaming) {
+      await startCamera();
+      // Wait a bit for camera to start
+      setTimeout(() => {
+        captureAndProcess();
+      }, 1000);
+    } else {
+      await captureAndProcess();
+    }
+  }, [isStreaming, startCamera, captureAndProcess]);
+
+  // Force rescan current view
+  const rescanCurrentView = useCallback(async () => {
+    if (isStreaming) {
+      await captureAndProcess();
+    }
+  }, [isStreaming, captureAndProcess]);
+
+  // Clear current detection
+  const clearCurrentDetection = useCallback(() => {
+    setLastDetectedCode("");
+    setDetections([]);
+    clearProduct();
+  }, [clearProduct]);
 
   // Auto-restart camera when constraints change
   useEffect(() => {
@@ -326,6 +353,9 @@ export const useBarcodeDetection = () => {
     stopCamera,
     switchCamera,
     captureAndProcess,
+    manualScan,
+    rescanCurrentView,
+    clearCurrentDetection,
     drawDetections,
     updateCanvasSize,
     clearError,

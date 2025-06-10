@@ -1,4 +1,4 @@
-// src/components/ProductInfo.tsx - Updated with Multi-Barcode Support and Quantity Input
+// src/components/ProductInfo.tsx - Updated with Inventory Integration
 "use client";
 
 import React, { useState } from "react";
@@ -20,6 +20,8 @@ import {
   Plus,
   Minus,
   ShoppingCart,
+  Archive,
+  Check,
 } from "lucide-react";
 import { Product, ProductCategory } from "../types/product";
 
@@ -28,6 +30,8 @@ interface ProductInfoProps {
   barcode?: string;
   isLoading?: boolean;
   error?: string;
+  onAddToInventory?: (product: Product, quantity: number) => boolean;
+  currentInventoryQuantity?: number;
 }
 
 const getCategoryIcon = (category: ProductCategory) => {
@@ -75,12 +79,16 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
   barcode,
   isLoading,
   error,
+  onAddToInventory,
+  currentInventoryQuantity = 0,
 }) => {
   const [copied, setCopied] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showNutrition, setShowNutrition] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [showQuantityInput, setShowQuantityInput] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [addSuccess, setAddSuccess] = useState(false);
 
   const copyBarcode = async () => {
     const codeToCopy = barcode || product?.barcode;
@@ -114,29 +122,41 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
     }
   };
 
-  const handleAddToCart = () => {
-    // ฟังก์ชันนี้จะใช้ในอนาคตสำหรับเพิ่มลงตะกร้า
-    console.log(`Added ${quantity} of ${product?.name} to cart`);
-    alert(
-      `เพิ่ม ${product?.name} จำนวน ${quantity} ${
-        product?.unit || "ชิ้น"
-      } แล้ว!`
-    );
+  const handleAddToInventory = async () => {
+    if (!product || !onAddToInventory) return;
 
-    // Reset quantity และซ่อน input
-    setQuantity(1);
-    setShowQuantityInput(false);
+    setIsAdding(true);
+    try {
+      const success = onAddToInventory(product, quantity);
+
+      if (success) {
+        setAddSuccess(true);
+        setQuantity(1);
+
+        // แสดงข้อความสำเร็จชั่วคราว
+        setTimeout(() => {
+          setAddSuccess(false);
+        }, 3000);
+
+        console.log(`✅ Added ${quantity} ${product.name} to inventory`);
+      }
+    } catch (error) {
+      console.error("❌ Failed to add to inventory:", error);
+    } finally {
+      setIsAdding(false);
+    }
   };
 
-  // แสดง quantity input เมื่อพบสินค้า
+  // แสดง quantity input เมื่อพบสินค้าและมี onAddToInventory callback
   React.useEffect(() => {
-    if (product && !error) {
+    if (product && !error && onAddToInventory) {
       setShowQuantityInput(true);
     } else {
       setShowQuantityInput(false);
       setQuantity(1);
+      setAddSuccess(false);
     }
-  }, [product, error]);
+  }, [product, error, onAddToInventory]);
 
   if (isLoading) {
     return (
@@ -253,7 +273,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
 
       {/* Content */}
       <div className="p-4 lg:p-6 space-y-4">
-        {/* Basic Info */}
+        {/* Basic Info with Current Inventory */}
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-gray-50 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
@@ -265,28 +285,62 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
             </p>
           </div>
 
-          {product.price && (
-            <div className="bg-gray-50 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <DollarSign size={16} className="text-green-500" />
-                <span className="text-sm text-gray-600">ราคา</span>
-              </div>
-              <p className="font-semibold text-green-600">
-                ฿{product.price.toFixed(2)}
-              </p>
+          <div className="bg-gray-50 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Archive size={16} className="text-purple-500" />
+              <span className="text-sm text-gray-600">ใน Stock</span>
             </div>
-          )}
+            <p
+              className={`font-semibold ${
+                currentInventoryQuantity > 0
+                  ? "text-green-600"
+                  : "text-gray-500"
+              }`}
+            >
+              {currentInventoryQuantity} {product.unit || "ชิ้น"}
+            </p>
+          </div>
         </div>
 
-        {/* Quantity Input Section */}
+        {product.price && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <DollarSign size={16} className="text-green-500" />
+              <span className="text-sm text-green-700">ราคา</span>
+            </div>
+            <p className="font-semibold text-green-600 text-lg">
+              ฿{product.price.toFixed(2)}
+            </p>
+          </div>
+        )}
+
+        {/* Success Message */}
+        {addSuccess && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+            <div className="bg-green-100 rounded-full p-1">
+              <Check className="text-green-600" size={16} />
+            </div>
+            <div>
+              <p className="text-green-800 font-medium">
+                เพิ่มใน Inventory สำเร็จ!
+              </p>
+              <p className="text-green-600 text-sm">
+                เพิ่ม {product.name} จำนวน {quantity} {product.unit || "ชิ้น"}{" "}
+                แล้ว
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Inventory Add Section */}
         {showQuantityInput && (
           <div className="bg-gradient-to-r from-fn-green/10 to-fn-red/10 border border-fn-green/30 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-3">
               <div className="bg-fn-green/20 p-2 rounded-lg">
-                <ShoppingCart size={16} className="fn-green" />
+                <Archive size={16} className="fn-green" />
               </div>
               <span className="text-lg font-semibold text-gray-800">
-                เพิ่มลงตะกร้า
+                เพิ่มเข้า Inventory
               </span>
             </div>
 
@@ -299,7 +353,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
                 <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
                   <button
                     onClick={decreaseQuantity}
-                    disabled={quantity <= 1}
+                    disabled={quantity <= 1 || isAdding}
                     className="bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 px-3 py-2 transition-colors"
                   >
                     <Minus size={16} />
@@ -312,11 +366,12 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
                     }
                     min="1"
                     max="999"
-                    className="w-16 text-center py-2 border-none outline-none bg-white text-gray-900 font-medium"
+                    disabled={isAdding}
+                    className="w-16 text-center py-2 border-none outline-none bg-white text-gray-900 font-medium disabled:bg-gray-50"
                   />
                   <button
                     onClick={increaseQuantity}
-                    disabled={quantity >= 999}
+                    disabled={quantity >= 999 || isAdding}
                     className="bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 px-3 py-2 transition-colors"
                   >
                     <Plus size={16} />
@@ -327,15 +382,50 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
                 </span>
               </div>
 
-              {/* Add to Cart Button */}
+              {/* Add to Inventory Button */}
               <button
-                onClick={handleAddToCart}
-                className="bg-fn-green hover:bg-fn-green/90 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 border border-fn-green ml-auto"
+                onClick={handleAddToInventory}
+                disabled={isAdding || addSuccess}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 font-medium shadow-lg transform ml-auto border ${
+                  addSuccess
+                    ? "bg-green-100 text-green-700 border-green-200 cursor-not-allowed"
+                    : isAdding
+                    ? "bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed"
+                    : "bg-fn-green hover:bg-fn-green/90 text-white border-fn-green hover:shadow-xl hover:scale-105"
+                }`}
               >
-                <ShoppingCart size={16} />
-                <span>เพิ่มลงตะกร้า</span>
+                {isAdding ? (
+                  <>
+                    <div className="animate-spin w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full"></div>
+                    <span>กำลังเพิ่ม...</span>
+                  </>
+                ) : addSuccess ? (
+                  <>
+                    <Check size={16} />
+                    <span>เพิ่มแล้ว</span>
+                  </>
+                ) : (
+                  <>
+                    <Archive size={16} />
+                    <span>เพิ่มเข้า Stock</span>
+                  </>
+                )}
               </button>
             </div>
+
+            {/* Current inventory display */}
+            {currentInventoryQuantity > 0 && (
+              <div className="mt-3 text-sm text-gray-600 bg-blue-50 p-2 rounded">
+                📦 ปัจจุบันใน Stock: {currentInventoryQuantity}{" "}
+                {product.unit || "ชิ้น"}
+                {quantity > 0 && (
+                  <span className="text-blue-600 font-medium">
+                    → จะเป็น {currentInventoryQuantity + quantity}{" "}
+                    {product.unit || "ชิ้น"}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         )}
 
