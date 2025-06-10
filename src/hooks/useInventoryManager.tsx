@@ -15,10 +15,15 @@ export interface InventoryItem {
   unit: string;
   quantity: number;
   lastUpdated: string;
-  productData?: Product; // เก็บข้อมูลสินค้าเต็ม
-  addedBy?: string; // ชื่อพนักงานที่เพิ่ม
-  branchCode?: string; // รหัสสาขา
-  branchName?: string; // ชื่อสาขา
+  productData?: Product;
+  addedBy?: string;
+  branchCode?: string;
+  branchName?: string;
+  // เพิ่มข้อมูลประเภทบาร์โค้ด
+  barcodeType?: "ea" | "dsp" | "cs";
+  materialCode?: string; // F/FG code
+  productGroup?: string; // Prod. Gr.
+  thaiDescription?: string; // รายละเอียด
 }
 
 // Interface สำหรับ summary ข้อมูล
@@ -103,7 +108,7 @@ export const useInventoryManager = (employeeContext?: EmployeeContext) => {
 
   // Add or update inventory item with employee info
   const addOrUpdateItem = useCallback(
-    (product: Product, quantity: number) => {
+    (product: Product, quantity: number, barcodeType?: "ea" | "dsp" | "cs") => {
       if (!product || quantity <= 0) {
         setError("ข้อมูลสินค้าหรือจำนวนไม่ถูกต้อง");
         return false;
@@ -113,7 +118,7 @@ export const useInventoryManager = (employeeContext?: EmployeeContext) => {
         setError(null);
 
         const newItem: InventoryItem = {
-          id: `${product.barcode}_${Date.now()}`,
+          id: `${product.barcode}_${barcodeType || "ea"}_${Date.now()}`,
           barcode: product.barcode,
           productName: product.name,
           brand: product.brand,
@@ -123,30 +128,34 @@ export const useInventoryManager = (employeeContext?: EmployeeContext) => {
           quantity: quantity,
           lastUpdated: new Date().toISOString(),
           productData: product,
-          // เพิ่มข้อมูลพนักงาน
           addedBy: employeeContext?.employeeName,
           branchCode: employeeContext?.branchCode,
           branchName: employeeContext?.branchName,
+          // เพิ่มข้อมูลใหม่
+          barcodeType: barcodeType || "ea",
+          materialCode: product.sku || product.id,
+          productGroup: mapCategoryToProductGroup(product.category),
+          thaiDescription: product.description || product.name,
         };
 
         setInventory((prevInventory) => {
-          // Check if product already exists (same barcode)
+          // ค้นหา item ที่มี barcode และ type เดียวกัน
           const existingIndex = prevInventory.findIndex(
-            (item) => item.barcode === product.barcode
+            (item) =>
+              item.barcode === product.barcode &&
+              item.barcodeType === (barcodeType || "ea")
           );
 
           let updatedInventory: InventoryItem[];
 
           if (existingIndex !== -1) {
-            // Update existing item - add to current quantity
             updatedInventory = prevInventory.map((item, index) =>
               index === existingIndex
                 ? {
                     ...item,
                     quantity: item.quantity + quantity,
                     lastUpdated: new Date().toISOString(),
-                    productData: product, // Update product data
-                    // อัพเดตข้อมูลพนักงานล่าสุด
+                    productData: product,
                     addedBy: employeeContext?.employeeName || item.addedBy,
                     branchCode: employeeContext?.branchCode || item.branchCode,
                     branchName: employeeContext?.branchName || item.branchName,
@@ -154,13 +163,16 @@ export const useInventoryManager = (employeeContext?: EmployeeContext) => {
                 : item
             );
             console.log(
-              `📦 Updated existing item: ${product.name} (+${quantity}) by ${employeeContext?.employeeName}`
+              `📦 Updated existing item: ${product.name} (+${quantity}) ${
+                barcodeType || "ea"
+              } by ${employeeContext?.employeeName}`
             );
           } else {
-            // Add new item
             updatedInventory = [...prevInventory, newItem];
             console.log(
-              `📦 Added new item: ${product.name} (${quantity}) by ${employeeContext?.employeeName}`
+              `📦 Added new item: ${product.name} (${quantity}) ${
+                barcodeType || "ea"
+              } by ${employeeContext?.employeeName}`
             );
           }
 
@@ -177,6 +189,20 @@ export const useInventoryManager = (employeeContext?: EmployeeContext) => {
     },
     [saveInventory, employeeContext]
   );
+
+  // Helper function to map category to product group
+  const mapCategoryToProductGroup = (category: string): string => {
+    const categoryMapping: Record<string, string> = {
+      beverages: "STM",
+      dairy: "EVAP",
+      confectionery: "Gummy",
+      snacks: "SNACK",
+      canned_food: "EVAP",
+      // เพิ่มการ mapping ตามความต้องการ
+    };
+
+    return categoryMapping[category.toLowerCase()] || "OTHER";
+  };
 
   // Update specific item quantity
   const updateItemQuantity = useCallback(
@@ -348,97 +374,125 @@ export const useInventoryManager = (employeeContext?: EmployeeContext) => {
         return false;
       }
 
-      // Define CSV headers with employee info
-      const headers = [
-        "ลำดับ",
-        "บาร์โค้ด",
-        "ชื่อสินค้า",
-        "แบรนด์",
-        "หมวดหมู่",
-        "ขนาด",
-        "หน่วย",
-        "จำนวนใน Stock",
-        "วันที่อัพเดต",
-        "เวลาอัพเดต",
-        "เพิ่มโดยพนักงาน",
-        "รหัสสาขา",
-        "ชื่อสาขา",
-      ];
+      const now = new Date();
+      const thaiDate = now.toLocaleDateString("th-TH", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+      const thaiTime = now.toLocaleTimeString("th-TH", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
 
-      // Create CSV content
+      const branchCode = employeeContext?.branchCode || "XXX";
+      const branchName = employeeContext?.branchName || "ไม่ระบุสาขา";
+
+      // สร้าง CSV content
       const csvRows: string[] = [];
 
-      // Add headers
+      // Header row ตามรูปแบบที่ต้องการ
+      csvRows.push(
+        escapeCsvField(
+          `สถานะคลังล่าสุด ${thaiDate} ${thaiTime} สำหรับ ${branchCode} - ${branchName}`
+        )
+      );
+      csvRows.push(`ตรวจนับโดย,${employeeContext?.employeeName || "ไม่ระบุ"}`);
+
+      // เว้น 1 row
+      csvRows.push("");
+
+      // Column headers
+      const headers = [
+        "F/FG",
+        "Prod. Gr.",
+        "รายละเอียด",
+        "นับจริง (cs)",
+        "นับจริง (ชิ้น)",
+      ];
       csvRows.push(headers.map((header) => escapeCsvField(header)).join(","));
 
-      // Add data rows
-      inventory.forEach((item, index) => {
-        const updateDate = new Date(item.lastUpdated);
-        const dateStr = updateDate.toLocaleDateString("th-TH", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        });
-        const timeStr = updateDate.toLocaleTimeString("th-TH", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        });
+      // จัดกลุ่มข้อมูลตาม material code และ product group
+      const groupedData = new Map<
+        string,
+        {
+          materialCode: string;
+          productGroup: string;
+          thaiDescription: string;
+          csCount: number;
+          pieceCount: number;
+        }
+      >();
 
+      inventory.forEach((item) => {
+        const key = `${item.materialCode}_${item.productGroup}`;
+        const existing = groupedData.get(key);
+
+        if (existing) {
+          // รวมจำนวนตามประเภทบาร์โค้ด
+          if (item.barcodeType === "cs") {
+            existing.csCount += item.quantity;
+          } else if (item.barcodeType === "ea" || item.barcodeType === "dsp") {
+            existing.pieceCount += item.quantity;
+          }
+        } else {
+          groupedData.set(key, {
+            materialCode: item.materialCode || "",
+            productGroup: item.productGroup || "",
+            thaiDescription: item.thaiDescription || item.productName,
+            csCount: item.barcodeType === "cs" ? item.quantity : 0,
+            pieceCount:
+              item.barcodeType === "ea" || item.barcodeType === "dsp"
+                ? item.quantity
+                : 0,
+          });
+        }
+      });
+
+      // เพิ่มข้อมูลแต่ละ row
+      Array.from(groupedData.values()).forEach((group) => {
         const row = [
-          index + 1, // ลำดับ
-          escapeCsvField(item.barcode), // บาร์โค้ด
-          escapeCsvField(item.productName), // ชื่อสินค้า
-          escapeCsvField(item.brand), // แบรนด์
-          escapeCsvField(item.category), // หมวดหมู่
-          escapeCsvField(item.size), // ขนาด
-          escapeCsvField(item.unit), // หน่วย
-          item.quantity, // จำนวนใน Stock
-          escapeCsvField(dateStr), // วันที่อัพเดต
-          escapeCsvField(timeStr), // เวลาอัพเดต
-          escapeCsvField(item.addedBy || "ไม่ระบุ"), // เพิ่มโดยพนักงาน
-          escapeCsvField(
-            item.branchCode || employeeContext?.branchCode || "ไม่ระบุ"
-          ), // รหัสสาขา
-          escapeCsvField(
-            item.branchName || employeeContext?.branchName || "ไม่ระบุ"
-          ), // ชื่อสาขา
+          escapeCsvField(group.materialCode),
+          escapeCsvField(group.productGroup),
+          escapeCsvField(group.thaiDescription),
+          group.csCount > 0 ? group.csCount.toString() : "",
+          group.pieceCount > 0 ? group.pieceCount.toString() : "",
         ];
-
         csvRows.push(row.join(","));
       });
 
-      // Add summary at the end with employee context
-      csvRows.push(""); // Empty row
-      csvRows.push("สรุปข้อมูล Stock");
-      csvRows.push(`รายการสินค้าทั้งหมด,${inventory.length} รายการ`);
-      csvRows.push(
-        `จำนวนสินค้าทั้งหมด,${getInventorySummary().totalItems} ชิ้น`
-      );
-      csvRows.push(
-        `หมวดหมู่,${Object.keys(getInventorySummary().categories).length} หมวด`
-      );
-      csvRows.push(
-        `แบรนด์,${Object.keys(getInventorySummary().brands).length} แบรนด์`
-      );
+      // เพิ่มข้อมูลสรุป
+      // csvRows.push(""); // Empty row
+      // csvRows.push("ข้อมูลสรุป");
+      // csvRows.push(`รายการสินค้าทั้งหมด,${groupedData.size} รายการ`);
+      // csvRows.push(
+      //   `จำนวนสินค้า (cs),${Array.from(groupedData.values()).reduce(
+      //     (sum, item) => sum + item.csCount,
+      //     0
+      //   )} ลัง`
+      // );
+      // csvRows.push(
+      //   `จำนวนสินค้า (ชิ้น),${Array.from(groupedData.values()).reduce(
+      //     (sum, item) => sum + item.pieceCount,
+      //     0
+      //   )} ชิ้น`
+      // );
 
-      // Employee and branch info
-      csvRows.push(""); // Empty row
-      csvRows.push("ข้อมูลการส่งออก");
-      csvRows.push(`ส่งออกโดย,${employeeContext?.employeeName || "ไม่ระบุ"}`);
-      csvRows.push(`รหัสสาขา,${employeeContext?.branchCode || "ไม่ระบุ"}`);
-      csvRows.push(`ชื่อสาขา,${employeeContext?.branchName || "ไม่ระบุ"}`);
-      csvRows.push(`วันที่ส่งออก,${new Date().toLocaleDateString("th-TH")}`);
-      csvRows.push(`เวลาส่งออก,${new Date().toLocaleTimeString("th-TH")}`);
+      // ข้อมูลพนักงาน
+      // csvRows.push("");
+      // csvRows.push("ข้อมูลการตรวจนับ");
+      // csvRows.push(`ตรวจนับโดย,${employeeContext?.employeeName || "ไม่ระบุ"}`);
+      // csvRows.push(`รหัสสาขา,${branchCode}`);
+      // csvRows.push(`ชื่อสาขา,${branchName}`);
+      // csvRows.push(`วันที่ส่งออก,${thaiDate}`);
+      // csvRows.push(`เวลาส่งออก,${thaiTime}`);
 
-      // Join all rows
+      // สร้างไฟล์และดาวน์โหลด
       const csvContent = csvRows.join("\n");
-
-      // Add BOM for UTF-8 to ensure proper display of Thai characters
       const BOM = "\uFEFF";
       const csvWithBOM = BOM + csvContent;
 
-      // Create and download file
       const blob = new Blob([csvWithBOM], {
         type: "text/csv;charset=utf-8;",
       });
@@ -446,14 +500,12 @@ export const useInventoryManager = (employeeContext?: EmployeeContext) => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
 
-      // Generate filename with employee and branch info
-      const now = new Date();
-      const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD format
-      const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-"); // HH-MM-SS format
-      const branchCode = employeeContext?.branchCode || "Unknown";
+      // ชื่อไฟล์
+      const dateStr = now.toISOString().split("T")[0];
+      const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-");
 
       link.href = url;
-      link.download = `FN_Stock_${branchCode}_${dateStr}_${timeStr}.csv`;
+      link.download = `สถานะคลัง_${branchCode}_${dateStr}_${timeStr}.csv`;
       link.style.display = "none";
 
       document.body.appendChild(link);
@@ -464,7 +516,7 @@ export const useInventoryManager = (employeeContext?: EmployeeContext) => {
 
       console.log(
         "📤 Exported inventory data as CSV:",
-        inventory.length,
+        groupedData.size,
         "items by",
         employeeContext?.employeeName
       );
@@ -474,7 +526,7 @@ export const useInventoryManager = (employeeContext?: EmployeeContext) => {
       setError("เกิดข้อผิดพลาดในการส่งออกข้อมูล");
       return false;
     }
-  }, [inventory, getInventorySummary, escapeCsvField, employeeContext]);
+  }, [inventory, employeeContext, escapeCsvField]);
 
   // Clear error
   const clearError = useCallback(() => {
@@ -498,12 +550,9 @@ export const useInventoryManager = (employeeContext?: EmployeeContext) => {
   }, [inventory, isLoading, saveInventory]);
 
   return {
-    // State
     inventory,
     isLoading,
     error,
-
-    // Actions
     addOrUpdateItem,
     updateItemQuantity,
     removeItem,
@@ -513,8 +562,6 @@ export const useInventoryManager = (employeeContext?: EmployeeContext) => {
     exportInventory,
     clearError,
     loadInventory,
-
-    // Computed
     summary: getInventorySummary(),
   };
 };

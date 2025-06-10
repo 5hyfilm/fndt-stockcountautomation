@@ -1,4 +1,4 @@
-// src/data/csvProducts.ts - Enhanced version with multi-barcode support
+// src/data/csvProducts.ts - Fixed version for client/server compatibility
 import Papa from "papaparse";
 import { Product, ProductCategory, ProductStatus } from "../types/product";
 import {
@@ -6,8 +6,6 @@ import {
   findFallbackProductByBarcode,
   getFallbackStats,
 } from "./fallbackProducts";
-import { promises as fs } from "fs";
-import path from "path";
 
 // CSV Row interface based on the actual CSV structure
 interface CSVProductRow {
@@ -207,6 +205,11 @@ const csvRowToProduct = (
   }
 };
 
+// Helper function to normalize barcode
+export const normalizeBarcode = (barcode: string): string => {
+  return barcode.trim().replace(/[^0-9]/g, "");
+};
+
 // Enhanced barcode matching function
 const findBarcodeMatch = (
   searchBarcode: string,
@@ -308,6 +311,10 @@ const readCSVFile = async (): Promise<string> => {
     console.log("🖥️ Loading CSV from server environment...");
 
     try {
+      // Dynamic import for server-side modules
+      const { promises: fs } = await import("fs");
+      const path = await import("path");
+
       const csvPath = path.join(
         process.cwd(),
         "public",
@@ -475,15 +482,12 @@ export const loadCSVProducts = async (): Promise<
   }
 };
 
-// Helper function to normalize barcode
-export const normalizeBarcode = (barcode: string): string => {
-  return barcode.trim().replace(/[^0-9]/g, "");
-};
-
 // Enhanced barcode matching function with multi-barcode support
 export const findProductByBarcode = async (
   inputBarcode: string
-): Promise<Product | undefined> => {
+): Promise<
+  { product: Product; barcodeType: "ea" | "dsp" | "cs" } | undefined
+> => {
   try {
     const products = await loadCSVProducts();
     const searchBarcode = normalizeBarcode(inputBarcode);
@@ -494,7 +498,7 @@ export const findProductByBarcode = async (
     for (const product of products) {
       const match = findBarcodeMatch(searchBarcode, product);
 
-      if (match.matched) {
+      if (match.matched && match.type) {
         console.log(
           `✅ Product found: ${product.name} (${match.type?.toUpperCase()}: ${
             match.barcode
@@ -514,7 +518,10 @@ export const findProductByBarcode = async (
         // For compatibility, keep the matched barcode as the main barcode
         resultProduct.barcode = match.barcode!;
 
-        return resultProduct;
+        return {
+          product: resultProduct,
+          barcodeType: match.type,
+        };
       }
     }
 
@@ -535,11 +542,15 @@ export const findProductByBarcode = async (
 
     if (fallbackProduct) {
       console.log("✅ Found in fallback products:", fallbackProduct.name);
+      return {
+        product: fallbackProduct,
+        barcodeType: "ea", // default for fallback
+      };
     } else {
       console.log("❌ Not found in fallback products either");
     }
 
-    return fallbackProduct;
+    return undefined;
   }
 };
 
@@ -670,14 +681,9 @@ export const debugBarcodeMatching = async (testBarcode?: string) => {
       console.log(`\n🔍 Testing barcode: ${testBarcode}`);
       const result = await findProductByBarcode(testBarcode);
       if (result) {
-        const productWithBarcodes = result as ProductWithMultipleBarcodes;
-        console.log(`✅ Found: ${result.name}`);
-        console.log(
-          `📦 Scanned type: ${
-            productWithBarcodes.barcodes?.scannedType || "unknown"
-          }`
-        );
-        console.log(`🏷️ Matched barcode: ${result.barcode}`);
+        console.log(`✅ Found: ${result.product.name}`);
+        console.log(`📦 Scanned type: ${result.barcodeType}`);
+        console.log(`🏷️ Matched barcode: ${result.product.barcode}`);
       } else {
         console.log("❌ Not found");
       }

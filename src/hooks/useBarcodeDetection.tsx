@@ -1,4 +1,4 @@
-// src/hooks/useBarcodeDetection.tsx - Updated with Inventory Integration
+// src/hooks/useBarcodeDetection.tsx - Fixed version
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
@@ -10,7 +10,7 @@ import {
   APIResponse,
 } from "../types/detection";
 import { Product } from "../types/product";
-import { useProductInfo } from "./useProductInfo";
+import { findProductByBarcode, normalizeBarcode } from "../data/csvProducts";
 
 export const useBarcodeDetection = () => {
   // Refs
@@ -38,21 +38,77 @@ export const useBarcodeDetection = () => {
     facingMode: "environment",
   });
 
-  // Product info hook
-  const {
-    product,
-    isLoading: isLoadingProduct,
-    error: productError,
-    updateBarcode,
-    clearProduct,
-    clearError: clearProductError,
-  } = useProductInfo();
+  // Product info state
+  const [product, setProduct] = useState<Product | null>(null);
+  const [detectedBarcodeType, setDetectedBarcodeType] = useState<
+    "ea" | "dsp" | "cs" | null
+  >(null);
+  const [isLoadingProduct, setIsLoadingProduct] = useState(false);
+  const [productError, setProductError] = useState<string | null>(null);
+
+  // Update barcode and fetch product info
+  const updateBarcode = useCallback(
+    async (barcode: string) => {
+      const normalizedBarcode = normalizeBarcode(barcode);
+
+      if (
+        !normalizedBarcode ||
+        normalizedBarcode === normalizeBarcode(lastDetectedCode)
+      ) {
+        return;
+      }
+
+      console.log("🔄 Barcode changed:", {
+        old: normalizeBarcode(lastDetectedCode),
+        new: normalizedBarcode,
+      });
+
+      setIsLoadingProduct(true);
+      setProductError(null);
+
+      try {
+        // ใช้ findProductByBarcode ที่ return barcode type
+        const result = await findProductByBarcode(normalizedBarcode);
+
+        if (result) {
+          setProduct(result.product);
+          setDetectedBarcodeType(result.barcodeType);
+          setLastDetectedCode(normalizedBarcode);
+          console.log(
+            `✅ Product found: ${
+              result.product.name
+            } (${result.barcodeType.toUpperCase()})`
+          );
+        } else {
+          setProduct(null);
+          setDetectedBarcodeType(null);
+          setProductError("ไม่พบข้อมูลสินค้าในระบบ");
+          console.log("❌ Product not found for barcode:", normalizedBarcode);
+        }
+      } catch (error: any) {
+        console.error("❌ Error fetching product:", error);
+        setProduct(null);
+        setDetectedBarcodeType(null);
+        setProductError(error.message || "เกิดข้อผิดพลาดในการค้นหาสินค้า");
+      } finally {
+        setIsLoadingProduct(false);
+      }
+    },
+    [lastDetectedCode]
+  );
 
   // Clear error
   const clearError = useCallback(() => {
     setErrors(null);
-    clearProductError();
-  }, [clearProductError]);
+    setProductError(null);
+  }, []);
+
+  // Clear product
+  const clearProduct = useCallback(() => {
+    setProduct(null);
+    setDetectedBarcodeType(null);
+    setProductError(null);
+  }, []);
 
   // Start camera
   const startCamera = useCallback(async () => {
@@ -103,9 +159,6 @@ export const useBarcodeDetection = () => {
     setIsStreaming(false);
     setDetections([]);
     setProcessingQueue(0);
-    // Don't clear lastDetectedCode to maintain product info
-    // setLastDetectedCode("");
-    // clearProduct();
   }, []);
 
   // Switch camera
@@ -158,7 +211,7 @@ export const useBarcodeDetection = () => {
       const height = (detection.ymax - detection.ymin) * scaleY;
 
       // Draw detection box with enhanced styling
-      ctx.strokeStyle = product ? "#10B981" : "#EF4444"; // Green if product found, red if not
+      ctx.strokeStyle = product ? "#10B981" : "#EF4444";
       ctx.lineWidth = 3;
       ctx.strokeRect(x, y, width, height);
 
@@ -167,6 +220,14 @@ export const useBarcodeDetection = () => {
       ctx.font = "bold 14px Arial";
       const confidence = `${(detection.confidence * 100).toFixed(1)}%`;
       ctx.fillText(confidence, x, y - 8);
+
+      // Draw barcode type if available
+      if (product && detectedBarcodeType) {
+        ctx.fillStyle = "#059669";
+        ctx.font = "10px Arial";
+        const typeText = `${detectedBarcodeType.toUpperCase()}`;
+        ctx.fillText(typeText, x + width - 30, y - 8);
+      }
 
       // Draw product name if available
       if (product) {
@@ -200,7 +261,7 @@ export const useBarcodeDetection = () => {
       ctx.fillRect(x + width - markerSize + 2, y + height - 1, markerSize, 3);
       ctx.fillRect(x + width - 1, y + height - markerSize + 2, 3, markerSize);
     });
-  }, [detections, product]);
+  }, [detections, product, detectedBarcodeType]);
 
   // Capture and process frame
   const captureAndProcess = useCallback(async () => {
@@ -256,12 +317,8 @@ export const useBarcodeDetection = () => {
 
           // Only update if it's a new barcode to prevent unnecessary API calls
           if (barcodeData && barcodeData !== lastDetectedCode) {
-            setLastDetectedCode(barcodeData);
-            console.log(
-              "🔍 New barcode detected, fetching product info:",
-              barcodeData
-            );
-            updateBarcode(barcodeData);
+            console.log("🔍 New barcode detected:", barcodeData);
+            await updateBarcode(barcodeData);
           }
         }
 
@@ -287,7 +344,6 @@ export const useBarcodeDetection = () => {
   const manualScan = useCallback(async () => {
     if (!isStreaming) {
       await startCamera();
-      // Wait a bit for camera to start
       setTimeout(() => {
         captureAndProcess();
       }, 1000);
@@ -345,6 +401,7 @@ export const useBarcodeDetection = () => {
 
     // Product info
     product,
+    detectedBarcodeType,
     isLoadingProduct,
     productError,
 
@@ -359,5 +416,7 @@ export const useBarcodeDetection = () => {
     drawDetections,
     updateCanvasSize,
     clearError,
+    clearProduct,
+    updateBarcode,
   };
 };

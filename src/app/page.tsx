@@ -58,6 +58,7 @@ export default function BarcodeDetectionPage() {
     lastDetectedCode,
     errors,
     product,
+    detectedBarcodeType,
     isLoadingProduct,
     productError,
     startCamera,
@@ -134,12 +135,16 @@ export default function BarcodeDetectionPage() {
   }, [lastDetectedCode, findItemByBarcode]);
 
   // Handle add to inventory with employee info
-  const handleAddToInventory = (product: any, quantity: number) => {
-    const success = addOrUpdateItem(product, quantity);
+  const handleAddToInventory = (
+    product: any,
+    quantity: number,
+    barcodeType?: "ea" | "dsp" | "cs"
+  ) => {
+    const success = addOrUpdateItem(product, quantity, barcodeType);
     if (success && employee) {
-      // อาจจะเพิ่มข้อมูลพนักงานที่เพิ่มสินค้านี้
+      const unitType = barcodeType === "cs" ? "ลัง" : "ชิ้น";
       console.log(
-        `📦 ${employeeName} added ${quantity} ${product.name} at ${branchName}`
+        `📦 ${employeeName} added ${quantity} ${unitType} of ${product.name} at ${branchName}`
       );
     }
     return success;
@@ -391,6 +396,7 @@ export default function BarcodeDetectionPage() {
                 <ProductInfo
                   product={product}
                   barcode={lastDetectedCode}
+                  barcodeType={detectedBarcodeType || undefined}
                   isLoading={isLoadingProduct}
                   error={productError || undefined}
                   onAddToInventory={handleAddToInventory}

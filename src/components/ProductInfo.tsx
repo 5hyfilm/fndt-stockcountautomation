@@ -22,15 +22,21 @@ import {
 interface ProductInfoProps {
   product: Product | null;
   barcode?: string;
+  barcodeType?: "ea" | "dsp" | "cs";
   isLoading?: boolean;
   error?: string;
-  onAddToInventory?: (product: Product, quantity: number) => boolean;
+  onAddToInventory?: (
+    product: Product,
+    quantity: number,
+    barcodeType?: "ea" | "dsp" | "cs"
+  ) => boolean;
   currentInventoryQuantity?: number;
 }
 
 export const ProductInfo: React.FC<ProductInfoProps> = ({
   product,
   barcode,
+  barcodeType,
   isLoading,
   error,
   onAddToInventory,
@@ -49,6 +55,13 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
     } catch (err) {
       console.error("Failed to copy barcode:", err);
     }
+  };
+
+  const handleAddToInventory = (product: Product, quantity: number) => {
+    if (onAddToInventory) {
+      return onAddToInventory(product, quantity, barcodeType);
+    }
+    return false;
   };
 
   // Determine if inventory add section should be visible
