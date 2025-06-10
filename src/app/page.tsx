@@ -9,10 +9,18 @@ import {
   Info,
   Archive,
   BarChart3,
+  User,
+  LogOut,
+  Clock,
 } from "lucide-react";
 import Image from "next/image";
 import { useBarcodeDetection } from "../hooks/useBarcodeDetection";
 import { useInventoryManager } from "../hooks/useInventoryManager";
+import { useEmployeeAuth } from "../hooks/useEmployeeAuth";
+import {
+  EmployeeBranchForm,
+  EmployeeInfo,
+} from "../components/auth/EmployeeBranchForm";
 import { CameraSection } from "../components/CameraSection";
 import { ProductInfo } from "../components/ProductInfo";
 import { InventoryDisplay } from "../components/InventoryDisplay";
@@ -26,6 +34,20 @@ export default function BarcodeDetectionPage() {
   const [showExportSuccess, setShowExportSuccess] = useState(false);
   const [exportFileName, setExportFileName] = useState<string>("");
 
+  // Employee Authentication
+  const {
+    isAuthenticated,
+    isLoading: isAuthLoading,
+    employee,
+    employeeName,
+    branchCode,
+    branchName,
+    login,
+    logout,
+    formatTimeRemaining,
+  } = useEmployeeAuth();
+
+  // Barcode Detection
   const {
     videoRef,
     canvasRef,
@@ -47,6 +69,7 @@ export default function BarcodeDetectionPage() {
     clearError,
   } = useBarcodeDetection();
 
+  // Inventory Management with Employee Context
   const {
     inventory,
     isLoading: isLoadingInventory,
@@ -60,13 +83,39 @@ export default function BarcodeDetectionPage() {
     exportInventory,
     clearError: clearInventoryError,
     summary,
-  } = useInventoryManager();
+  } = useInventoryManager(
+    employee
+      ? {
+          employeeName: employee.employeeName,
+          branchCode: employee.branchCode,
+          branchName: employee.branchName,
+        }
+      : undefined
+  );
+
+  // Handle employee login
+  const handleEmployeeLogin = async (employeeInfo: EmployeeInfo) => {
+    try {
+      await login(employeeInfo);
+      console.log("✅ Employee logged in:", employeeInfo.employeeName);
+    } catch (error) {
+      console.error("❌ Login failed:", error);
+    }
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    if (isStreaming) {
+      stopCamera();
+    }
+    logout();
+  };
 
   // ประมวลผลอัตโนมัติ Real-time
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
-    if (isStreaming && activeTab === "scanner") {
+    if (isStreaming && activeTab === "scanner" && isAuthenticated) {
       interval = setInterval(() => {
         captureAndProcess();
       }, 300);
@@ -75,7 +124,7 @@ export default function BarcodeDetectionPage() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isStreaming, activeTab, captureAndProcess]);
+  }, [isStreaming, activeTab, captureAndProcess, isAuthenticated]);
 
   // หาจำนวนสินค้าปัจจุบันใน inventory
   const currentInventoryQuantity = React.useMemo(() => {
@@ -84,23 +133,34 @@ export default function BarcodeDetectionPage() {
     return item?.quantity || 0;
   }, [lastDetectedCode, findItemByBarcode]);
 
-  // Handle add to inventory
+  // Handle add to inventory with employee info
   const handleAddToInventory = (product: any, quantity: number) => {
-    return addOrUpdateItem(product, quantity);
+    const success = addOrUpdateItem(product, quantity);
+    if (success && employee) {
+      // อาจจะเพิ่มข้อมูลพนักงานที่เพิ่มสินค้านี้
+      console.log(
+        `📦 ${employeeName} added ${quantity} ${product.name} at ${branchName}`
+      );
+    }
+    return success;
   };
 
-  // Handle export with success notification
+  // Handle export with employee info
   const handleExportInventory = () => {
+    if (!employee) return false;
+
     const success = exportInventory();
     if (success) {
-      // Generate filename for display
+      // Generate filename with employee and branch info
       const now = new Date();
       const dateStr = now.toISOString().split("T")[0];
       const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-");
-      const fileName = `FN_Stock_Inventory_${dateStr}_${timeStr}.csv`;
+      const fileName = `FN_Stock_${branchCode}_${dateStr}_${timeStr}.csv`;
 
       setExportFileName(fileName);
       setShowExportSuccess(true);
+
+      console.log(`📤 ${employeeName} exported inventory for ${branchName}`);
     }
     return success;
   };
@@ -110,6 +170,56 @@ export default function BarcodeDetectionPage() {
     clearError();
     clearInventoryError();
   };
+
+  // Show login form if not authenticated
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-xl p-8 shadow-lg">
+          <div className="animate-spin w-8 h-8 border-4 border-fn-green border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600 text-center">กำลังโหลดระบบ...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <EmployeeBranchForm onSubmit={handleEmployeeLogin} />;
+  }
+
+  // Employee Header Component
+  const EmployeeHeader = () => (
+    <div className="bg-gradient-to-r from-fn-green/10 to-fn-red/10 border border-fn-green/30 rounded-lg p-3 mb-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="bg-fn-green/20 p-2 rounded-lg">
+            <User className="fn-green" size={16} />
+          </div>
+          <div>
+            <div className="font-semibold text-gray-900">{employeeName}</div>
+            <div className="text-sm text-gray-600">
+              {branchCode} - {branchName}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-right text-xs text-gray-600">
+            <div className="flex items-center gap-1">
+              <Clock size={12} />
+              เหลือเวลา: {formatTimeRemaining()}
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="text-red-600 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors"
+            title="ออกจากระบบ"
+          >
+            <LogOut size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -124,6 +234,9 @@ export default function BarcodeDetectionPage() {
       {/* Header */}
       <div className="bg-white/95 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40 shadow-sm">
         <div className="container mx-auto px-4 py-4">
+          {/* Employee Info */}
+          <EmployeeHeader />
+
           <div className="flex items-center justify-center mb-4">
             <div className="flex items-center gap-3">
               {/* F&N Logo */}
@@ -358,6 +471,8 @@ export default function BarcodeDetectionPage() {
             </span>
           </p>
           <div className="flex justify-center items-center gap-4 mt-2 text-xs text-gray-500">
+            <span>👤 {employeeName}</span>
+            <span>🏢 {branchName}</span>
             {product && (
               <span>
                 🎯 สินค้าล่าสุด: {product.name} ({product.brand})

@@ -1,4 +1,4 @@
-// src/hooks/useInventoryManager.tsx
+// src/hooks/useInventoryManager.tsx - Updated with Employee Info
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
@@ -16,6 +16,9 @@ export interface InventoryItem {
   quantity: number;
   lastUpdated: string;
   productData?: Product; // เก็บข้อมูลสินค้าเต็ม
+  addedBy?: string; // ชื่อพนักงานที่เพิ่ม
+  branchCode?: string; // รหัสสาขา
+  branchName?: string; // ชื่อสาขา
 }
 
 // Interface สำหรับ summary ข้อมูล
@@ -27,11 +30,18 @@ export interface InventorySummary {
   brands: Record<string, number>;
 }
 
+// Interface สำหรับข้อมูลพนักงาน (เพื่อความชัดเจน)
+export interface EmployeeContext {
+  employeeName: string;
+  branchCode: string;
+  branchName: string;
+}
+
 const STORAGE_KEY = "fn_inventory_data";
 const VERSION_KEY = "fn_inventory_version";
-const CURRENT_VERSION = "1.0";
+const CURRENT_VERSION = "1.1"; // เพิ่มเวอร์ชันเพื่อรองรับข้อมูลพนักงาน
 
-export const useInventoryManager = () => {
+export const useInventoryManager = (employeeContext?: EmployeeContext) => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +101,7 @@ export const useInventoryManager = () => {
     }
   }, []);
 
-  // Add or update inventory item
+  // Add or update inventory item with employee info
   const addOrUpdateItem = useCallback(
     (product: Product, quantity: number) => {
       if (!product || quantity <= 0) {
@@ -113,6 +123,10 @@ export const useInventoryManager = () => {
           quantity: quantity,
           lastUpdated: new Date().toISOString(),
           productData: product,
+          // เพิ่มข้อมูลพนักงาน
+          addedBy: employeeContext?.employeeName,
+          branchCode: employeeContext?.branchCode,
+          branchName: employeeContext?.branchName,
         };
 
         setInventory((prevInventory) => {
@@ -132,16 +146,22 @@ export const useInventoryManager = () => {
                     quantity: item.quantity + quantity,
                     lastUpdated: new Date().toISOString(),
                     productData: product, // Update product data
+                    // อัพเดตข้อมูลพนักงานล่าสุด
+                    addedBy: employeeContext?.employeeName || item.addedBy,
+                    branchCode: employeeContext?.branchCode || item.branchCode,
+                    branchName: employeeContext?.branchName || item.branchName,
                   }
                 : item
             );
             console.log(
-              `📦 Updated existing item: ${product.name} (+${quantity})`
+              `📦 Updated existing item: ${product.name} (+${quantity}) by ${employeeContext?.employeeName}`
             );
           } else {
             // Add new item
             updatedInventory = [...prevInventory, newItem];
-            console.log(`📦 Added new item: ${product.name} (${quantity})`);
+            console.log(
+              `📦 Added new item: ${product.name} (${quantity}) by ${employeeContext?.employeeName}`
+            );
           }
 
           saveInventory(updatedInventory);
@@ -155,7 +175,7 @@ export const useInventoryManager = () => {
         return false;
       }
     },
-    [saveInventory]
+    [saveInventory, employeeContext]
   );
 
   // Update specific item quantity
@@ -177,6 +197,8 @@ export const useInventoryManager = () => {
                     ...item,
                     quantity: newQuantity,
                     lastUpdated: new Date().toISOString(),
+                    // อัพเดตข้อมูลพนักงานที่แก้ไข
+                    addedBy: employeeContext?.employeeName || item.addedBy,
                   }
                 : item
             )
@@ -193,7 +215,7 @@ export const useInventoryManager = () => {
         return false;
       }
     },
-    [saveInventory]
+    [saveInventory, employeeContext]
   );
 
   // Remove specific item
@@ -207,7 +229,12 @@ export const useInventoryManager = () => {
             (item) => item.id !== itemId
           );
           saveInventory(updatedInventory);
-          console.log("🗑️ Removed item:", itemId);
+          console.log(
+            "🗑️ Removed item:",
+            itemId,
+            "by",
+            employeeContext?.employeeName
+          );
           return updatedInventory;
         });
 
@@ -218,7 +245,7 @@ export const useInventoryManager = () => {
         return false;
       }
     },
-    [saveInventory]
+    [saveInventory, employeeContext]
   );
 
   // Clear all inventory
@@ -227,14 +254,14 @@ export const useInventoryManager = () => {
       setError(null);
       setInventory([]);
       localStorage.removeItem(STORAGE_KEY);
-      console.log("🗑️ Cleared all inventory");
+      console.log("🗑️ Cleared all inventory by", employeeContext?.employeeName);
       return true;
     } catch (err: any) {
       console.error("❌ Error clearing inventory:", err);
       setError("เกิดข้อผิดพลาดในการลบข้อมูลทั้งหมด");
       return false;
     }
-  }, []);
+  }, [employeeContext]);
 
   // Get inventory summary
   const getInventorySummary = useCallback((): InventorySummary => {
@@ -313,7 +340,7 @@ export const useInventoryManager = () => {
     return str;
   };
 
-  // Export inventory data as CSV
+  // Export inventory data as CSV with employee info
   const exportInventory = useCallback(() => {
     try {
       if (inventory.length === 0) {
@@ -321,7 +348,7 @@ export const useInventoryManager = () => {
         return false;
       }
 
-      // Define CSV headers
+      // Define CSV headers with employee info
       const headers = [
         "ลำดับ",
         "บาร์โค้ด",
@@ -333,6 +360,9 @@ export const useInventoryManager = () => {
         "จำนวนใน Stock",
         "วันที่อัพเดต",
         "เวลาอัพเดต",
+        "เพิ่มโดยพนักงาน",
+        "รหัสสาขา",
+        "ชื่อสาขา",
       ];
 
       // Create CSV content
@@ -366,12 +396,19 @@ export const useInventoryManager = () => {
           item.quantity, // จำนวนใน Stock
           escapeCsvField(dateStr), // วันที่อัพเดต
           escapeCsvField(timeStr), // เวลาอัพเดต
+          escapeCsvField(item.addedBy || "ไม่ระบุ"), // เพิ่มโดยพนักงาน
+          escapeCsvField(
+            item.branchCode || employeeContext?.branchCode || "ไม่ระบุ"
+          ), // รหัสสาขา
+          escapeCsvField(
+            item.branchName || employeeContext?.branchName || "ไม่ระบุ"
+          ), // ชื่อสาขา
         ];
 
         csvRows.push(row.join(","));
       });
 
-      // Add summary at the end
+      // Add summary at the end with employee context
       csvRows.push(""); // Empty row
       csvRows.push("สรุปข้อมูล Stock");
       csvRows.push(`รายการสินค้าทั้งหมด,${inventory.length} รายการ`);
@@ -384,6 +421,13 @@ export const useInventoryManager = () => {
       csvRows.push(
         `แบรนด์,${Object.keys(getInventorySummary().brands).length} แบรนด์`
       );
+
+      // Employee and branch info
+      csvRows.push(""); // Empty row
+      csvRows.push("ข้อมูลการส่งออก");
+      csvRows.push(`ส่งออกโดย,${employeeContext?.employeeName || "ไม่ระบุ"}`);
+      csvRows.push(`รหัสสาขา,${employeeContext?.branchCode || "ไม่ระบุ"}`);
+      csvRows.push(`ชื่อสาขา,${employeeContext?.branchName || "ไม่ระบุ"}`);
       csvRows.push(`วันที่ส่งออก,${new Date().toLocaleDateString("th-TH")}`);
       csvRows.push(`เวลาส่งออก,${new Date().toLocaleTimeString("th-TH")}`);
 
@@ -402,13 +446,14 @@ export const useInventoryManager = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
 
-      // Generate filename with current date
+      // Generate filename with employee and branch info
       const now = new Date();
       const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD format
       const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-"); // HH-MM-SS format
+      const branchCode = employeeContext?.branchCode || "Unknown";
 
       link.href = url;
-      link.download = `FN_Stock_Inventory_${dateStr}_${timeStr}.csv`;
+      link.download = `FN_Stock_${branchCode}_${dateStr}_${timeStr}.csv`;
       link.style.display = "none";
 
       document.body.appendChild(link);
@@ -420,7 +465,8 @@ export const useInventoryManager = () => {
       console.log(
         "📤 Exported inventory data as CSV:",
         inventory.length,
-        "items"
+        "items by",
+        employeeContext?.employeeName
       );
       return true;
     } catch (err: any) {
@@ -428,7 +474,7 @@ export const useInventoryManager = () => {
       setError("เกิดข้อผิดพลาดในการส่งออกข้อมูล");
       return false;
     }
-  }, [inventory, getInventorySummary, escapeCsvField]);
+  }, [inventory, getInventorySummary, escapeCsvField, employeeContext]);
 
   // Clear error
   const clearError = useCallback(() => {
