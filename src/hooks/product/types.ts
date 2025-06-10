@@ -1,63 +1,104 @@
-// src/hooks/product/types.ts
+// src/hooks/product/types.ts - Types for Product Info Hooks
 import { Product } from "../../types/product";
 
-export type BarcodeType = "ea" | "dsp" | "cs";
-
-export interface ProductLookupResult {
-  product: Product;
-  barcodeType: BarcodeType;
-}
-
-export interface ProductSearchParams {
-  barcode?: string;
-  name?: string;
-  category?: string;
-  brand?: string;
-  limit?: number;
-  offset?: number;
-}
-
-export interface ProductCache {
-  [barcode: string]: {
-    result: ProductLookupResult | null;
-    timestamp: number;
-    expiresIn: number;
-  };
-}
-
-export interface BarcodeNormalizationOptions {
-  removeSpaces: boolean;
-  removeSpecialChars: boolean;
-  padLength?: number;
-  trimLeadingZeros: boolean;
-}
-
-// แก้ไข Return Type ให้ครบถ้วน
-export interface UseProductLookupReturn {
-  // State
-  product: Product | null;
-  detectedBarcodeType: BarcodeType | null;
-  isLoadingProduct: boolean;
-  productError: string | null;
-  lastDetectedCode: string;
-
-  // Actions
-  updateBarcode: (barcode: string) => Promise<void>;
-  clearProduct: () => void;
-  clearCurrentDetection: () => void;
-}
-
-export interface ProductLookupConfig {
-  debounceMs: number;
-  cacheEnabled: boolean;
+// Configuration interfaces
+export interface ProductInfoConfig {
+  enableCaching: boolean;
   cacheExpiryMs: number;
   retryAttempts: number;
   retryDelayMs: number;
+  enableDebouncing: boolean;
+  debounceDelayMs: number;
 }
 
+// Cache related types
+export interface ProductCacheEntry {
+  product: Product;
+  timestamp: number;
+  expiresAt: number;
+}
+
+export interface ProductCacheStats {
+  totalEntries: number;
+  validEntries: number;
+  expiredEntries: number;
+  cacheHitRate: number;
+}
+
+// Validation types
 export interface BarcodeValidationResult {
   isValid: boolean;
   normalizedBarcode: string;
   detectedFormat?: string;
-  errors?: string[];
+  errors: string[];
+  suggestions?: string[];
+}
+
+// Fetcher types
+export interface FetchProductOptions {
+  timeout?: number;
+  retryAttempts?: number;
+  retryDelayMs?: number;
+}
+
+// Main hook return type
+export interface UseProductInfoReturn {
+  // State
+  product: Product | null;
+  isLoading: boolean;
+  error: string | null;
+  lastSearchedBarcode: string;
+  retryCount: number;
+
+  // Actions
+  fetchProductByBarcode: (barcode: string) => Promise<void>;
+  updateBarcode: (barcode: string) => void | (() => void);
+  clearProduct: () => void;
+  clearError: () => void;
+  retryFetch: () => void;
+
+  // Cache utilities
+  clearCache: () => void;
+  getCacheStats: () => ProductCacheStats;
+}
+
+// Hook props interfaces
+export interface UseProductCacheProps {
+  enabled: boolean;
+  expiryMs: number;
+}
+
+export interface UseProductFetcherProps {
+  retryAttempts: number;
+  retryDelayMs: number;
+  setRetryCount: (count: number) => void;
+}
+
+// Return type interfaces for sub-hooks
+export interface UseProductCacheReturn {
+  get: (barcode: string) => Product | null;
+  set: (barcode: string, product: Product) => void;
+  clear: () => void;
+  remove: (barcode: string) => boolean;
+  getStats: () => ProductCacheStats;
+}
+
+export interface UseProductFetcherReturn {
+  fetchProduct: (
+    barcode: string
+  ) => Promise<import("../../types/product").ProductResponse>;
+}
+
+export interface UseProductValidatorReturn {
+  normalizeBarcode: (barcode: string) => string;
+  validateBarcode: (barcode: string) => BarcodeValidationResult;
+  isValidBarcodeFormat: (barcode: string) => boolean;
+  suggestBarcodeCorrections: (barcode: string) => string[];
+}
+
+// Error types
+export interface ProductInfoError extends Error {
+  code: "VALIDATION_ERROR" | "FETCH_ERROR" | "CACHE_ERROR" | "NETWORK_ERROR";
+  retryable: boolean;
+  barcode?: string;
 }
