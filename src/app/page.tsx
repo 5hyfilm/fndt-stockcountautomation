@@ -29,12 +29,6 @@ export default function BarcodeDetectionPage() {
   const [exportFileName, setExportFileName] = useState<string>("");
   const [isMobile, setIsMobile] = useState(false);
 
-  // New state for mobile scanner enhancement
-  const [showProductSlide, setShowProductSlide] = useState(false);
-  const [cameraState, setCameraState] = useState<"scanning" | "found" | "idle">(
-    "idle"
-  );
-
   // Detect mobile viewport
   useEffect(() => {
     const checkMobile = () => {
@@ -82,72 +76,14 @@ export default function BarcodeDetectionPage() {
     clearError,
   } = useBarcodeDetection();
 
-  // Enhanced product detection handler for mobile
   useEffect(() => {
     console.log("🏷️ Detected Barcode Type:", detectedBarcodeType);
     console.log("📦 Product:", product?.name || "No product");
     console.log("📱 Last Detected Code:", lastDetectedCode);
-    console.log("📱 Mobile Mode:", isMobile);
     console.log("---");
+  }, [detectedBarcodeType, product, lastDetectedCode]);
 
-    // Mobile-specific behavior: Auto-stop camera and show product slide when product is found
-    if (isMobile && product && !isLoadingProduct && !productError) {
-      // Stop camera automatically when product is detected
-      if (isStreaming && cameraState === "scanning") {
-        console.log(
-          "🎯 Product detected in mobile mode - stopping camera and showing slide"
-        );
-        setCameraState("found");
-        setShowProductSlide(true);
-
-        // Stop camera with slight delay for smooth UX
-        setTimeout(() => {
-          stopCamera();
-        }, 500);
-      }
-    }
-  }, [
-    detectedBarcodeType,
-    product,
-    lastDetectedCode,
-    isMobile,
-    isLoadingProduct,
-    productError,
-    isStreaming,
-    cameraState,
-    stopCamera,
-  ]);
-
-  // Handle camera state changes
-  useEffect(() => {
-    if (isStreaming && cameraState !== "scanning") {
-      setCameraState("scanning");
-      setShowProductSlide(false);
-    } else if (!isStreaming && cameraState === "scanning") {
-      setCameraState("idle");
-    }
-  }, [isStreaming, cameraState]);
-
-  // Enhanced camera controls for mobile
-  const handleStartCamera = () => {
-    setShowProductSlide(false);
-    setCameraState("scanning");
-    startCamera();
-  };
-
-  const handleStopCamera = () => {
-    setCameraState("idle");
-    setShowProductSlide(false);
-    stopCamera();
-  };
-
-  const handleScanAgain = () => {
-    setShowProductSlide(false);
-    setCameraState("scanning");
-    startCamera();
-  };
-
-  // Rest of your existing hooks and logic...
+  // Inventory Management with Employee Context
   const {
     inventory,
     isLoading: isLoadingInventory,
@@ -163,48 +99,101 @@ export default function BarcodeDetectionPage() {
     summary,
   } = useInventoryManager(
     employee
-      ? `${employee.branchCode}_${employee.employeeName}`
-      : "default_inventory"
+      ? {
+          employeeName: employee.employeeName,
+          branchCode: employee.branchCode,
+          branchName: employee.branchName,
+        }
+      : undefined
   );
 
-  // Get current inventory quantity for this product
-  const currentInventoryQuantity = product
-    ? findItemByBarcode(product.barcode)?.quantity || 0
-    : 0;
+  // Handle employee login
+  const handleEmployeeLogin = async (employeeInfo: EmployeeInfo) => {
+    try {
+      await login(employeeInfo);
+      console.log("✅ Employee logged in:", employeeInfo.employeeName);
+    } catch (error) {
+      console.error("❌ Login failed:", error);
+    }
+  };
 
-  // Handle adding product to inventory
+  // Handle logout
+  const handleLogout = () => {
+    if (isStreaming) {
+      stopCamera();
+    }
+    logout();
+  };
+
+  // ประมวลผลอัตโนมัติ Real-time
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (isStreaming && activeTab === "scanner" && isAuthenticated) {
+      interval = setInterval(() => {
+        captureAndProcess();
+      }, 300);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isStreaming, activeTab, captureAndProcess, isAuthenticated]);
+
+  // หาจำนวนสินค้าปัจจุบันใน inventory
+  const currentInventoryQuantity = React.useMemo(() => {
+    if (!lastDetectedCode) return 0;
+    const item = findItemByBarcode(lastDetectedCode);
+    return item?.quantity || 0;
+  }, [lastDetectedCode, findItemByBarcode]);
+
+  // Handle add to inventory with employee info
   const handleAddToInventory = (
     product: any,
     quantity: number,
     barcodeType?: "ea" | "dsp" | "cs"
-  ): boolean => {
-    try {
-      const success = addOrUpdateItem(product, quantity, barcodeType);
+  ) => {
+    const finalBarcodeType = barcodeType || detectedBarcodeType || "ea";
 
-      if (success && isMobile) {
-        // On mobile, after adding to inventory, show option to scan again
-        setTimeout(() => {
-          setShowProductSlide(false);
-          setCameraState("idle");
-        }, 1000);
-      }
+    console.log("🔄 handleAddToInventory called with:");
+    console.log("  📦 Product:", product?.name);
+    console.log("  🔢 Quantity:", quantity);
+    console.log("  🏷️ BarcodeType received:", barcodeType);
+    console.log("  🏷️ DetectedBarcodeType:", detectedBarcodeType);
+    console.log("  🏷️ Final BarcodeType:", finalBarcodeType);
 
-      return success;
-    } catch (error) {
-      console.error("Error adding to inventory:", error);
-      return false;
+    const success = addOrUpdateItem(product, quantity, finalBarcodeType);
+
+    if (success && employee) {
+      const unitType = finalBarcodeType === "cs" ? "ลัง" : "ชิ้น";
+      console.log(
+        `✅ Added ${quantity} ${unitType} of ${
+          product?.name
+        } (${finalBarcodeType.toUpperCase()})`
+      );
     }
+
+    return success;
   };
 
-  // Export inventory with success feedback
-  const handleExportInventory = async () => {
-    try {
-      const fileName = await exportInventory();
+  // Handle export with employee info
+  const handleExportInventory = () => {
+    if (!employee) return false;
+
+    const success = exportInventory();
+    if (success) {
+      // Generate filename with employee and branch info
+      const now = new Date();
+      const dateStr = now.toISOString().split("T")[0];
+      const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-");
+      const fileName = `FN_Stock_${branchCode}_${dateStr}_${timeStr}.csv`;
+
       setExportFileName(fileName);
       setShowExportSuccess(true);
-    } catch (error) {
-      console.error("Export failed:", error);
+
+      console.log(`📤 ${employeeName} exported inventory for ${branchName}`);
     }
+    return success;
   };
 
   // Clear all errors
@@ -213,46 +202,33 @@ export default function BarcodeDetectionPage() {
     clearInventoryError();
   };
 
-  // Handle logout with cleanup
-  const handleLogout = () => {
-    if (isStreaming) stopCamera();
-    clearInventory();
-    logout();
-  };
-
-  // Show loading screen during authentication
+  // Show login form if not authenticated
   if (isAuthLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
+        <div className="bg-white rounded-xl p-8 shadow-lg">
           <div className="animate-spin w-8 h-8 border-4 border-fn-green border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">กำลังตรวจสอบข้อมูล...</p>
+          <p className="text-gray-600 text-center">กำลังโหลดระบบ...</p>
         </div>
       </div>
     );
   }
 
-  // Show login form if not authenticated
   if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <EmployeeBranchForm onSubmit={login} />
-      </div>
-    );
+    return <EmployeeBranchForm onSubmit={handleEmployeeLogin} />;
   }
 
-  // Main application interface
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* Export Success Toast */}
-      {showExportSuccess && (
-        <ExportSuccessToast
-          fileName={exportFileName}
-          onClose={() => setShowExportSuccess(false)}
-        />
-      )}
+      <ExportSuccessToast
+        show={showExportSuccess}
+        onClose={() => setShowExportSuccess(false)}
+        fileName={exportFileName}
+        itemCount={inventory.length}
+      />
 
-      {/* Header */}
+      {/* Header - Responsive */}
       {isMobile ? (
         <MobileAppHeader
           employeeName={employeeName}
@@ -295,8 +271,7 @@ export default function BarcodeDetectionPage() {
               onDismiss={clearAllErrors}
               onRetry={() => {
                 clearAllErrors();
-                if (!isStreaming && activeTab === "scanner")
-                  handleStartCamera();
+                if (!isStreaming && activeTab === "scanner") startCamera();
               }}
             />
           </div>
@@ -307,12 +282,12 @@ export default function BarcodeDetectionPage() {
           <div
             className={`${
               isMobile
-                ? "relative min-h-[80vh]" // Mobile uses relative positioning for overlay effect
+                ? "space-y-3"
                 : "grid grid-cols-1 xl:grid-cols-5 gap-4 lg:gap-6"
             }`}
           >
             {/* Camera Section */}
-            <div className={isMobile ? "relative" : "xl:col-span-3"}>
+            <div className={isMobile ? "" : "xl:col-span-3"}>
               <CameraSection
                 videoRef={videoRef}
                 canvasRef={canvasRef}
@@ -320,8 +295,8 @@ export default function BarcodeDetectionPage() {
                 isStreaming={isStreaming}
                 processingQueue={processingQueue}
                 detections={detections}
-                startCamera={handleStartCamera}
-                stopCamera={handleStopCamera}
+                startCamera={startCamera}
+                stopCamera={stopCamera}
                 switchCamera={switchCamera}
                 captureAndProcess={captureAndProcess}
                 drawDetections={drawDetections}
@@ -329,64 +304,18 @@ export default function BarcodeDetectionPage() {
               />
             </div>
 
-            {/* Product Info Section - Desktop Sidebar or Mobile Slide Overlay */}
-            <div
-              className={
-                isMobile
-                  ? `fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 rounded-t-2xl shadow-2xl transition-transform duration-500 ease-out z-50 ${
-                      showProductSlide
-                        ? "transform translate-y-0"
-                        : "transform translate-y-full"
-                    }`
-                  : "xl:col-span-2 space-y-4"
-              }
-            >
-              {isMobile && (
-                <>
-                  {/* Mobile slide handle */}
-                  <div className="flex justify-center pt-2 pb-1">
-                    <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
-                  </div>
-
-                  {/* Mobile slide header */}
-                  <div className="px-4 pb-2 flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      ผลการสแกน
-                    </h3>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleScanAgain}
-                        className="px-3 py-1 bg-fn-green text-white rounded-lg text-sm font-medium"
-                      >
-                        สแกนใหม่
-                      </button>
-                      <button
-                        onClick={() => setShowProductSlide(false)}
-                        className="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium"
-                      >
-                        ปิด
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <div
-                className={
-                  isMobile ? "px-4 pb-4 max-h-[60vh] overflow-y-auto" : ""
-                }
-              >
-                <ProductInfoSection
-                  product={product}
-                  barcode={lastDetectedCode}
-                  barcodeType={detectedBarcodeType || undefined}
-                  isLoading={isLoadingProduct}
-                  error={productError || undefined}
-                  currentInventoryQuantity={currentInventoryQuantity}
-                  isMobile={isMobile}
-                  onAddToInventory={handleAddToInventory}
-                />
-              </div>
+            {/* Product Info Sidebar */}
+            <div className={isMobile ? "" : "xl:col-span-2 space-y-4"}>
+              <ProductInfoSection
+                product={product}
+                barcode={lastDetectedCode}
+                barcodeType={detectedBarcodeType || undefined}
+                isLoading={isLoadingProduct}
+                error={productError || undefined}
+                currentInventoryQuantity={currentInventoryQuantity}
+                isMobile={isMobile}
+                onAddToInventory={handleAddToInventory}
+              />
             </div>
           </div>
         )}
@@ -429,14 +358,6 @@ export default function BarcodeDetectionPage() {
           product={product}
           totalItems={summary.totalItems}
           lastUpdate={summary.lastUpdate}
-        />
-      )}
-
-      {/* Mobile overlay backdrop when product slide is shown */}
-      {isMobile && showProductSlide && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-25 z-40"
-          onClick={() => setShowProductSlide(false)}
         />
       )}
     </div>

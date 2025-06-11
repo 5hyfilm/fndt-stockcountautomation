@@ -1,17 +1,18 @@
-// src/types/detection.ts
+export interface Stats {
+  rotation: number;
+  method: string;
+  confidence: number;
+  fps: number;
+  lastProcessTime: number;
+}
+
 export interface Detection {
-  id: string;
-  rawValue: string;
-  format: string;
-  timestamp: number;
-  boundingBox?: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
-  cornerPoints?: Array<{ x: number; y: number }>;
-  confidence?: number;
+  xmin: number;
+  ymin: number;
+  xmax: number;
+  ymax: number;
+  confidence: number;
+  class: number;
 }
 
 export interface VideoConstraints {
@@ -20,35 +21,114 @@ export interface VideoConstraints {
   facingMode: "environment" | "user";
 }
 
-export interface DetectionStats {
-  totalDetections: number;
-  successfulDetections: number;
-  lastDetectionTime: Date | null;
-  rotation?: number;
-  method?: string;
+export interface BarcodeData {
+  data: string;
+  type: string;
+  timestamp?: string;
   confidence?: number;
-  fps?: number;
-  lastProcessTime?: number;
+  rotation_angle?: number;
+  decode_method?: string;
+  position?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
 }
+
+export interface APIResponse {
+  success: boolean;
+  detections?: Detection[];
+  barcodes?: BarcodeData[];
+  error?: string;
+  confidence?: number;
+  rotation_angle?: number;
+  decode_method?: string;
+  filename?: string;
+  barcodes_found?: number;
+  mock?: boolean;
+  results?: Array<{
+    type: string;
+    data: string;
+    confidence?: number;
+    rotation_angle?: number;
+    decode_method?: string;
+    position: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
+    timestamp: string;
+  }>;
+}
+
+// Additional utility types
+export type CameraFacing = "environment" | "user";
 
 export interface CameraState {
   isStreaming: boolean;
-  hasPermission: boolean;
-  error: string | null;
-  currentDevice?: string;
-  availableDevices?: MediaDeviceInfo[];
+  facingMode: CameraFacing;
+  resolution: {
+    width: number;
+    height: number;
+  };
 }
 
-export interface BarcodeDetectionOptions {
-  formats?: string[];
-  maxRetries?: number;
-  confidence?: number;
-  timeout?: number;
+export interface ProcessingState {
+  isProcessing: boolean;
+  queue: number;
+  maxQueue: number;
 }
 
-export interface ProcessingResult {
+export interface DetectionResult {
   success: boolean;
-  detections: Detection[];
-  error?: string;
+  data?: string;
+  confidence: number;
   processingTime: number;
+  method: string;
+  error?: string;
+}
+
+// Error types for better error handling
+export interface CameraError extends Error {
+  name:
+    | "NotAllowedError"
+    | "NotFoundError"
+    | "NotReadableError"
+    | "OverconstrainedError"
+    | "SecurityError"
+    | "TypeError"
+    | "AbortError";
+}
+
+export interface ApiError extends Error {
+  status?: number;
+  code?: string;
+}
+
+// Hook return type for better type safety
+export interface UseBarcodeDetectionReturn {
+  // Refs
+  videoRef: React.RefObject<HTMLVideoElement>;
+  canvasRef: React.RefObject<HTMLCanvasElement>;
+  containerRef: React.RefObject<HTMLDivElement>;
+
+  // State
+  isStreaming: boolean;
+  detections: Detection[];
+  processingQueue: number;
+  lastDetectedCode: string;
+  stats: Stats;
+  errors: string | null;
+  videoConstraints: VideoConstraints;
+
+  // Actions
+  startCamera: () => Promise<void>;
+  stopCamera: () => void;
+  switchCamera: () => void;
+  captureAndProcess: () => Promise<void>;
+  drawDetections: () => void;
+  updateCanvasSize: () => void;
+  clearError: () => void;
 }
