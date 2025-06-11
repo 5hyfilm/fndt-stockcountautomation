@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import { Camera } from "lucide-react";
+import { Camera, Wifi, WifiOff } from "lucide-react";
 import { ControlButtons } from "../ControlButtons";
 
 interface CameraHeaderProps {
@@ -18,19 +18,25 @@ interface CameraStatusBadgeProps {
   isStreaming: boolean;
 }
 
-// Export CameraStatusBadge component
+// Compact status indicator for mobile
 export const CameraStatusBadge: React.FC<CameraStatusBadgeProps> = ({
   isStreaming,
 }) => {
   return (
-    <p className="text-xs text-gray-600 flex items-center gap-1">
+    <div className="flex items-center gap-1">
+      {isStreaming ? (
+        <Wifi className="text-green-500" size={14} />
+      ) : (
+        <WifiOff className="text-red-500" size={14} />
+      )}
       <span
-        className={`w-2 h-2 rounded-full ${
-          isStreaming ? "bg-green-500" : "bg-red-500"
+        className={`text-xs font-medium ${
+          isStreaming ? "text-green-600" : "text-red-600"
         }`}
-      ></span>
-      {isStreaming ? "กำลังทำงาน" : "หยุดทำงาน"}
-    </p>
+      >
+        {isStreaming ? "ON" : "OFF"}
+      </span>
+    </div>
   );
 };
 
@@ -43,17 +49,19 @@ export const CameraHeader: React.FC<CameraHeaderProps> = ({
   onCaptureAndProcess,
 }) => {
   return (
-    <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+    <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center justify-between">
+      {/* Left side - Compact icon and status */}
       <div className="flex items-center gap-2">
-        <div className="bg-fn-green/10 p-2 rounded-lg border border-fn-green/20">
-          <Camera className="fn-green" size={20} />
+        <div className="bg-fn-green/10 p-1.5 rounded-md border border-fn-green/20">
+          <Camera className="text-fn-green" size={16} />
         </div>
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">กล้องตรวจจับ</h2>
+        <div className="flex flex-col">
+          <h2 className="text-sm font-semibold text-gray-900">กล้อง</h2>
           <CameraStatusBadge isStreaming={isStreaming} />
         </div>
       </div>
 
+      {/* Right side - Control buttons */}
       <ControlButtons
         isStreaming={isStreaming}
         processingQueue={processingQueue}
@@ -61,6 +69,7 @@ export const CameraHeader: React.FC<CameraHeaderProps> = ({
         stopCamera={onStopCamera}
         switchCamera={onSwitchCamera}
         captureAndProcess={onCaptureAndProcess}
+        compact={true} // Enable compact mode for mobile
       />
     </div>
   );

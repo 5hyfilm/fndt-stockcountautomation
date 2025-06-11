@@ -1,7 +1,8 @@
+// src/components/ControlButtons.tsx
 "use client";
 
 import React from "react";
-import { Play, Pause, RotateCcw, Zap } from "lucide-react";
+import { Play, Square, RotateCcw, Camera, Loader2 } from "lucide-react";
 
 interface ControlButtonsProps {
   isStreaming: boolean;
@@ -10,6 +11,7 @@ interface ControlButtonsProps {
   stopCamera: () => void;
   switchCamera: () => void;
   captureAndProcess: () => void;
+  compact?: boolean; // New prop for mobile optimization
 }
 
 export const ControlButtons: React.FC<ControlButtonsProps> = ({
@@ -19,49 +21,125 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
   stopCamera,
   switchCamera,
   captureAndProcess,
+  compact = false,
 }) => {
-  return (
-    <div className="flex flex-wrap justify-center sm:justify-end items-center gap-2">
-      {!isStreaming ? (
+  // Compact mobile layout
+  if (compact) {
+    return (
+      <div className="flex items-center gap-1">
+        {/* Start/Stop Camera Button */}
         <button
-          onClick={startCamera}
-          className="bg-fn-green hover:bg-fn-green/90 text-white px-3 py-2 sm:px-4 rounded-lg flex items-center gap-2 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 border border-fn-green"
+          onClick={isStreaming ? stopCamera : startCamera}
+          className={`p-2 rounded-md transition-colors ${
+            isStreaming
+              ? "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
+              : "bg-green-50 text-green-600 border border-green-200 hover:bg-green-100"
+          }`}
+          title={isStreaming ? "หยุดกล้อง" : "เปิดกล้อง"}
         >
-          <Play size={16} />
-          <span className="hidden xs:inline">เริ่ม</span>
+          {isStreaming ? <Square size={16} /> : <Play size={16} />}
         </button>
-      ) : (
+
+        {/* Switch Camera Button */}
+        {isStreaming && (
+          <button
+            onClick={switchCamera}
+            className="p-2 rounded-md bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 transition-colors"
+            title="เปลี่ยนกล้อง"
+          >
+            <RotateCcw size={16} />
+          </button>
+        )}
+
+        {/* Capture Button */}
+        {isStreaming && (
+          <button
+            onClick={captureAndProcess}
+            disabled={processingQueue > 0}
+            className="p-2 rounded-md bg-fn-green text-white border border-fn-green hover:bg-fn-green/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="ถ่ายภาพ"
+          >
+            {processingQueue > 0 ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Camera size={16} />
+            )}
+          </button>
+        )}
+
+        {/* Processing Queue Indicator */}
+        {processingQueue > 0 && (
+          <div className="bg-orange-100 text-orange-600 px-2 py-1 rounded-md text-xs font-medium">
+            {processingQueue}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Original desktop layout
+  return (
+    <div className="flex items-center gap-3">
+      {/* Start/Stop Camera Button */}
+      <button
+        onClick={isStreaming ? stopCamera : startCamera}
+        className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+          isStreaming
+            ? "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
+            : "bg-green-50 text-green-600 border border-green-200 hover:bg-green-100"
+        }`}
+      >
+        {isStreaming ? (
+          <>
+            <Square size={16} />
+            หยุดกล้อง
+          </>
+        ) : (
+          <>
+            <Play size={16} />
+            เปิดกล้อง
+          </>
+        )}
+      </button>
+
+      {/* Switch Camera Button */}
+      {isStreaming && (
         <button
-          onClick={stopCamera}
-          className="bg-fn-red hover:bg-fn-red/90 text-white px-3 py-2 sm:px-4 rounded-lg flex items-center gap-2 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 border border-fn-red"
+          onClick={switchCamera}
+          className="px-3 py-2 rounded-lg bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 transition-colors flex items-center gap-2"
         >
-          <Pause size={16} />
-          <span className="hidden xs:inline">หยุด</span>
+          <RotateCcw size={16} />
+          เปลี่ยนกล้อง
         </button>
       )}
 
-      {/* <button
-        onClick={switchCamera}
-        disabled={!isStreaming}
-        className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 disabled:opacity-50 disabled:transform-none text-white px-3 py-2 sm:px-4 rounded-lg flex items-center gap-2 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 border border-gray-600"
-      >
-        <RotateCcw size={16} />
-        <span className="hidden xs:inline">สลับ</span>
-      </button> */}
+      {/* Capture Button */}
+      {isStreaming && (
+        <button
+          onClick={captureAndProcess}
+          disabled={processingQueue > 0}
+          className="px-4 py-2 rounded-lg bg-fn-green text-white hover:bg-fn-green/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+        >
+          {processingQueue > 0 ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              กำลังประมวลผล
+            </>
+          ) : (
+            <>
+              <Camera size={16} />
+              ถ่ายภาพ
+            </>
+          )}
+        </button>
+      )}
 
-      {/* <button
-        onClick={captureAndProcess}
-        disabled={!isStreaming}
-        className="bg-fn-green hover:bg-fn-green/90 disabled:bg-gray-400 disabled:opacity-50 disabled:transform-none text-white px-3 py-2 sm:px-4 rounded-lg flex items-center gap-2 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 min-w-[80px] justify-center border border-fn-green"
-      >
-        <Zap size={16} />
-        <span className="hidden sm:inline">
-          {processingQueue > 0 ? `(${processingQueue})` : "สแกน"}
-        </span>
-        <span className="sm:hidden">
-          {processingQueue > 0 ? processingQueue : ""}
-        </span>
-      </button> */}
+      {/* Processing Queue Display */}
+      {processingQueue > 0 && (
+        <div className="bg-orange-100 text-orange-600 px-3 py-2 rounded-lg text-sm font-medium">
+          คิวงาน: {processingQueue}
+        </div>
+      )}
     </div>
   );
 };

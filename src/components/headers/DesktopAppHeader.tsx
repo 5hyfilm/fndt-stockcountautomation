@@ -1,0 +1,67 @@
+// src/components/headers/DesktopAppHeader.tsx
+"use client";
+
+import React from "react";
+import { DesktopEmployeeHeader } from "./DesktopEmployeeHeader";
+import { DesktopAppTitle } from "./DesktopAppTitle";
+import { DesktopTabNavigation } from "../navigation/DesktopTabNavigation";
+import { DesktopStatusBar } from "../status/DesktopStatusBar";
+
+interface DesktopAppHeaderProps {
+  employeeName: string;
+  branchCode: string;
+  branchName: string;
+  formatTimeRemaining: () => string;
+  activeTab: "scanner" | "inventory";
+  totalProducts: number;
+  isStreaming: boolean;
+  lastDetectedCode?: string;
+  product?: any;
+  totalItems: number;
+  onLogout: () => void;
+  onTabChange: (tab: "scanner" | "inventory") => void;
+}
+
+export const DesktopAppHeader: React.FC<DesktopAppHeaderProps> = ({
+  employeeName,
+  branchCode,
+  branchName,
+  formatTimeRemaining,
+  activeTab,
+  totalProducts,
+  isStreaming,
+  lastDetectedCode,
+  product,
+  totalItems,
+  onLogout,
+  onTabChange,
+}) => {
+  return (
+    <div className="bg-white/95 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+      <div className="container mx-auto px-4 py-4">
+        <DesktopEmployeeHeader
+          employeeName={employeeName}
+          branchCode={branchCode}
+          branchName={branchName}
+          formatTimeRemaining={formatTimeRemaining}
+          onLogout={onLogout}
+        />
+
+        <DesktopAppTitle />
+
+        <DesktopTabNavigation
+          activeTab={activeTab}
+          totalProducts={totalProducts}
+          onTabChange={onTabChange}
+        />
+
+        <DesktopStatusBar
+          isStreaming={isStreaming}
+          lastDetectedCode={lastDetectedCode}
+          product={product}
+          totalItems={totalItems}
+        />
+      </div>
+    </div>
+  );
+};
