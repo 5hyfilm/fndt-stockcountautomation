@@ -45,10 +45,91 @@ export const formatProductName = (
     .trim();
 };
 
-// Parse pack size
+// Enhanced pack size parsing
+export interface PackSizeInfo {
+  rawPackSize: string;
+  displayText: string;
+  totalQuantity: number;
+  unit: string | null;
+}
+
+export const parsePackSizeInfo = (packSize: string): PackSizeInfo => {
+  const raw = packSize.trim();
+
+  // Handle different patterns
+  // Pattern 1: 8X(12X140ml) -> 8 packs of (12 x 140ml)
+  const pattern1 = raw.match(/^(\d+)[xX]\((\d+)[xX](\d+)(ml|g|kg|l)\)$/i);
+  if (pattern1) {
+    const [, outerPack, innerPack, size, unit] = pattern1;
+    return {
+      rawPackSize: raw,
+      displayText: `${outerPack} แพ็ค (${innerPack} x ${size}${unit})`,
+      totalQuantity: parseInt(outerPack) * parseInt(innerPack),
+      unit: unit.toLowerCase(),
+    };
+  }
+
+  // Pattern 2: 16X(6X140ml) -> 16 packs of (6 x 140ml)
+  const pattern2 = raw.match(/^(\d+)[xX]\((\d+)[xX](\d+)(ml|g|kg|l)\)$/i);
+  if (pattern2) {
+    const [, outerPack, innerPack, size, unit] = pattern2;
+    return {
+      rawPackSize: raw,
+      displayText: `${outerPack} แพ็ค (${innerPack} x ${size}${unit})`,
+      totalQuantity: parseInt(outerPack) * parseInt(innerPack),
+      unit: unit.toLowerCase(),
+    };
+  }
+
+  // Pattern 3: 30x150ml -> 30 x 150ml
+  const pattern3 = raw.match(/^(\d+)[xX](\d+)(ml|g|kg|l)$/i);
+  if (pattern3) {
+    const [, quantity, size, unit] = pattern3;
+    return {
+      rawPackSize: raw,
+      displayText: `${quantity} x ${size}${unit}`,
+      totalQuantity: parseInt(quantity),
+      unit: unit.toLowerCase(),
+    };
+  }
+
+  // Pattern 4: 12(4x150ml) -> 12 packs of (4 x 150ml)
+  const pattern4 = raw.match(/^(\d+)\((\d+)[xX](\d+)(ml|g|kg|l)\)$/i);
+  if (pattern4) {
+    const [, outerPack, innerPack, size, unit] = pattern4;
+    return {
+      rawPackSize: raw,
+      displayText: `${outerPack} แพ็ค (${innerPack} x ${size}${unit})`,
+      totalQuantity: parseInt(outerPack) * parseInt(innerPack),
+      unit: unit.toLowerCase(),
+    };
+  }
+
+  // Pattern 5: Just numbers
+  const pattern5 = raw.match(/^(\d+)$/);
+  if (pattern5) {
+    const [, quantity] = pattern5;
+    return {
+      rawPackSize: raw,
+      displayText: `${quantity} ชิ้น`,
+      totalQuantity: parseInt(quantity),
+      unit: null,
+    };
+  }
+
+  // Fallback: return as-is
+  return {
+    rawPackSize: raw,
+    displayText: raw,
+    totalQuantity: 1,
+    unit: null,
+  };
+};
+
+// Parse pack size (keep backward compatibility)
 export const parsePackSize = (packSize: string): number => {
-  const match = packSize.match(/\d+/);
-  return match ? parseInt(match[0]) : 1;
+  const packInfo = parsePackSizeInfo(packSize);
+  return packInfo.totalQuantity;
 };
 
 // Normalize barcode for comparison
@@ -88,7 +169,10 @@ export const csvRowToProduct = (
     );
     const category =
       PRODUCT_GROUP_MAPPING[row["Product Group"]] || ProductCategory.OTHER;
-    const packSize = parsePackSize(row["Pack Size"] || "1");
+
+    // Parse pack size info
+    const packSizeInfo = parsePackSizeInfo(row["Pack Size"] || "1");
+    const packSize = packSizeInfo.totalQuantity;
 
     return {
       id: row.Material,
@@ -97,6 +181,7 @@ export const csvRowToProduct = (
       brand,
       category,
       packSize,
+      packSizeInfo, // เพิ่ม field ใหม่
       status: ProductStatus.ACTIVE,
       barcodes: {
         ea: eaBarcode || undefined,
