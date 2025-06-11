@@ -1,4 +1,4 @@
-// src/data/products.ts - Updated to use CSV data
+// src/data/products.ts - Updated to remove FALLBACK_PRODUCTS
 export * from "./csvProducts";
 
 // Re-export all functions from csvProducts for backward compatibility

@@ -4,11 +4,6 @@ import { ProductWithMultipleBarcodes, UNIT_TYPES } from "../types/csvTypes";
 import { normalizeBarcode } from "../utils/csvUtils";
 import { findBarcodeMatch } from "../matchers/barcodeMatcher";
 import { loadCSVProducts } from "../loaders/csvLoader";
-import {
-  FALLBACK_PRODUCTS,
-  findFallbackProductByBarcode,
-  getFallbackStats,
-} from "../fallbackProducts";
 
 // Enhanced barcode matching function with multi-barcode support
 export const findProductByBarcode = async (
@@ -17,69 +12,44 @@ export const findProductByBarcode = async (
   | { product: ProductWithMultipleBarcodes; barcodeType: "ea" | "dsp" | "cs" }
   | undefined
 > => {
-  try {
-    const products = await loadCSVProducts();
-    const searchBarcode = normalizeBarcode(inputBarcode);
+  const products = await loadCSVProducts();
+  const searchBarcode = normalizeBarcode(inputBarcode);
 
-    console.log("🔍 Searching for barcode:", searchBarcode);
-    console.log("📋 Total products available:", products.length);
+  console.log("🔍 Searching for barcode:", searchBarcode);
+  console.log("📋 Total products available:", products.length);
 
-    for (const product of products) {
-      const match = findBarcodeMatch(searchBarcode, product);
+  for (const product of products) {
+    const match = findBarcodeMatch(searchBarcode, product);
 
-      if (match.matched && match.type) {
-        console.log(
-          `✅ Product found: ${product.name} (${match.type?.toUpperCase()}: ${
-            match.barcode
-          })`
-        );
-        console.log(`📦 Unit type: ${UNIT_TYPES[match.type!]}`);
+    if (match.matched && match.type) {
+      console.log(
+        `✅ Product found: ${product.name} (${match.type?.toUpperCase()}: ${
+          match.barcode
+        })`
+      );
+      console.log(`📦 Unit type: ${UNIT_TYPES[match.type!]}`);
 
-        // Add scanned type to the product for reference
-        const resultProduct: ProductWithMultipleBarcodes = {
-          ...product,
-          barcodes: {
-            ...product.barcodes,
-            scannedType: match.type,
-          },
-        };
-
-        // For compatibility, keep the matched barcode as the main barcode
-        resultProduct.barcode = match.barcode!;
-
-        return {
-          product: resultProduct,
-          barcodeType: match.type,
-        };
-      }
-    }
-
-    console.log("❌ No product found for barcode:", searchBarcode);
-    return undefined;
-  } catch (error) {
-    console.warn("⚠️ Error in CSV search, trying fallback:", error);
-    const fallbackResult = findFallbackProductByBarcode(inputBarcode);
-    if (fallbackResult) {
-      // Convert fallback result to match our interface
-      const convertedProduct: ProductWithMultipleBarcodes = {
-        ...fallbackResult,
+      // Add scanned type to the product for reference
+      const resultProduct: ProductWithMultipleBarcodes = {
+        ...product,
         barcodes: {
-          primary: fallbackResult.barcode,
-          ea: fallbackResult.barcode,
+          ...product.barcodes,
+          scannedType: match.type,
         },
-        packSize: 1,
       };
+
+      // For compatibility, keep the matched barcode as the main barcode
+      resultProduct.barcode = match.barcode!;
+
       return {
-        product: convertedProduct,
-        barcodeType: (["ea", "dsp", "cs"].includes(
-          fallbackResult.barcode_type as string
-        )
-          ? fallbackResult.barcode_type
-          : "ea") as "ea" | "dsp" | "cs",
+        product: resultProduct,
+        barcodeType: match.type,
       };
     }
-    return undefined;
   }
+
+  console.log("❌ No product found for barcode:", searchBarcode);
+  return undefined;
 };
 
 // Search products with filters
@@ -89,117 +59,63 @@ export const searchProducts = async (params: {
   brand?: string;
   status?: ProductStatus;
 }): Promise<ProductWithMultipleBarcodes[]> => {
-  try {
-    const products = await loadCSVProducts();
+  const products = await loadCSVProducts();
 
-    return products.filter((product) => {
-      if (
-        params.name &&
-        !product.name.toLowerCase().includes(params.name.toLowerCase())
-      ) {
-        return false;
-      }
-      if (params.category && product.category !== params.category) {
-        return false;
-      }
-      if (params.brand && product.brand !== params.brand) {
-        return false;
-      }
-      if (params.status && product.status !== params.status) {
-        return false;
-      }
-      return true;
-    });
-  } catch (error) {
-    console.warn("⚠️ Using fallback products for search:", error);
-    // Convert fallback products to our interface
-    return FALLBACK_PRODUCTS.filter((product) => {
-      if (
-        params.name &&
-        !product.name.toLowerCase().includes(params.name.toLowerCase())
-      ) {
-        return false;
-      }
-      if (params.category && product.category !== params.category) {
-        return false;
-      }
-      if (params.brand && product.brand !== params.brand) {
-        return false;
-      }
-      if (params.status && product.status !== params.status) {
-        return false;
-      }
-      return true;
-    }).map((product) => ({
-      ...product,
-      barcodes: {
-        primary: product.barcode,
-        ea: product.barcode,
-      },
-      packSize: 1,
-    }));
-  }
+  return products.filter((product) => {
+    if (
+      params.name &&
+      !product.name.toLowerCase().includes(params.name.toLowerCase())
+    ) {
+      return false;
+    }
+    if (params.category && product.category !== params.category) {
+      return false;
+    }
+    if (params.brand && product.brand !== params.brand) {
+      return false;
+    }
+    if (params.status && product.status !== params.status) {
+      return false;
+    }
+    return true;
+  });
 };
 
 export const getProductsByCategory = async (
   category: ProductCategory
 ): Promise<ProductWithMultipleBarcodes[]> => {
-  try {
-    const products = await loadCSVProducts();
-    return products.filter((product) => product.category === category);
-  } catch (error) {
-    console.warn("⚠️ Using fallback products for category search:", error);
-    return FALLBACK_PRODUCTS.filter(
-      (product) => product.category === category
-    ).map((product) => ({
-      ...product,
-      barcodes: {
-        primary: product.barcode,
-        ea: product.barcode,
-      },
-      packSize: 1,
-    }));
-  }
+  const products = await loadCSVProducts();
+  return products.filter((product) => product.category === category);
 };
 
 export const getAllBrands = async (): Promise<string[]> => {
-  try {
-    const products = await loadCSVProducts();
-    return [...new Set(products.map((product) => product.brand))];
-  } catch (error) {
-    console.warn("⚠️ Using fallback products for brands:", error);
-    return [...new Set(FALLBACK_PRODUCTS.map((product) => product.brand))];
-  }
+  const products = await loadCSVProducts();
+  return [...new Set(products.map((product) => product.brand))];
 };
 
 export const getProductStats = async () => {
-  try {
-    const products = await loadCSVProducts();
-    const totalProducts = products.length;
-    const activeProducts = products.filter(
-      (p) => p.status === ProductStatus.ACTIVE
-    ).length;
-    const categories = [...new Set(products.map((p) => p.category))].length;
-    const brands = [...new Set(products.map((p) => p.brand))].length;
+  const products = await loadCSVProducts();
+  const totalProducts = products.length;
+  const activeProducts = products.filter(
+    (p) => p.status === ProductStatus.ACTIVE
+  ).length;
+  const categories = [...new Set(products.map((p) => p.category))].length;
+  const brands = [...new Set(products.map((p) => p.brand))].length;
 
-    // Count products by barcode type
-    const barcodeStats = {
-      withEA: products.filter((p) => p.barcodes.ea).length,
-      withDSP: products.filter((p) => p.barcodes.dsp).length,
-      withCS: products.filter((p) => p.barcodes.cs).length,
-    };
+  // Count products by barcode type
+  const barcodeStats = {
+    withEA: products.filter((p) => p.barcodes.ea).length,
+    withDSP: products.filter((p) => p.barcodes.dsp).length,
+    withCS: products.filter((p) => p.barcodes.cs).length,
+  };
 
-    console.log("📊 Barcode coverage:", barcodeStats);
+  console.log("📊 Barcode coverage:", barcodeStats);
 
-    return {
-      totalProducts,
-      activeProducts,
-      categories,
-      brands,
-      barcodeStats,
-    };
-  } catch (error) {
-    console.warn("⚠️ Using fallback stats due to CSV error:", error);
-    return getFallbackStats();
-  }
+  return {
+    totalProducts,
+    activeProducts,
+    categories,
+    brands,
+    barcodeStats,
+  };
 };

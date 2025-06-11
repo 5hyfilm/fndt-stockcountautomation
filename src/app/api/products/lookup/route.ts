@@ -1,110 +1,55 @@
-// src/app/api/products/lookup/route.ts - Fixed version with better error handling
+// src/app/api/products/lookup/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { findProductByBarcode, loadCSVProducts } from "@/data/csvProducts";
-import { findFallbackProductByBarcode } from "@/data/fallbackProducts";
+import { findProductByBarcode } from "@/data/services/productServices";
 
 export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const barcode = searchParams.get("barcode");
+
+  if (!barcode) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "กรุณาระบุบาร์โค้ด",
+      },
+      { status: 400 }
+    );
+  }
+
+  const cleanBarcode = barcode.trim().replace(/[^0-9]/g, "");
+
+  if (cleanBarcode.length === 0) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "บาร์โค้ดไม่ถูกต้อง",
+      },
+      { status: 400 }
+    );
+  }
+
+  const debug = {
+    originalBarcode: barcode,
+    cleanBarcode,
+    timestamp: new Date().toISOString(),
+  };
+
   try {
-    const { searchParams } = new URL(request.url);
-    const barcode = searchParams.get("barcode");
+    console.log("🔍 Looking up product for barcode:", cleanBarcode);
 
-    console.log("🔍 Looking up product for barcode:", barcode);
+    const result = await findProductByBarcode(cleanBarcode);
 
-    if (!barcode) {
-      console.log("❌ No barcode provided");
-      return NextResponse.json(
-        {
-          success: false,
-          error: "ไม่มี barcode ในคำขอ",
-          debug: {
-            providedBarcode: barcode,
-            requestUrl: request.url,
-          },
-        },
-        { status: 400 }
-      );
-    }
+    if (result?.product) {
+      console.log("✅ Product found:", result.product.name);
 
-    // Clean barcode (remove spaces, special characters)
-    const cleanBarcode = barcode.trim().replace(/[^0-9]/g, "");
-    console.log("🧹 Clean barcode:", cleanBarcode);
-
-    if (!cleanBarcode) {
-      console.log("❌ Invalid barcode after cleaning");
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Barcode ไม่ถูกต้อง",
-          debug: {
-            originalBarcode: barcode,
-            cleanBarcode: cleanBarcode,
-          },
-        },
-        { status: 400 }
-      );
-    }
-
-    let product;
-    let debug: any = {
-      searchedBarcode: barcode,
-      cleanBarcode: cleanBarcode,
-    };
-
-    try {
-      console.log("📂 Loading CSV products...");
-
-      // Try to find product using CSV data
-      product = await findProductByBarcode(cleanBarcode);
-      debug.source = "csv";
-      debug.csvLoadSucceeded = true;
-
-      if (product) {
-        console.log(
-          "✅ Product found in CSV:",
-          product.name,
-          "Brand:",
-          product.brand
-        );
-      } else {
-        console.log("❌ Product not found in CSV for barcode:", barcode);
-
-        // Get sample available barcodes for debugging
-        try {
-          const allProducts = await loadCSVProducts();
-          debug.totalProducts = allProducts.length;
-          debug.sampleBarcodes = allProducts
-            .slice(0, 10)
-            .map((p) => p.barcode)
-            .filter(Boolean);
-        } catch (debugError) {
-          console.warn("Could not load debug info:", debugError);
-        }
-      }
-    } catch (csvError: any) {
-      console.warn("⚠️ CSV loading failed, trying fallback:", csvError);
-
-      debug.csvLoadSucceeded = false;
-      debug.csvError = csvError.message;
-      debug.source = "fallback";
-
-      // Try fallback products when CSV fails
-      product = findFallbackProductByBarcode(cleanBarcode);
-
-      if (product) {
-        console.log("✅ Product found in fallback:", product.name);
-      } else {
-        console.log("❌ Product not found in fallback either");
-      }
-    }
-
-    if (product) {
       return NextResponse.json({
         success: true,
-        data: product,
+        data: result.product,
+        barcodeType: result.barcodeType,
         debug,
       });
     } else {
-      console.log("❌ Product not found in any source for barcode:", barcode);
+      console.log("❌ Product not found for barcode:", barcode);
 
       return NextResponse.json(
         {
@@ -126,12 +71,12 @@ export async function GET(request: NextRequest) {
       );
     }
   } catch (error: any) {
-    console.error("💥 Unexpected error in product lookup:", error);
+    console.error("💥 Error in product lookup:", error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง",
+        error: `เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า: ${error.message}`,
         debug: {
           error: error.message,
           stack:
