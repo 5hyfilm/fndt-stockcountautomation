@@ -4,7 +4,13 @@ import { useState, useCallback } from "react";
 import { Product } from "../../types/product";
 import { findProductByBarcode, normalizeBarcode } from "../../data/csvProducts";
 
-export const useProductLookup = () => {
+interface UseProductLookupProps {
+  onProductFound?: () => void; // เพิ่ม callback เมื่อเจอสินค้า
+}
+
+export const useProductLookup = (props?: UseProductLookupProps) => {
+  const { onProductFound } = props || {};
+
   // State - แก้ไข syntax error
   const [product, setProduct] = useState<Product | null>(null);
   const [detectedBarcodeType, setDetectedBarcodeType] = useState<
@@ -45,6 +51,12 @@ export const useProductLookup = () => {
               result.product.name
             } (${result.barcodeType.toUpperCase()})`
           );
+
+          // 🔥 เรียก callback เพื่อปิดกล้องเมื่อเจอสินค้า
+          if (onProductFound) {
+            console.log("📷 Stopping camera after product found");
+            onProductFound();
+          }
         } else {
           setProduct(null);
           setDetectedBarcodeType(null);
@@ -60,7 +72,7 @@ export const useProductLookup = () => {
         setIsLoadingProduct(false);
       }
     },
-    [lastDetectedCode]
+    [lastDetectedCode, onProductFound] // เพิ่ม onProductFound ใน dependency
   );
 
   // Clear product

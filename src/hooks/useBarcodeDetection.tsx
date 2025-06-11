@@ -1,4 +1,4 @@
-// src/hooks/useBarcodeDetection.tsx - แก้ไข types
+// src/hooks/useBarcodeDetection.tsx
 "use client";
 
 import { useCallback } from "react";
@@ -10,7 +10,18 @@ import { useCanvasRenderer } from "./canvas/useCanvasRenderer";
 export const useBarcodeDetection = () => {
   // Sub-hooks
   const camera = useCameraControl();
-  const productLookup = useProductLookup();
+
+  // 🔥 สร้าง callback สำหรับปิดกล้องเมื่อเจอสินค้า
+  const handleProductFound = useCallback(() => {
+    console.log("🎯 Product found! Stopping camera...");
+    camera.stopCamera();
+  }, [camera]);
+
+  // ส่ง callback ไปยัง productLookup
+  const productLookup = useProductLookup({
+    onProductFound: handleProductFound,
+  });
+
   const canvas = useCanvasRenderer();
 
   const detection = useDetectionProcessor({
@@ -66,6 +77,14 @@ export const useBarcodeDetection = () => {
     detection.resetDetections();
   }, [camera, detection]);
 
+  // 🔥 เพิ่มฟังก์ชันเคลียร์ทั้งหมดและรีสตาร์ทกล้อง (สำหรับสแกนต่อ)
+  const restartForNextScan = useCallback(() => {
+    console.log("🔄 Restarting for next scan...");
+    productLookup.clearCurrentDetection();
+    detection.resetDetections();
+    // ไม่ต้องเปิดกล้องใหม่ - ให้ user กดเริ่มเอง
+  }, [productLookup, detection]);
+
   return {
     // Refs (from camera and canvas)
     videoRef: camera.videoRef,
@@ -104,5 +123,6 @@ export const useBarcodeDetection = () => {
     clearError,
     manualScan,
     rescanCurrentView,
+    restartForNextScan, // 🔥 ฟังก์ชันใหม่สำหรับเริ่มสแกนใหม่
   };
 };
