@@ -14,7 +14,15 @@ export interface CSVProductRow {
   "Bar Code CS": string;
 }
 
-// Enhanced Product interface with multiple barcodes
+// Pack size information interface
+export interface PackSizeInfo {
+  rawPackSize: string;
+  displayText: string;
+  totalQuantity: number;
+  unit: string | null;
+}
+
+// Enhanced Product interface with multiple barcodes and pack size info
 export interface ProductWithMultipleBarcodes
   extends Omit<Product, "createdAt" | "updatedAt"> {
   barcodes: {
@@ -25,6 +33,7 @@ export interface ProductWithMultipleBarcodes
     scannedType?: "ea" | "dsp" | "cs"; // Which barcode was scanned
   };
   packSize: number; // Add packSize property
+  packSizeInfo: PackSizeInfo; // เพิ่ม field ใหม่สำหรับข้อมูลรายละเอียดของ pack size
   createdAt?: Date; // Make optional
   updatedAt?: Date; // Make optional
 }
