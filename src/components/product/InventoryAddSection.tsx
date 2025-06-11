@@ -8,8 +8,13 @@ import { Product } from "../../types/product";
 interface InventoryAddSectionProps {
   product: Product;
   currentInventoryQuantity: number;
-  onAddToInventory: (product: Product, quantity: number) => boolean;
+  onAddToInventory: (
+    product: Product,
+    quantity: number,
+    barcodeType?: "ea" | "dsp" | "cs"
+  ) => boolean;
   isVisible: boolean;
+  barcodeType?: "ea" | "dsp" | "cs";
 }
 
 export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
@@ -17,6 +22,7 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
   currentInventoryQuantity,
   onAddToInventory,
   isVisible,
+  barcodeType,
 }) => {
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
@@ -49,20 +55,29 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
   };
 
   const handleAddToInventory = async () => {
+    console.log("🔘 InventoryAddSection calling onAddToInventory:");
+    console.log("  📦 Product:", product.name);
+    console.log("  🔢 Quantity:", quantity);
+    console.log("  🏷️ BarcodeType:", barcodeType);
+
     setIsAdding(true);
     try {
-      const success = onAddToInventory(product, quantity);
+      const success = onAddToInventory(product, quantity, barcodeType);
 
       if (success) {
         setAddSuccess(true);
         setQuantity(1);
 
-        // แสดงข้อความสำเร็จชั่วคราว
         setTimeout(() => {
           setAddSuccess(false);
         }, 3000);
 
-        console.log(`✅ Added ${quantity} ${product.name} to inventory`);
+        const unitText = barcodeType === "cs" ? "ลัง" : "ชิ้น";
+        console.log(
+          `✅ Added ${quantity} ${unitText} (${barcodeType || "ea"}) of ${
+            product.name
+          } to inventory`
+        );
       }
     } catch (error) {
       console.error("❌ Failed to add to inventory:", error);

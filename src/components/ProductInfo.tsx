@@ -111,6 +111,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
             currentInventoryQuantity={currentInventoryQuantity}
             onAddToInventory={onAddToInventory!}
             isVisible={true}
+            barcodeType={barcodeType}
           />
         )}
 

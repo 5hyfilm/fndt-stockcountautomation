@@ -105,14 +105,21 @@ export const useInventoryExport = ({
       >();
 
       inventory.forEach((item) => {
+        console.log("📤 Exporting item:", {
+          name: item.productName,
+          barcodeType: item.barcodeType,
+          quantity: item.quantity,
+        });
+
         const key = `${item.materialCode}_${item.productGroup}`;
         const existing = groupedData.get(key);
 
         if (existing) {
-          // รวมจำนวนตามประเภทบาร์โค้ด
           if (item.barcodeType === "cs") {
+            console.log(`  📦 Adding to CS count: ${item.quantity}`);
             existing.csCount += item.quantity;
           } else if (item.barcodeType === "ea" || item.barcodeType === "dsp") {
+            console.log(`  🔢 Adding to piece count: ${item.quantity}`);
             existing.pieceCount += item.quantity;
           }
         } else {

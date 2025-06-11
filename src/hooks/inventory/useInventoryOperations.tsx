@@ -37,6 +37,11 @@ export const useInventoryOperations = ({
   // Add or update inventory item with employee info
   const addOrUpdateItem = useCallback(
     (product: Product, quantity: number, barcodeType?: "ea" | "dsp" | "cs") => {
+      console.log("💾 useInventoryOperations addOrUpdateItem:");
+      console.log("  📦 Product:", product.name);
+      console.log("  🔢 Quantity:", quantity);
+      console.log("  🏷️ BarcodeType:", barcodeType);
+
       if (!product || quantity <= 0) {
         setError("ข้อมูลสินค้าหรือจำนวนไม่ถูกต้อง");
         return false;
@@ -65,6 +70,11 @@ export const useInventoryOperations = ({
           productGroup: mapCategoryToProductGroup(product.category),
           thaiDescription: product.description || product.name,
         };
+
+        console.log(
+          "💾 Created InventoryItem with barcodeType:",
+          newItem.barcodeType
+        );
 
         setInventory((prevInventory) => {
           // ค้นหา item ที่มี barcode และ type เดียวกัน

@@ -70,6 +70,13 @@ export default function BarcodeDetectionPage() {
     clearError,
   } = useBarcodeDetection();
 
+  useEffect(() => {
+    console.log("🏷️ Detected Barcode Type:", detectedBarcodeType);
+    console.log("📦 Product:", product?.name || "No product");
+    console.log("📱 Last Detected Code:", lastDetectedCode);
+    console.log("---");
+  }, [detectedBarcodeType, product, lastDetectedCode]);
+
   // Inventory Management with Employee Context
   const {
     inventory,
@@ -140,13 +147,26 @@ export default function BarcodeDetectionPage() {
     quantity: number,
     barcodeType?: "ea" | "dsp" | "cs"
   ) => {
-    const success = addOrUpdateItem(product, quantity, barcodeType);
+    const finalBarcodeType = barcodeType || detectedBarcodeType || "ea";
+
+    console.log("🔄 handleAddToInventory called with:");
+    console.log("  📦 Product:", product?.name);
+    console.log("  🔢 Quantity:", quantity);
+    console.log("  🏷️ BarcodeType received:", barcodeType);
+    console.log("  🏷️ DetectedBarcodeType:", detectedBarcodeType);
+    console.log("  🏷️ Final BarcodeType:", finalBarcodeType);
+
+    const success = addOrUpdateItem(product, quantity, finalBarcodeType);
+
     if (success && employee) {
-      const unitType = barcodeType === "cs" ? "ลัง" : "ชิ้น";
+      const unitType = finalBarcodeType === "cs" ? "ลัง" : "ชิ้น";
       console.log(
-        `📦 ${employeeName} added ${quantity} ${unitType} of ${product.name} at ${branchName}`
+        `✅ Added ${quantity} ${unitType} of ${
+          product?.name
+        } (${finalBarcodeType.toUpperCase()})`
       );
     }
+
     return success;
   };
 
