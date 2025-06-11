@@ -21,6 +21,9 @@ import { AppFooter } from "../components/footer/AppFooter";
 import { QuickStats } from "../components/stats/QuickStats";
 import { ProductInfoSection } from "../components/sections/ProductInfoSection";
 
+// Import new mobile layout components
+import { MobileScannerLayout } from "../components/layout/MobileScannerLayout";
+
 export default function BarcodeDetectionPage() {
   const [activeTab, setActiveTab] = useState<"scanner" | "inventory">(
     "scanner"
@@ -74,6 +77,7 @@ export default function BarcodeDetectionPage() {
     drawDetections,
     updateCanvasSize,
     clearError,
+    restartForNextScan, // Make sure this is available from useBarcodeDetection hook
   } = useBarcodeDetection();
 
   useEffect(() => {
@@ -152,7 +156,7 @@ export default function BarcodeDetectionPage() {
     product: any,
     quantity: number,
     barcodeType?: "ea" | "dsp" | "cs"
-  ) => {
+  ): boolean => {
     const finalBarcodeType = barcodeType || detectedBarcodeType || "ea";
 
     console.log("🔄 handleAddToInventory called with:");
@@ -258,95 +262,138 @@ export default function BarcodeDetectionPage() {
       )}
 
       {/* Main Content */}
-      <div
-        className={`${
-          isMobile ? "px-2 py-3" : "container mx-auto px-4 py-4 sm:py-6"
-        }`}
-      >
-        {/* Error Display */}
-        {(errors || productError || inventoryError) && (
-          <div className="mb-4">
-            <ErrorDisplay
-              error={errors || productError || inventoryError || ""}
-              onDismiss={clearAllErrors}
-              onRetry={() => {
-                clearAllErrors();
-                if (!isStreaming && activeTab === "scanner") startCamera();
-              }}
-            />
-          </div>
-        )}
-
+      <div className="flex-1">
         {/* Scanner Tab */}
         {activeTab === "scanner" && (
-          <div
-            className={`${
-              isMobile
-                ? "space-y-3"
-                : "grid grid-cols-1 xl:grid-cols-5 gap-4 lg:gap-6"
-            }`}
-          >
-            {/* Camera Section */}
-            <div className={isMobile ? "" : "xl:col-span-3"}>
-              <CameraSection
+          <>
+            {isMobile ? (
+              /* Mobile Layout - Full Screen Scanner with Slide Up Product Info */
+              <MobileScannerLayout
+                // Camera props
                 videoRef={videoRef}
                 canvasRef={canvasRef}
                 containerRef={containerRef}
                 isStreaming={isStreaming}
                 processingQueue={processingQueue}
                 detections={detections}
+                // Camera actions
                 startCamera={startCamera}
                 stopCamera={stopCamera}
                 switchCamera={switchCamera}
                 captureAndProcess={captureAndProcess}
                 drawDetections={drawDetections}
                 updateCanvasSize={updateCanvasSize}
-              />
-            </div>
-
-            {/* Product Info Sidebar */}
-            <div className={isMobile ? "" : "xl:col-span-2 space-y-4"}>
-              <ProductInfoSection
+                // Product props
                 product={product}
-                barcode={lastDetectedCode}
-                barcodeType={detectedBarcodeType || undefined}
-                isLoading={isLoadingProduct}
-                error={productError || undefined}
-                currentInventoryQuantity={currentInventoryQuantity}
-                isMobile={isMobile}
+                detectedBarcodeType={detectedBarcodeType}
+                isLoadingProduct={isLoadingProduct}
+                productError={productError}
+                lastDetectedCode={lastDetectedCode}
+                // Product actions
                 onAddToInventory={handleAddToInventory}
+                restartForNextScan={restartForNextScan}
+                currentInventoryQuantity={currentInventoryQuantity}
               />
-            </div>
-          </div>
+            ) : (
+              /* Desktop Layout - Side by Side (คงเดิม) */
+              <div className="container mx-auto px-4 py-4 sm:py-6">
+                {/* Error Display - Desktop Only */}
+                {(errors || productError || inventoryError) && (
+                  <div className="mb-4">
+                    <ErrorDisplay
+                      error={errors || productError || inventoryError || ""}
+                      onDismiss={clearAllErrors}
+                      onRetry={() => {
+                        clearAllErrors();
+                        if (!isStreaming && activeTab === "scanner")
+                          startCamera();
+                      }}
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 lg:gap-6">
+                  {/* Camera Section */}
+                  <div className="xl:col-span-3">
+                    <CameraSection
+                      videoRef={videoRef}
+                      canvasRef={canvasRef}
+                      containerRef={containerRef}
+                      isStreaming={isStreaming}
+                      processingQueue={processingQueue}
+                      detections={detections}
+                      startCamera={startCamera}
+                      stopCamera={stopCamera}
+                      switchCamera={switchCamera}
+                      captureAndProcess={captureAndProcess}
+                      drawDetections={drawDetections}
+                      updateCanvasSize={updateCanvasSize}
+                    />
+                  </div>
+
+                  {/* Product Info Sidebar */}
+                  <div className="xl:col-span-2 space-y-4">
+                    <ProductInfoSection
+                      product={product}
+                      barcode={lastDetectedCode}
+                      barcodeType={detectedBarcodeType || undefined}
+                      isLoading={isLoadingProduct}
+                      error={productError || undefined}
+                      currentInventoryQuantity={currentInventoryQuantity}
+                      isMobile={false}
+                      onAddToInventory={handleAddToInventory}
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Stats - Desktop Only */}
+                <div className="mt-6">
+                  <QuickStats
+                    totalProducts={summary.totalProducts}
+                    totalItems={summary.totalItems}
+                    categories={summary.categories}
+                    product={product}
+                    currentInventoryQuantity={currentInventoryQuantity}
+                  />
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Inventory Tab */}
         {activeTab === "inventory" && (
-          <div className="space-y-6">
-            <InventoryDisplay
-              inventory={inventory}
-              summary={summary}
-              isLoading={isLoadingInventory}
-              error={inventoryError}
-              onUpdateQuantity={updateItemQuantity}
-              onRemoveItem={removeItem}
-              onClearInventory={clearInventory}
-              onExportInventory={handleExportInventory}
-              onClearError={clearInventoryError}
-              onSearch={searchItems}
-            />
-          </div>
-        )}
+          <div
+            className={`${
+              isMobile ? "px-2 py-3" : "container mx-auto px-4 py-4 sm:py-6"
+            }`}
+          >
+            {/* Error Display for Inventory */}
+            {inventoryError && !isMobile && (
+              <div className="mb-4">
+                <ErrorDisplay
+                  error={inventoryError}
+                  onDismiss={clearInventoryError}
+                  onRetry={clearInventoryError}
+                />
+              </div>
+            )}
 
-        {/* Quick Stats - Desktop Only */}
-        {activeTab === "scanner" && !isMobile && (
-          <QuickStats
-            totalProducts={summary.totalProducts}
-            totalItems={summary.totalItems}
-            categories={summary.categories}
-            product={product}
-            currentInventoryQuantity={currentInventoryQuantity}
-          />
+            <div className="space-y-6">
+              <InventoryDisplay
+                inventory={inventory}
+                summary={summary}
+                isLoading={isLoadingInventory}
+                error={inventoryError}
+                onUpdateQuantity={updateItemQuantity}
+                onRemoveItem={removeItem}
+                onClearInventory={clearInventory}
+                onExportInventory={handleExportInventory}
+                onClearError={clearInventoryError}
+                onSearch={searchItems}
+              />
+            </div>
+          </div>
         )}
       </div>
 
