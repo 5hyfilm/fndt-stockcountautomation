@@ -1,6 +1,7 @@
 // src/components/layout/MobileProductSlide.tsx
 "use client";
 
+import React, { useEffect, useState } from "react";
 import { X, ArrowDown } from "lucide-react";
 import { ProductInfo } from "../ProductInfo";
 
