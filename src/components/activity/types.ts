@@ -1,4 +1,6 @@
-// src/components/activity/types.ts
+// ./src/components/activity/types.ts
+import { InventoryItem } from "../../hooks/inventory/types";
+
 export interface ActivityItem {
   id: string;
   type: "add" | "scan" | "update" | "remove";
@@ -18,7 +20,7 @@ export interface ActivityItemProps {
 }
 
 export interface RecentActivityProps {
-  inventory: any[]; // InventoryItem[] from useInventoryManager
+  inventory: InventoryItem[]; // Changed from any[] to InventoryItem[]
   lastScannedBarcode?: string;
   limit?: number;
   compact?: boolean;

@@ -1,3 +1,4 @@
+// ./src/components/LastDetectedCode.tsx
 "use client";
 
 import React from "react";
@@ -15,8 +16,8 @@ export const LastDetectedCode: React.FC<LastDetectedCodeProps> = ({ code }) => {
       await navigator.clipboard.writeText(code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      // Fallback for older browsers
+    } catch {
+      // Fallback for older browsers - removed unused 'err' parameter
       const textArea = document.createElement("textarea");
       textArea.value = code;
       document.body.appendChild(textArea);

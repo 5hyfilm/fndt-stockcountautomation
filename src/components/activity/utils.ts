@@ -1,5 +1,7 @@
-// src/components/activity/utils.ts
+// ./src/components/activity/utils.ts
 import { ActivityItem } from "./types";
+import { InventoryItem } from "../../hooks/inventory/types";
+import { Product } from "../../types/product";
 
 /**
  * Format timestamp to human readable relative time
@@ -39,13 +41,13 @@ export const formatTimeFromNow = (timestamp: string): string => {
  * Create activity item from inventory data
  */
 export const createActivityFromInventory = (
-  item: any,
+  item: InventoryItem,
   type: ActivityItem["type"] = "add"
 ): ActivityItem => {
   return {
     id: item.id || `${type}_${item.barcode}_${Date.now()}`,
     type,
-    productName: item.productName || item.name || "ไม่ระบุชื่อ",
+    productName: item.productName || "ไม่ระบุชื่อ",
     barcode: item.barcode || "",
     quantity: item.quantity || 0,
     timestamp: item.lastUpdated || new Date().toISOString(),
@@ -55,21 +57,46 @@ export const createActivityFromInventory = (
 };
 
 /**
+ * Type guard to check if data is InventoryItem
+ */
+const isInventoryItem = (
+  data: Product | InventoryItem
+): data is InventoryItem => {
+  return "productName" in data && "lastUpdated" in data;
+};
+
+/**
  * Create scan activity from barcode
  */
 export const createScanActivity = (
   barcode: string,
-  productData?: any
+  productData?: Product | InventoryItem
 ): ActivityItem => {
+  if (!productData) {
+    return {
+      id: `scan_${barcode}_${Date.now()}`,
+      type: "scan",
+      productName: "สินค้าที่สแกน",
+      barcode,
+      timestamp: new Date().toISOString(),
+      brand: "ไม่ระบุแบรนด์",
+      category: undefined,
+    };
+  }
+
+  // Handle different property names between Product and InventoryItem
+  const productName = isInventoryItem(productData)
+    ? productData.productName
+    : productData.name;
+
   return {
     id: `scan_${barcode}_${Date.now()}`,
     type: "scan",
-    productName:
-      productData?.productName || productData?.name || "สินค้าที่สแกน",
+    productName: productName || "สินค้าที่สแกน",
     barcode,
     timestamp: new Date().toISOString(),
-    brand: productData?.brand || "ไม่ระบุแบรนด์",
-    category: productData?.category,
+    brand: productData.brand || "ไม่ระบุแบรนด์",
+    category: productData.category,
   };
 };
 
