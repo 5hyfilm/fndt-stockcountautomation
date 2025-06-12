@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { LogOut, User, MapPin, Clock, Menu, X } from "lucide-react";
+import { LogOut, User, MapPin, Clock, Menu } from "lucide-react";
 
 interface EmployeeInfo {
   employeeName: string;
@@ -15,8 +15,9 @@ interface AppHeaderProps {
   employee: EmployeeInfo;
   onLogout: () => void;
   compact?: boolean;
-  transparent?: boolean; // New prop for transparent background
-  floating?: boolean; // New prop for floating header
+  transparent?: boolean;
+  floating?: boolean;
+  formatTimeRemaining?: () => string;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -25,6 +26,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   compact = false,
   transparent = false,
   floating = false,
+  formatTimeRemaining,
 }) => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
@@ -74,114 +76,98 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const toggleMobileMenu = () => setShowMobileMenu(!showMobileMenu);
 
   return (
-    <>
-      <header className={getHeaderClasses()}>
-        <div className="flex items-center justify-between">
-          {/* Left side - Employee info */}
-          <div className="flex items-center gap-3">
+    <header className={getHeaderClasses()}>
+      <div className="flex items-center justify-between">
+        {/* Left side - Employee info */}
+        <div className="flex items-center gap-3">
+          <div
+            className={`${transparent ? "bg-white/20" : "bg-gray-100"} ${
+              compact ? "p-1.5" : "p-2"
+            } rounded-full`}
+          >
+            <User size={compact ? 16 : 20} className={getTextClasses()} />
+          </div>
+
+          {/* Desktop info - always show */}
+          <div className="hidden sm:block">
             <div
-              className={`${transparent ? "bg-white/20" : "bg-gray-100"} ${
-                compact ? "p-1.5" : "p-2"
-              } rounded-full`}
+              className={`${
+                compact ? "text-sm" : "text-base"
+              } font-medium ${getTextClasses()}`}
             >
-              <User size={compact ? 16 : 20} className={getTextClasses()} />
+              {employee.employeeName}
             </div>
-
-            {/* Desktop info - always show */}
-            <div className="hidden sm:block">
-              <div
-                className={`${
-                  compact ? "text-sm" : "text-base"
-                } font-medium ${getTextClasses()}`}
-              >
-                {employee.employeeName}
-              </div>
-              <div
-                className={`${compact ? "text-xs" : "text-sm"} ${getTextClasses(
-                  "secondary"
-                )} flex items-center gap-4`}
-              >
-                <span className="flex items-center gap-1">
-                  <MapPin size={compact ? 12 : 14} />
-                  {employee.branchCode} - {employee.branchName}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock size={compact ? 12 : 14} />
-                  {employee.timestamp}
-                </span>
-              </div>
-            </div>
-
-            {/* Mobile - show name only, menu button for details */}
-            <div className="sm:hidden">
-              <div
-                className={`${
-                  compact ? "text-sm" : "text-base"
-                } font-medium ${getTextClasses()}`}
-              >
-                {employee.employeeName}
-              </div>
-              <button
-                onClick={toggleMobileMenu}
-                className={`${compact ? "text-xs" : "text-sm"} ${getTextClasses(
-                  "secondary"
-                )} flex items-center gap-1 mt-0.5`}
-              >
-                <Menu size={compact ? 12 : 14} />
-                รายละเอียด
-              </button>
+            <div
+              className={`${compact ? "text-xs" : "text-sm"} ${getTextClasses(
+                "secondary"
+              )} flex items-center gap-4`}
+            >
+              <span className="flex items-center gap-1">
+                <MapPin size={compact ? 12 : 14} />
+                {employee.branchCode} - {employee.branchName}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock size={compact ? 12 : 14} />
+                {employee.timestamp}
+              </span>
             </div>
           </div>
 
-          {/* Right side - Logout button */}
-          <button onClick={onLogout} className={getButtonClasses()}>
-            <LogOut size={compact ? 14 : 16} className="mr-1" />
-            ออกจากระบบ
-          </button>
-        </div>
-
-        {/* Mobile menu overlay */}
-        {showMobileMenu && (
+          {/* Mobile - show name only, menu button for details */}
           <div className="sm:hidden">
             <div
-              className={`mt-3 pt-3 border-t ${
-                transparent ? "border-white/20" : "border-gray-200"
-              }`}
+              className={`${
+                compact ? "text-sm" : "text-base"
+              } font-medium ${getTextClasses()}`}
             >
-              <div
-                className={`${compact ? "text-xs" : "text-sm"} ${getTextClasses(
-                  "secondary"
-                )} space-y-2`}
-              >
-                <div className="flex items-center gap-2">
-                  <MapPin size={compact ? 12 : 14} />
-                  <span>
-                    {employee.branchCode} - {employee.branchName}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock size={compact ? 12 : 14} />
-                  <span>{employee.timestamp}</span>
-                </div>
+              {employee.employeeName}
+            </div>
+            <button
+              onClick={toggleMobileMenu}
+              className={`${compact ? "text-xs" : "text-sm"} ${getTextClasses(
+                "secondary"
+              )} flex items-center gap-1 mt-0.5`}
+            >
+              <Menu size={compact ? 12 : 14} />
+              รายละเอียด
+            </button>
+          </div>
+        </div>
+
+        {/* Right side - Logout button */}
+        <button onClick={onLogout} className={getButtonClasses()}>
+          <LogOut size={compact ? 14 : 16} className="mr-1" />
+          ออกจากระบบ
+        </button>
+      </div>
+
+      {/* Mobile menu overlay */}
+      {showMobileMenu && (
+        <div className="sm:hidden">
+          <div
+            className={`mt-3 pt-3 border-t ${
+              transparent ? "border-white/20" : "border-gray-200"
+            }`}
+          >
+            <div
+              className={`${compact ? "text-xs" : "text-sm"} ${getTextClasses(
+                "secondary"
+              )} space-y-2`}
+            >
+              <div className="flex items-center gap-2">
+                <MapPin size={compact ? 12 : 14} />
+                <span>
+                  {employee.branchCode} - {employee.branchName}
+                </span>
               </div>
-              <button
-                onClick={toggleMobileMenu}
-                className={`mt-2 ${getTextClasses(
-                  "secondary"
-                )} flex items-center gap-1 ${compact ? "text-xs" : "text-sm"}`}
-              >
-                <X size={compact ? 12 : 14} />
-                ปิด
-              </button>
+              <div className="flex items-center gap-2">
+                <Clock size={compact ? 12 : 14} />
+                <span>{employee.timestamp}</span>
+              </div>
             </div>
           </div>
-        )}
-      </header>
-
-      {/* Spacer for floating header */}
-      {floating && !transparent && (
-        <div className={compact ? "h-16" : "h-20"}></div>
+        </div>
       )}
-    </>
+    </header>
   );
 };

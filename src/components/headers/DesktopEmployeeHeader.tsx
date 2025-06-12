@@ -26,7 +26,6 @@ export const DesktopEmployeeHeader: React.FC<DesktopEmployeeHeaderProps> = ({
         {/* Left side - Logo and Employee info */}
         <div className="flex items-center gap-3">
           {/* F&N Logo */}
-          {/* <div className="bg-gray-100 rounded-lg p-2"> */}
           <Image
             src="/fn-logo.png"
             alt="F&N Logo"
@@ -35,7 +34,6 @@ export const DesktopEmployeeHeader: React.FC<DesktopEmployeeHeaderProps> = ({
             className="w-10 h-10 object-contain"
             priority
           />
-          {/* </div> */}
 
           <div className="bg-fn-green/20 p-2 rounded-lg">
             <User className="fn-green" size={16} />

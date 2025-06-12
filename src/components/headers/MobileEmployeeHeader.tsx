@@ -7,11 +7,15 @@ import Image from "next/image";
 
 interface MobileEmployeeHeaderProps {
   employeeName: string;
+  branchCode?: string;
+  branchName?: string;
   onLogout: () => void;
 }
 
 export const MobileEmployeeHeader: React.FC<MobileEmployeeHeaderProps> = ({
   employeeName,
+  branchCode = "",
+  branchName = "",
   onLogout,
 }) => {
   return (

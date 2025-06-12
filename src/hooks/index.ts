@@ -6,3 +6,6 @@ export * from "./product";
 export * from "./canvas";
 export * from "./barcode";
 export * from "./types";
+export { useEmployeeAuth } from "./useEmployeeAuth";
+export { useInventoryManager } from "./useInventoryManager";
+export { useLogoutConfirmation } from "./useLogoutConfirmation";

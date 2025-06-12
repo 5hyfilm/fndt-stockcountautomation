@@ -25,6 +25,10 @@ import { ProductInfoSection } from "../components/sections/ProductInfoSection";
 import { MobileLayout } from "../components/layout/MobileLayout";
 import { MobileScannerLayout } from "../components/layout/MobileScannerLayout";
 
+// Import logout confirmation
+import { LogoutConfirmationModal } from "../components/modals/LogoutConfirmationModal";
+import { useLogoutConfirmation } from "../hooks/useLogoutConfirmation";
+
 export default function BarcodeDetectionPage() {
   const [activeTab, setActiveTab] = useState<"scanner" | "inventory">(
     "scanner"
@@ -137,6 +141,37 @@ export default function BarcodeDetectionPage() {
       : undefined
   );
 
+  // Functions to check unsaved data for logout confirmation
+  const hasUnsavedData = (): boolean => {
+    return inventory.length > 0;
+  };
+
+  const getUnsavedDataCount = (): number => {
+    return inventory.length;
+  };
+
+  // Handle logout with camera cleanup
+  const handleLogout = () => {
+    if (isStreaming) {
+      stopCamera();
+    }
+    logout();
+  };
+
+  // Logout confirmation hook
+  const {
+    isModalOpen,
+    showLogoutConfirmation,
+    hideLogoutConfirmation,
+    confirmLogout,
+    hasUnsavedData: hasUnsaved,
+    unsavedDataCount,
+  } = useLogoutConfirmation({
+    onLogout: handleLogout,
+    hasUnsavedData,
+    getUnsavedDataCount,
+  });
+
   // Handle employee login
   const handleEmployeeLogin = async (employeeInfo: EmployeeInfo) => {
     try {
@@ -145,14 +180,6 @@ export default function BarcodeDetectionPage() {
     } catch (error) {
       console.error("❌ Login failed:", error);
     }
-  };
-
-  // Handle logout
-  const handleLogout = () => {
-    if (isStreaming) {
-      stopCamera();
-    }
-    logout();
   };
 
   // ประมวลผลอัตโนมัติ Real-time
@@ -268,7 +295,7 @@ export default function BarcodeDetectionPage() {
           isStreaming={isStreaming}
           lastDetectedCode={lastDetectedCode}
           totalItems={summary.totalItems}
-          onLogout={handleLogout}
+          onLogout={showLogoutConfirmation}
           onTabChange={setActiveTab}
         />
 
@@ -304,6 +331,19 @@ export default function BarcodeDetectionPage() {
             showHeader={false} // ไม่แสดง header ของกล้อง เพราะมี app header แล้ว
           />
         </div>
+
+        {/* Logout Confirmation Modal */}
+        <LogoutConfirmationModal
+          isOpen={isModalOpen}
+          onClose={hideLogoutConfirmation}
+          onConfirm={confirmLogout}
+          employeeName={employeeName}
+          branchCode={branchCode}
+          branchName={branchName}
+          sessionTimeRemaining={formatTimeRemaining()}
+          hasUnsavedData={hasUnsaved}
+          unsavedDataCount={unsavedDataCount}
+        />
       </div>
     );
   }
@@ -328,7 +368,7 @@ export default function BarcodeDetectionPage() {
           isStreaming={isStreaming}
           lastDetectedCode={lastDetectedCode}
           totalItems={summary.totalItems}
-          onLogout={handleLogout}
+          onLogout={showLogoutConfirmation}
           onTabChange={setActiveTab}
         />
       ) : (
@@ -343,7 +383,7 @@ export default function BarcodeDetectionPage() {
           lastDetectedCode={lastDetectedCode}
           product={product}
           totalItems={summary.totalItems}
-          onLogout={handleLogout}
+          onLogout={showLogoutConfirmation}
           onTabChange={setActiveTab}
         />
       )}
@@ -499,6 +539,19 @@ export default function BarcodeDetectionPage() {
           lastUpdate={summary.lastUpdate}
         />
       )}
+
+      {/* Logout Confirmation Modal */}
+      <LogoutConfirmationModal
+        isOpen={isModalOpen}
+        onClose={hideLogoutConfirmation}
+        onConfirm={confirmLogout}
+        employeeName={employeeName}
+        branchCode={branchCode}
+        branchName={branchName}
+        sessionTimeRemaining={formatTimeRemaining()}
+        hasUnsavedData={hasUnsaved}
+        unsavedDataCount={unsavedDataCount}
+      />
     </div>
   );
 }
