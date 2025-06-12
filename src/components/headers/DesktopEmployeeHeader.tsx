@@ -26,16 +26,16 @@ export const DesktopEmployeeHeader: React.FC<DesktopEmployeeHeaderProps> = ({
         {/* Left side - Logo and Employee info */}
         <div className="flex items-center gap-3">
           {/* F&N Logo */}
-          <div className="bg-gray-100 rounded-lg p-2">
-            <Image
-              src="/fn-logo.png"
-              alt="F&N Logo"
-              width={24}
-              height={24}
-              className="w-6 h-6 object-contain"
-              priority
-            />
-          </div>
+          {/* <div className="bg-gray-100 rounded-lg p-2"> */}
+          <Image
+            src="/fn-logo.png"
+            alt="F&N Logo"
+            width={24}
+            height={24}
+            className="w-6 h-6 object-contain"
+            priority
+          />
+          {/* </div> */}
 
           <div className="bg-fn-green/20 p-2 rounded-lg">
             <User className="fn-green" size={16} />

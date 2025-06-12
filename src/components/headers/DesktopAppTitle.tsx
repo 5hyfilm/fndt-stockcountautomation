@@ -10,16 +10,16 @@ export const DesktopAppTitle: React.FC = () => {
     <div className="flex items-center justify-center mb-4">
       <div className="flex items-center gap-3">
         {/* F&N Logo */}
-        <div className="bg-gray-100 backdrop-blur-sm rounded-xl p-2 border border-gray-300 shadow-sm">
-          <Image
-            src="/fn-logo.png"
-            alt="F&N Logo"
-            width={48}
-            height={48}
-            className="w-12 h-12 object-contain"
-            priority
-          />
-        </div>
+        {/* <div className="bg-gray-100 backdrop-blur-sm rounded-xl p-2 border border-gray-300 shadow-sm"> */}
+        <Image
+          src="/fn-logo.png"
+          alt="F&N Logo"
+          width={48}
+          height={48}
+          className="w-12 h-12 object-contain"
+          priority
+        />
+        {/* </div> */}
 
         {/* Title Section - Removed Stock check text */}
         <div className="text-center">

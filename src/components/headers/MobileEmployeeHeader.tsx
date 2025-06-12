@@ -23,9 +23,9 @@ export const MobileEmployeeHeader: React.FC<MobileEmployeeHeaderProps> = ({
             <Image
               src="/fn-logo.png"
               alt="F&N Logo"
-              width={20}
-              height={20}
-              className="w-5 h-5 object-contain"
+              width={40} // ← เปลี่ยนให้ตรงกับ className
+              height={40} // ← เปลี่ยนให้ตรงกับ className
+              className="w-10 h-10 object-contain"
               priority
             />
           </div>

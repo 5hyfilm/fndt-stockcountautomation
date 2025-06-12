@@ -124,10 +124,7 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
               {inventory.length} รายการสินค้า, {summary.totalItems} ชิ้น
             </span>
             <span>•</span>
-            <span>รูปแบบ CSV (เปิดได้ใน Excel)</span>
-          </div>
-          <div className="text-xs text-green-600 mt-1">
-            💡 ไฟล์จะรองรับภาษาไทยและรวมข้อมูลสรุปด้วย
+            <span>รูปแบบ CSV</span>
           </div>
         </div>
       )}
