@@ -3,7 +3,6 @@
 
 import React from "react";
 import { Detection } from "../../types/detection";
-// import { CameraGuideFrame } from "./CameraGuideFrame";
 import { DetectionIndicator } from "./DetectionIndicator";
 import { CameraOffOverlay } from "./CameraOffOverlay";
 
@@ -14,6 +13,7 @@ interface CameraViewfinderProps {
   isStreaming: boolean;
   detections: Detection[];
   onLoadedMetadata: () => void;
+  fullScreen?: boolean; // New prop for full screen mode
 }
 
 export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
@@ -23,13 +23,23 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   isStreaming,
   detections,
   onLoadedMetadata,
+  fullScreen = false,
 }) => {
+  // Dynamic container classes based on full screen mode
+  const containerClasses = fullScreen
+    ? "relative w-full overflow-hidden" // ลบ h-screen ออก
+    : "relative w-full";
+
+  // Dynamic container styles
+  const containerStyle = fullScreen
+    ? {
+        height: "100%", // ใช้ 100% ของ parent container
+        minHeight: "100%",
+      }
+    : { aspectRatio: "16/9" }; // Keep aspect ratio for normal mode
+
   return (
-    <div
-      ref={containerRef}
-      className="relative w-full"
-      style={{ aspectRatio: "16/9" }}
-    >
+    <div ref={containerRef} className={containerClasses} style={containerStyle}>
       {/* Video Element */}
       <video
         ref={videoRef}
@@ -45,9 +55,6 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
         ref={canvasRef}
         className="absolute top-0 left-0 w-full h-full pointer-events-none"
       />
-
-      {/* Camera Guide Frame */}
-      {/* <CameraGuideFrame /> */}
 
       {/* Detection Indicator */}
       <DetectionIndicator detections={detections} isStreaming={isStreaming} />

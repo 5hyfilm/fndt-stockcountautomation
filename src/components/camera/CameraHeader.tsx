@@ -2,8 +2,7 @@
 "use client";
 
 import React from "react";
-import { Camera, Wifi, WifiOff } from "lucide-react";
-import { ControlButtons } from "../ControlButtons";
+import { Camera, CameraOff, RotateCcw, Scan } from "lucide-react";
 
 interface CameraHeaderProps {
   isStreaming: boolean;
@@ -12,30 +11,49 @@ interface CameraHeaderProps {
   onStopCamera: () => void;
   onSwitchCamera: () => void;
   onCaptureAndProcess: () => void;
+  compact?: boolean; // New prop for compact mode
+  transparent?: boolean; // New prop for transparent background
 }
 
-interface CameraStatusBadgeProps {
+export const CameraStatusBadge: React.FC<{
   isStreaming: boolean;
-}
-
-// Compact status indicator for mobile
-export const CameraStatusBadge: React.FC<CameraStatusBadgeProps> = ({
-  isStreaming,
-}) => {
-  return (
-    <div className="flex items-center gap-1">
-      {isStreaming ? (
-        <Wifi className="text-green-500" size={14} />
-      ) : (
-        <WifiOff className="text-red-500" size={14} />
-      )}
-      <span
-        className={`text-xs font-medium ${
-          isStreaming ? "text-green-600" : "text-red-600"
+  processingQueue: number;
+  compact?: boolean;
+}> = ({ isStreaming, processingQueue, compact = false }) => {
+  if (processingQueue > 0) {
+    return (
+      <div
+        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 ${
+          compact ? "text-xs" : "text-sm"
         }`}
       >
-        {isStreaming ? "ON" : "OFF"}
-      </span>
+        <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+        ประมวลผล ({processingQueue})
+      </div>
+    );
+  }
+
+  if (isStreaming) {
+    return (
+      <div
+        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 text-green-800 ${
+          compact ? "text-xs" : "text-sm"
+        }`}
+      >
+        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+        กำลังทำงาน
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 text-gray-600 ${
+        compact ? "text-xs" : "text-sm"
+      }`}
+    >
+      <div className="w-2 h-2 bg-gray-400 rounded-full" />
+      ปิดกล้อง
     </div>
   );
 };
@@ -47,30 +65,98 @@ export const CameraHeader: React.FC<CameraHeaderProps> = ({
   onStopCamera,
   onSwitchCamera,
   onCaptureAndProcess,
+  compact = false,
+  transparent = false,
 }) => {
+  // Dynamic styles based on props
+  const headerClasses = `
+    ${compact ? "px-3 py-2" : "px-4 py-3"}
+    ${transparent ? "bg-transparent" : "bg-gray-50 border-b border-gray-200"}
+    flex items-center justify-between
+  `;
+
+  const buttonSize = compact ? "p-1.5" : "p-2";
+  const iconSize = compact ? 16 : 20;
+
   return (
-    <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center justify-between">
-      {/* Left side - Compact icon and status */}
-      <div className="flex items-center gap-2">
-        <div className="bg-fn-green/10 p-1.5 rounded-md border border-fn-green/20">
-          <Camera className="text-fn-green" size={16} />
-        </div>
-        <div className="flex flex-col">
-          <h2 className="text-sm font-semibold text-gray-900">กล้อง</h2>
-          <CameraStatusBadge isStreaming={isStreaming} />
-        </div>
+    <div className={headerClasses}>
+      {/* Title and Status */}
+      <div className="flex items-center gap-3">
+        <h3
+          className={`${compact ? "text-sm" : "text-lg"} font-semibold ${
+            transparent ? "text-white" : "text-gray-900"
+          } flex items-center gap-2`}
+        >
+          <Camera size={compact ? 16 : 20} />
+          สแกนบาร์โค้ด
+        </h3>
+        <CameraStatusBadge
+          isStreaming={isStreaming}
+          processingQueue={processingQueue}
+          compact={compact}
+        />
       </div>
 
-      {/* Right side - Control buttons */}
-      <ControlButtons
-        isStreaming={isStreaming}
-        processingQueue={processingQueue}
-        startCamera={onStartCamera}
-        stopCamera={onStopCamera}
-        switchCamera={onSwitchCamera}
-        captureAndProcess={onCaptureAndProcess}
-        compact={true} // Enable compact mode for mobile
-      />
+      {/* Control Buttons */}
+      <div className="flex items-center gap-2">
+        {/* Start/Stop Camera */}
+        {isStreaming ? (
+          <button
+            onClick={onStopCamera}
+            className={`${buttonSize} ${
+              transparent
+                ? "bg-white/20 hover:bg-white/30 text-white"
+                : "bg-red-100 hover:bg-red-200 text-red-700"
+            } rounded-lg transition-colors`}
+            title="หยุดกล้อง"
+          >
+            <CameraOff size={iconSize} />
+          </button>
+        ) : (
+          <button
+            onClick={onStartCamera}
+            className={`${buttonSize} ${
+              transparent
+                ? "bg-white/20 hover:bg-white/30 text-white"
+                : "bg-green-100 hover:bg-green-200 text-green-700"
+            } rounded-lg transition-colors`}
+            title="เปิดกล้อง"
+          >
+            <Camera size={iconSize} />
+          </button>
+        )}
+
+        {/* Switch Camera (only when streaming) */}
+        {isStreaming && (
+          <button
+            onClick={onSwitchCamera}
+            className={`${buttonSize} ${
+              transparent
+                ? "bg-white/20 hover:bg-white/30 text-white"
+                : "bg-blue-100 hover:bg-blue-200 text-blue-700"
+            } rounded-lg transition-colors`}
+            title="สลับกล้อง"
+          >
+            <RotateCcw size={iconSize} />
+          </button>
+        )}
+
+        {/* Manual Capture (only when streaming) */}
+        {isStreaming && (
+          <button
+            onClick={onCaptureAndProcess}
+            disabled={processingQueue > 0}
+            className={`${buttonSize} ${
+              transparent
+                ? "bg-white/20 hover:bg-white/30 text-white disabled:bg-white/10"
+                : "bg-purple-100 hover:bg-purple-200 text-purple-700 disabled:bg-gray-100 disabled:text-gray-400"
+            } rounded-lg transition-colors`}
+            title="สแกนด้วยตนเอง"
+          >
+            <Scan size={iconSize} />
+          </button>
+        )}
+      </div>
     </div>
   );
 };

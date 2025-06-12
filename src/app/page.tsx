@@ -21,7 +21,8 @@ import { AppFooter } from "../components/footer/AppFooter";
 import { QuickStats } from "../components/stats/QuickStats";
 import { ProductInfoSection } from "../components/sections/ProductInfoSection";
 
-// Import new mobile layout components
+// Import updated layout components
+import { MobileLayout } from "../components/layout/MobileLayout";
 import { MobileScannerLayout } from "../components/layout/MobileScannerLayout";
 
 export default function BarcodeDetectionPage() {
@@ -31,17 +32,34 @@ export default function BarcodeDetectionPage() {
   const [showExportSuccess, setShowExportSuccess] = useState(false);
   const [exportFileName, setExportFileName] = useState<string>("");
   const [isMobile, setIsMobile] = useState(false);
+  const [fullScreenMode, setFullScreenMode] = useState(false);
 
-  // Detect mobile viewport
+  // Detect mobile viewport and set full screen mode
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Auto enable full screen on mobile for scanner tab
+      if (mobile && activeTab === "scanner") {
+        setFullScreenMode(true);
+      } else {
+        setFullScreenMode(false);
+      }
     };
 
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+  }, [activeTab]);
+
+  // Toggle full screen mode when tab changes
+  useEffect(() => {
+    if (isMobile && activeTab === "scanner") {
+      setFullScreenMode(true);
+    } else {
+      setFullScreenMode(false);
+    }
+  }, [isMobile, activeTab]);
 
   // Employee Authentication
   const {
@@ -77,7 +95,7 @@ export default function BarcodeDetectionPage() {
     drawDetections,
     updateCanvasSize,
     clearError,
-    restartForNextScan, // Make sure this is available from useBarcodeDetection hook
+    restartForNextScan,
   } = useBarcodeDetection();
 
   useEffect(() => {
@@ -222,6 +240,67 @@ export default function BarcodeDetectionPage() {
     return <EmployeeBranchForm onSubmit={handleEmployeeLogin} />;
   }
 
+  // Mobile Full Screen Scanner Mode
+  if (isMobile && activeTab === "scanner" && fullScreenMode) {
+    return (
+      <div className="min-h-screen bg-gray-50 text-gray-900">
+        {/* Export Success Toast */}
+        <ExportSuccessToast
+          show={showExportSuccess}
+          onClose={() => setShowExportSuccess(false)}
+          fileName={exportFileName}
+          itemCount={inventory.length}
+        />
+
+        {/* Header - แสดงปกติแม้ในโหมด full screen */}
+        <MobileAppHeader
+          employeeName={employeeName}
+          activeTab={activeTab}
+          totalProducts={summary.totalProducts}
+          isStreaming={isStreaming}
+          lastDetectedCode={lastDetectedCode}
+          totalItems={summary.totalItems}
+          onLogout={handleLogout}
+          onTabChange={setActiveTab}
+        />
+
+        {/* Main Content - Full Screen Scanner */}
+        <div className="flex-1">
+          <MobileScannerLayout
+            // Camera props
+            videoRef={videoRef}
+            canvasRef={canvasRef}
+            containerRef={containerRef}
+            isStreaming={isStreaming}
+            processingQueue={processingQueue}
+            detections={detections}
+            // Camera actions
+            startCamera={startCamera}
+            stopCamera={stopCamera}
+            switchCamera={switchCamera}
+            captureAndProcess={captureAndProcess}
+            drawDetections={drawDetections}
+            updateCanvasSize={updateCanvasSize}
+            // Product props
+            product={product}
+            detectedBarcodeType={detectedBarcodeType}
+            isLoadingProduct={isLoadingProduct}
+            productError={productError}
+            lastDetectedCode={lastDetectedCode}
+            // Product actions
+            onAddToInventory={handleAddToInventory}
+            restartForNextScan={restartForNextScan}
+            currentInventoryQuantity={currentInventoryQuantity}
+            // Layout options
+            fullScreen={true}
+            showHeader={false} // ไม่แสดง header ของกล้อง เพราะมี app header แล้ว
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Regular Layout (Desktop or Mobile Inventory)
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* Export Success Toast */}
@@ -267,7 +346,7 @@ export default function BarcodeDetectionPage() {
         {activeTab === "scanner" && (
           <>
             {isMobile ? (
-              /* Mobile Layout - Full Screen Scanner with Slide Up Product Info */
+              /* Mobile Layout - Regular Scanner with Header (when not in full screen) */
               <MobileScannerLayout
                 // Camera props
                 videoRef={videoRef}
@@ -293,6 +372,9 @@ export default function BarcodeDetectionPage() {
                 onAddToInventory={handleAddToInventory}
                 restartForNextScan={restartForNextScan}
                 currentInventoryQuantity={currentInventoryQuantity}
+                // Layout options
+                fullScreen={false}
+                showHeader={true}
               />
             ) : (
               /* Desktop Layout - Side by Side (คงเดิม) */
@@ -328,6 +410,8 @@ export default function BarcodeDetectionPage() {
                       captureAndProcess={captureAndProcess}
                       drawDetections={drawDetections}
                       updateCanvasSize={updateCanvasSize}
+                      fullScreen={false}
+                      showHeader={true}
                     />
                   </div>
 

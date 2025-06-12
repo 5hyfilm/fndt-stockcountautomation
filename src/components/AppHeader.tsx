@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { User, Building2, LogOut, Menu, X, ChevronDown } from "lucide-react";
+import { LogOut, User, MapPin, Clock, Menu, X } from "lucide-react";
 
 interface EmployeeInfo {
   employeeName: string;
@@ -15,130 +15,173 @@ interface AppHeaderProps {
   employee: EmployeeInfo;
   onLogout: () => void;
   compact?: boolean;
+  transparent?: boolean; // New prop for transparent background
+  floating?: boolean; // New prop for floating header
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
   employee,
   onLogout,
   compact = false,
+  transparent = false,
+  floating = false,
 }) => {
-  const [showMenu, setShowMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
-  // Compact mobile layout
-  if (compact) {
-    return (
-      <div className="bg-gradient-to-r from-fn-green to-fn-red text-white">
-        <div className="px-3 py-2 flex items-center justify-between">
-          {/* Left side - Brand */}
-          <div className="flex items-center gap-2">
-            <div className="text-lg font-bold">FN</div>
-            <div className="text-xs opacity-80">Stock</div>
-          </div>
+  // Dynamic header classes
+  const getHeaderClasses = () => {
+    let classes = "w-full transition-all duration-200";
 
-          {/* Right side - User menu */}
-          <div className="relative">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="flex items-center gap-1 bg-white/10 backdrop-blur-sm rounded-md px-2 py-1 text-sm"
-            >
-              <User size={14} />
-              <span className="max-w-20 truncate">{employee.employeeName}</span>
-              <ChevronDown
-                size={12}
-                className={`transition-transform ${
-                  showMenu ? "rotate-180" : ""
-                }`}
-              />
-            </button>
+    if (floating) {
+      classes += " fixed top-0 left-0 right-0 z-50";
+    }
 
-            {/* Dropdown Menu */}
-            {showMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50 min-w-48">
-                <div className="p-3 bg-gray-50 border-b">
-                  <div className="text-sm font-medium text-gray-900">
-                    {employee.employeeName}
-                  </div>
-                  <div className="text-xs text-gray-600 flex items-center gap-1">
-                    <Building2 size={12} />
-                    {employee.branchName}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    รหัส: {employee.branchCode}
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowMenu(false);
-                    onLogout();
-                  }}
-                  className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                >
-                  <LogOut size={14} />
-                  ออกจากระบบ
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+    if (transparent) {
+      classes += " bg-black/20 backdrop-blur-sm border-b border-white/10";
+    } else {
+      classes += " bg-white border-b border-gray-200 shadow-sm";
+    }
 
-        {/* Overlay to close menu */}
-        {showMenu && (
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setShowMenu(false)}
-          />
-        )}
-      </div>
-    );
-  }
+    if (compact) {
+      classes += " px-3 py-2";
+    } else {
+      classes += " px-6 py-4";
+    }
 
-  // Desktop layout (original)
+    return classes;
+  };
+
+  // Dynamic text classes
+  const getTextClasses = (variant: "primary" | "secondary" = "primary") => {
+    if (transparent) {
+      return variant === "primary"
+        ? "text-white camera-text-shadow"
+        : "text-white/80 camera-text-shadow";
+    }
+    return variant === "primary" ? "text-gray-900" : "text-gray-600";
+  };
+
+  // Dynamic button classes
+  const getButtonClasses = () => {
+    if (transparent) {
+      return "camera-overlay-button text-sm";
+    }
+    return compact
+      ? "bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg text-sm transition-colors"
+      : "bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg transition-colors";
+  };
+
+  const toggleMobileMenu = () => setShowMobileMenu(!showMobileMenu);
+
   return (
-    <div className="bg-gradient-to-r from-fn-green to-fn-red text-white">
-      <div className="container mx-auto px-6 py-4">
+    <>
+      <header className={getHeaderClasses()}>
         <div className="flex items-center justify-between">
-          {/* Left side - Brand and title */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-2">
-                <Building2 size={24} />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">FN Stock Management</h1>
-                <p className="text-white/80 text-sm">
-                  ระบบตรวจจับและจัดการสต็อก
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Right side - Employee info and logout */}
-          <div className="flex items-center gap-4">
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3 border border-white/20">
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-lg">
-                  <User size={20} />
-                </div>
-                <div>
-                  <div className="font-medium">{employee.employeeName}</div>
-                  <div className="text-white/80 text-sm flex items-center gap-1">
-                    <Building2 size={14} />
-                    {employee.branchName} ({employee.branchCode})
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={onLogout}
-              className="bg-white/10 backdrop-blur-sm hover:bg-white/20 p-3 rounded-lg border border-white/20 transition-colors"
-              title="ออกจากระบบ"
+          {/* Left side - Employee info */}
+          <div className="flex items-center gap-3">
+            <div
+              className={`${transparent ? "bg-white/20" : "bg-gray-100"} ${
+                compact ? "p-1.5" : "p-2"
+              } rounded-full`}
             >
-              <LogOut size={20} />
-            </button>
+              <User size={compact ? 16 : 20} className={getTextClasses()} />
+            </div>
+
+            {/* Desktop info - always show */}
+            <div className="hidden sm:block">
+              <div
+                className={`${
+                  compact ? "text-sm" : "text-base"
+                } font-medium ${getTextClasses()}`}
+              >
+                {employee.employeeName}
+              </div>
+              <div
+                className={`${compact ? "text-xs" : "text-sm"} ${getTextClasses(
+                  "secondary"
+                )} flex items-center gap-4`}
+              >
+                <span className="flex items-center gap-1">
+                  <MapPin size={compact ? 12 : 14} />
+                  {employee.branchCode} - {employee.branchName}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock size={compact ? 12 : 14} />
+                  {employee.timestamp}
+                </span>
+              </div>
+            </div>
+
+            {/* Mobile - show name only, menu button for details */}
+            <div className="sm:hidden">
+              <div
+                className={`${
+                  compact ? "text-sm" : "text-base"
+                } font-medium ${getTextClasses()}`}
+              >
+                {employee.employeeName}
+              </div>
+              <button
+                onClick={toggleMobileMenu}
+                className={`${compact ? "text-xs" : "text-sm"} ${getTextClasses(
+                  "secondary"
+                )} flex items-center gap-1 mt-0.5`}
+              >
+                <Menu size={compact ? 12 : 14} />
+                รายละเอียด
+              </button>
+            </div>
           </div>
+
+          {/* Right side - Logout button */}
+          <button onClick={onLogout} className={getButtonClasses()}>
+            <LogOut size={compact ? 14 : 16} className="mr-1" />
+            ออกจากระบบ
+          </button>
         </div>
-      </div>
-    </div>
+
+        {/* Mobile menu overlay */}
+        {showMobileMenu && (
+          <div className="sm:hidden">
+            <div
+              className={`mt-3 pt-3 border-t ${
+                transparent ? "border-white/20" : "border-gray-200"
+              }`}
+            >
+              <div
+                className={`${compact ? "text-xs" : "text-sm"} ${getTextClasses(
+                  "secondary"
+                )} space-y-2`}
+              >
+                <div className="flex items-center gap-2">
+                  <MapPin size={compact ? 12 : 14} />
+                  <span>
+                    {employee.branchCode} - {employee.branchName}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock size={compact ? 12 : 14} />
+                  <span>{employee.timestamp}</span>
+                </div>
+              </div>
+              <button
+                onClick={toggleMobileMenu}
+                className={`mt-2 ${getTextClasses(
+                  "secondary"
+                )} flex items-center gap-1 ${compact ? "text-xs" : "text-sm"}`}
+              >
+                <X size={compact ? 12 : 14} />
+                ปิด
+              </button>
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* Spacer for floating header */}
+      {floating && !transparent && (
+        <div className={compact ? "h-16" : "h-20"}></div>
+      )}
+    </>
   );
 };
