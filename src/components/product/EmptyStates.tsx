@@ -1,17 +1,14 @@
-// src/components/product/EmptyStates.tsx
+// ./src/components/product/EmptyStates.tsx
 "use client";
 
 import React from "react";
 import { Scan, Package, AlertTriangle, Copy, CheckCircle } from "lucide-react";
 
-interface LoadingStateProps {}
-
+// แก้ไข: ใช้ object แทน empty interface หรือ remove interface ถ้าไม่จำเป็น
 interface ErrorStateProps {
   error: string;
   barcode?: string;
 }
-
-interface WaitingScanStateProps {}
 
 interface ProductNotFoundStateProps {
   barcode: string;
@@ -19,8 +16,8 @@ interface ProductNotFoundStateProps {
   copied: boolean;
 }
 
-// Loading State
-export const LoadingState: React.FC<LoadingStateProps> = () => (
+// Loading State - ไม่ต้องใช้ interface สำหรับ component ที่ไม่มี props
+export const LoadingState: React.FC = () => (
   <div className="bg-white rounded-xl p-4 lg:p-6 shadow-lg border border-gray-200">
     <div className="text-center py-8">
       <div className="animate-spin w-8 h-8 border-4 border-fn-green border-t-transparent rounded-full mx-auto mb-3"></div>
@@ -48,8 +45,8 @@ export const ErrorState: React.FC<ErrorStateProps> = ({ error, barcode }) => (
   </div>
 );
 
-// Waiting for Scan State
-export const WaitingScanState: React.FC<WaitingScanStateProps> = () => (
+// Waiting for Scan State - ไม่ต้องใช้ interface สำหรับ component ที่ไม่มี props
+export const WaitingScanState: React.FC = () => (
   <div className="bg-white rounded-xl p-4 lg:p-6 shadow-lg border border-gray-200">
     <div className="text-center py-8">
       <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
@@ -85,6 +82,7 @@ export const ProductNotFoundState: React.FC<ProductNotFoundStateProps> = ({
           <button
             onClick={onCopyBarcode}
             className="text-gray-500 hover:text-gray-700 p-1"
+            title={copied ? "คัดลอกแล้ว" : "คัดลอกบาร์โค้ด"}
           >
             {copied ? <CheckCircle size={16} /> : <Copy size={16} />}
           </button>

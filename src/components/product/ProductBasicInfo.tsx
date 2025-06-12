@@ -1,10 +1,19 @@
-// src/components/product/ProductBasicInfo.tsx
+// ./src/components/product/ProductBasicInfo.tsx
 "use client";
 
 import React from "react";
 import { Weight, Archive, DollarSign } from "lucide-react";
 import { Product } from "../../types/product";
 import { formatPrice, formatQuantity } from "./utils";
+
+// Extended interface for products with additional properties
+interface ExtendedProduct extends Product {
+  packSizeInfo?: {
+    displayText: string;
+    count?: number;
+  };
+  packSize?: number;
+}
 
 interface ProductBasicInfoProps {
   product: Product;
@@ -15,16 +24,19 @@ export const ProductBasicInfo: React.FC<ProductBasicInfoProps> = ({
   product,
   currentInventoryQuantity,
 }) => {
+  // Cast product to extended type for additional properties
+  const extendedProduct = product as ExtendedProduct;
+
   // Helper function to display size information
-  const getSizeDisplay = () => {
+  const getSizeDisplay = (): string | null => {
     // ถ้ามี packSizeInfo (จาก CSV parsing ใหม่)
-    if ((product as any).packSizeInfo) {
-      return (product as any).packSizeInfo.displayText;
+    if (extendedProduct.packSizeInfo?.displayText) {
+      return extendedProduct.packSizeInfo.displayText;
     }
 
     // ถ้ามี packSize (จาก CSV แบบเก่า)
-    if ((product as any).packSize && (product as any).packSize > 1) {
-      return `${(product as any).packSize} ชิ้น/แพ็ค`;
+    if (extendedProduct.packSize && extendedProduct.packSize > 1) {
+      return `${extendedProduct.packSize} ชิ้น/แพ็ค`;
     }
 
     // ถ้ามี size และ unit ปกติ
@@ -34,7 +46,7 @@ export const ProductBasicInfo: React.FC<ProductBasicInfoProps> = ({
 
     // ถ้ามีแค่ size
     if (product.size) {
-      return `${product.size}`;
+      return product.size;
     }
 
     return null;

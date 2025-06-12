@@ -1,4 +1,4 @@
-// src/components/notifications/NotificationContainer.tsx
+// ./src/components/notifications/NotificationContainer.tsx
 "use client";
 
 import React, { useState, useCallback, useEffect } from "react";
@@ -52,7 +52,7 @@ export const NotificationContainer: React.FC<NotificationContainerProps> = ({
   );
 };
 
-// src/components/notifications/NotificationItem.tsx
+// NotificationItem Component
 interface NotificationItemProps {
   notification: Notification;
   onRemove: (id: string) => void;
@@ -166,7 +166,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   );
 };
 
-// src/hooks/useNotifications.tsx
+// Hook for managing notifications
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
@@ -250,9 +250,29 @@ export const useNotifications = () => {
   };
 };
 
-// src/components/notifications/ProductDetectionNotification.tsx
+// Product Detection Notification Component
+// Define proper Product interface instead of using 'any'
+interface Product {
+  id?: string;
+  name: string;
+  name_en?: string;
+  brand?: string;
+  category?: string;
+  size?: number;
+  unit?: string;
+  price?: number;
+  barcode?: string;
+  sku?: string;
+  description?: string;
+  country_of_origin?: string;
+  storage_instructions?: string;
+  ingredients?: string[];
+  allergens?: string[];
+  nutrition_info?: Record<string, unknown>;
+}
+
 interface ProductDetectionNotificationProps {
-  product: any;
+  product: Product; // Changed from 'any' to 'Product'
   onAddToInventory: () => void;
   onViewDetails: () => void;
 }
@@ -264,7 +284,10 @@ export const ProductDetectionNotification: React.FC<
 
   useEffect(() => {
     if (product) {
-      showSuccess("พบสินค้าแล้ว!", `${product.name} - ${product.brand}`, [
+      const productName = product.name || product.name_en || "สินค้าที่ตรวจพบ";
+      const brandInfo = product.brand ? ` - ${product.brand}` : "";
+
+      showSuccess("พบสินค้าแล้ว!", `${productName}${brandInfo}`, [
         {
           label: "เพิ่มเข้า Stock",
           onClick: onAddToInventory,
