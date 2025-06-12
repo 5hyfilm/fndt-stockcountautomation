@@ -107,7 +107,7 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
             className={`px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-all duration-200 border shadow-sm ${
               inventory.length === 0 || isExporting
                 ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                : "bg-fn-green hover:bg-green-700 text-white border-fn-green hover:shadow-md transform hover:scale-[1.02]"
+                : "bg-fn-green text-white border-fn-green hover:bg-[rgb(142,173,62)] hover:border-[rgb(142,173,62)] hover:shadow-md transform hover:scale-[1.02]"
             }`}
           >
             {isExporting ? (
@@ -118,14 +118,14 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
             ) : (
               <>
                 <FileText size={16} />
-                ส่งออก CSV
+                ส่งออกเป็นไฟล์ CSV
               </>
             )}
           </button>
 
           <button
             onClick={onClearAll}
-            className="bg-fn-red hover:bg-red-700 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium border border-fn-red shadow-sm hover:shadow-md transition-all duration-200 transform hover:scale-[1.02]"
+            className="bg-fn-red hover:bg-red-700 hover:border-red-700 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium border border-fn-red shadow-sm hover:shadow-md transition-all duration-200 transform hover:scale-[1.02]"
             disabled={inventory.length === 0}
           >
             <Trash2 size={16} />
