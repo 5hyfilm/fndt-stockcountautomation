@@ -21,6 +21,7 @@ interface CameraSectionProps {
   updateCanvasSize: () => void;
   fullScreen?: boolean; // New prop for full screen mode
   showHeader?: boolean; // New prop to control header visibility
+  showGuideFrame?: boolean; // New prop to control guide frame visibility
 }
 
 export const CameraSection: React.FC<CameraSectionProps> = ({
@@ -38,6 +39,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
   updateCanvasSize,
   fullScreen = false,
   showHeader = true,
+  showGuideFrame = true, // Show guide frame by default
 }) => {
   // Draw detections when detections change
   useEffect(() => {
@@ -87,6 +89,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
           detections={detections}
           onLoadedMetadata={updateCanvasSize}
           fullScreen={true}
+          showGuideFrame={showGuideFrame}
         />
       </div>
     );
@@ -117,6 +120,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
           detections={detections}
           onLoadedMetadata={updateCanvasSize}
           fullScreen={false}
+          showGuideFrame={showGuideFrame}
         />
       </div>
     </div>

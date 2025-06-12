@@ -167,7 +167,7 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
                 เปิดกล้อง
               </div>
             </button>
-            <p className="text-white/80 text-sm">แตะเพื่อเริ่มสแกนบาร์โค้ด</p>
+            {/* <p className="text-white/80 text-sm">แตะเพื่อเริ่มสแกนบาร์โค้ด</p> */}
           </div>
         </div>
       )}
@@ -233,7 +233,7 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
       />
 
       {/* Scan Instructions */}
-      {isStreaming && !product && !isLoadingProduct && (
+      {/* {isStreaming && !product && !isLoadingProduct && (
         <div className="absolute bottom-20 left-4 right-4 z-30">
           <div className="bg-black/70 backdrop-blur-sm rounded-lg p-4">
             <div className="text-white text-center">
@@ -244,7 +244,7 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 };
