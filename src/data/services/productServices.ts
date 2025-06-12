@@ -1,5 +1,5 @@
 // src/data/services/productServices.ts
-import { Product, ProductCategory, ProductStatus } from "../../types/product";
+import { ProductCategory, ProductStatus } from "../../types/product";
 import { ProductWithMultipleBarcodes, UNIT_TYPES } from "../types/csvTypes";
 import { normalizeBarcode } from "../utils/csvUtils";
 import { findBarcodeMatch } from "../matchers/barcodeMatcher";
