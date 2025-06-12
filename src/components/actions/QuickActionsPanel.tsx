@@ -2,14 +2,7 @@
 "use client";
 
 import React from "react";
-import {
-  Zap,
-  History,
-  Bookmark,
-  Search,
-  FileText,
-  BarChart3,
-} from "lucide-react";
+import { Zap, History, Bookmark, FileText, BarChart3 } from "lucide-react";
 import { Product } from "../../types/product";
 
 interface QuickActionsPanelProps {

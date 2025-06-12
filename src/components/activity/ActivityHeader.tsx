@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import { Clock, Activity } from "lucide-react";
+import { Clock } from "lucide-react";
 
 interface ActivityHeaderProps {
   title?: string;

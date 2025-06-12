@@ -22,7 +22,6 @@ import { QuickStats } from "../components/stats/QuickStats";
 import { ProductInfoSection } from "../components/sections/ProductInfoSection";
 
 // Import updated layout components
-import { MobileLayout } from "../components/layout/MobileLayout";
 import { MobileScannerLayout } from "../components/layout/MobileScannerLayout";
 
 // Import logout confirmation
