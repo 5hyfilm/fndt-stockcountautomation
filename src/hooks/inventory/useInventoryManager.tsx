@@ -1,7 +1,7 @@
 // src/hooks/inventory/useInventoryManager.tsx - Refactored Main Hook
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useInventoryStorage } from "./useInventoryStorage";
 import { useInventoryOperations } from "./useInventoryOperations";
 import { useInventorySummary } from "./useInventorySummary";
@@ -66,6 +66,34 @@ export const useInventoryManager = (
     setInventory(loadedData);
   };
 
+  // Reset all inventory state (for logout)
+  const resetInventoryState = useCallback(() => {
+    try {
+      console.log("🔄 Resetting inventory state...");
+
+      // Clear inventory state
+      setInventory([]);
+
+      // Clear any errors
+      setError(null);
+      storage.clearError();
+
+      // Clear storage
+      storage.clearStorage();
+
+      console.log("✅ Inventory state reset successfully");
+      return true;
+    } catch (error) {
+      console.error("❌ Error resetting inventory state:", error);
+
+      // Force reset even if there's an error
+      setInventory([]);
+      setError(null);
+
+      return false;
+    }
+  }, [storage]);
+
   return {
     // State
     inventory,
@@ -89,6 +117,7 @@ export const useInventoryManager = (
     // Error handling and utilities
     clearError,
     loadInventory,
+    resetInventoryState, // เพิ่มฟังก์ชัน reset สำหรับ logout
   };
 };
 

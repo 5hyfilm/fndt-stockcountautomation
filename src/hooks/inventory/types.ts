@@ -80,9 +80,10 @@ export interface UseInventoryManagerReturn {
   // Export functionality
   exportInventory: () => boolean;
 
-  // Error handling
+  // Error handling and utilities
   clearError: () => void;
   loadInventory: () => void;
+  resetInventoryState: () => boolean; // เพิ่มฟังก์ชัน reset สำหรับ logout
 }
 
 // Error types

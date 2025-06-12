@@ -74,16 +74,81 @@ export const useEmployeeAuth = () => {
     }
   }, []);
 
-  // ออกจากระบบ
-  const logout = useCallback(() => {
+  // ฟังก์ชันเพื่อ clear localStorage ทั้งหมด
+  const clearAllLocalStorage = useCallback(() => {
     try {
-      localStorage.removeItem(STORAGE_KEY);
-      setSession(null);
-      console.log("👋 Employee logged out");
+      // เก็บรายการ keys ที่มีใน localStorage ก่อน clear
+      const keys = Object.keys(localStorage);
+      console.log("🗑️ Clearing localStorage keys:", keys);
+
+      // Clear localStorage ทั้งหมด
+      localStorage.clear();
+
+      console.log("✅ All localStorage data cleared successfully");
+      return true;
     } catch (error) {
-      console.error("❌ Error during logout:", error);
+      console.error("❌ Error clearing localStorage:", error);
+
+      // Fallback: ลบ key ที่รู้จัก
+      try {
+        const knownKeys = [
+          STORAGE_KEY,
+          "fn_inventory_data",
+          "fn_inventory_version",
+          "fn_product_cache",
+          "fn_barcode_cache",
+        ];
+
+        knownKeys.forEach((key) => {
+          localStorage.removeItem(key);
+        });
+
+        console.log("✅ Known keys cleared as fallback");
+        return true;
+      } catch (fallbackError) {
+        console.error("❌ Fallback clear also failed:", fallbackError);
+        return false;
+      }
     }
   }, []);
+
+  // ออกจากระบบ และ clear localStorage ทั้งหมด
+  const logout = useCallback(() => {
+    try {
+      // Log ข้อมูลก่อน logout สำหรับ debugging
+      console.log(
+        "👋 Starting logout process for:",
+        session?.employee.employeeName
+      );
+
+      // Clear localStorage ทั้งหมด
+      const clearSuccess = clearAllLocalStorage();
+
+      // Clear session state
+      setSession(null);
+
+      if (clearSuccess) {
+        console.log("✅ Employee logged out and all data cleared successfully");
+      } else {
+        console.warn(
+          "⚠️ Employee logged out but localStorage clearing had issues"
+        );
+      }
+    } catch (error) {
+      console.error("❌ Error during logout:", error);
+
+      // ลองล็อคเอาต์แบบ basic ถ้า error
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+        setSession(null);
+        console.log("⚠️ Basic logout completed despite error");
+      } catch (basicError) {
+        console.error("❌ Even basic logout failed:", basicError);
+        // ยังคง clear session state แม้ localStorage จะมีปัญหา
+        setSession(null);
+      }
+    }
+  }, [session, clearAllLocalStorage]);
 
   // อัพเดตข้อมูลพนักงาน
   const updateEmployeeInfo = useCallback(
@@ -196,6 +261,7 @@ export const useEmployeeAuth = () => {
     login,
     logout,
     updateEmployeeInfo,
+    clearAllLocalStorage, // Export สำหรับการใช้งานแยก
 
     // Utilities
     isSessionValid,

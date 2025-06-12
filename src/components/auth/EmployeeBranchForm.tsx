@@ -90,8 +90,6 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
               <h1 className="text-xl font-bold mb-1">ระบบเช็ค Stock สินค้า</h1>
               <p className="text-white/90 text-sm">F&N Inventory Management</p>
             </div>
-            <h1 className="text-xl font-bold mb-1">ระบบเช็ค Stock สินค้า</h1>
-            <p className="text-white/90 text-sm">F&N Inventory Management</p>
           </div>
         </div>
 

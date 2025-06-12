@@ -130,6 +130,7 @@ export default function BarcodeDetectionPage() {
     searchItems,
     exportInventory,
     clearError: clearInventoryError,
+    resetInventoryState, // เพิ่มฟังก์ชัน reset
     summary,
   } = useInventoryManager(
     employee
@@ -150,12 +151,46 @@ export default function BarcodeDetectionPage() {
     return inventory.length;
   };
 
-  // Handle logout with camera cleanup
+  // Handle logout with camera cleanup and inventory reset
   const handleLogout = () => {
-    if (isStreaming) {
-      stopCamera();
+    try {
+      console.log("🚪 Starting logout process...");
+
+      // Stop camera if running
+      if (isStreaming) {
+        console.log("📷 Stopping camera...");
+        stopCamera();
+      }
+
+      // Reset inventory state first (clears memory state)
+      console.log("📦 Resetting inventory state...");
+      const resetSuccess = resetInventoryState();
+
+      if (resetSuccess) {
+        console.log("✅ Inventory state reset successfully");
+      } else {
+        console.warn(
+          "⚠️ Inventory state reset had issues, continuing logout..."
+        );
+      }
+
+      // Logout (clears localStorage and session)
+      console.log("👋 Logging out...");
+      logout();
+
+      console.log("✅ Logout process completed");
+    } catch (error) {
+      console.error("❌ Error during logout process:", error);
+
+      // Force logout even if there are errors
+      try {
+        resetInventoryState();
+        logout();
+        console.log("⚠️ Force logout completed despite errors");
+      } catch (forceError) {
+        console.error("❌ Even force logout failed:", forceError);
+      }
     }
-    logout();
   };
 
   // Logout confirmation hook
