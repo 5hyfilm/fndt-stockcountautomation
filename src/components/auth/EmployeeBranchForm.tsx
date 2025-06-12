@@ -81,8 +81,14 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
         {/* Header */}
         <div className="bg-gradient-to-r from-fn-green to-fn-red/80 text-white p-6 rounded-t-2xl">
           <div className="text-center">
-            <div className="bg-white/20 backdrop-blur-sm rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
-              <Building2 size={32} />
+            <div className="text-center">
+              <img
+                src="/fn-logo.png"
+                alt="F&N Logo"
+                className="w-16 h-16 mx-auto mb-3 object-contain"
+              />
+              <h1 className="text-xl font-bold mb-1">ระบบเช็ค Stock สินค้า</h1>
+              <p className="text-white/90 text-sm">F&N Inventory Management</p>
             </div>
             <h1 className="text-xl font-bold mb-1">ระบบเช็ค Stock สินค้า</h1>
             <p className="text-white/90 text-sm">F&N Inventory Management</p>
