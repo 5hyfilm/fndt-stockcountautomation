@@ -44,7 +44,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   const [showConfirmClear, setShowConfirmClear] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
-  const [showSummary, setShowSummary] = useState(true);
+  const [showSummary, setShowSummary] = useState(false); // เปลี่ยนจาก true เป็น false
   const [sortBy, setSortBy] = useState<"name" | "quantity" | "date">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [isExporting, setIsExporting] = useState(false);
@@ -175,7 +175,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
       {/* Error Display */}
       <ErrorAlert error={error} onDismiss={onClearError} />
 
-      {/* Summary Header */}
+      {/* Summary Header - แสดงเป็น dropdown ที่ปิดเป็นค่าเริ่มต้น */}
       <InventoryHeader
         summary={summary}
         showSummary={showSummary}

@@ -48,7 +48,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
           <p className="text-gray-500 text-sm">
             {totalCount === 0
               ? "เริ่มสแกนบาร์โค้ดเพื่อเพิ่มสินค้า"
-              : "ลองเปลี่ยนคำค้นหาหรือตัวกรอง"}
+              : "ลองเปลี่ยนคำค้นหาหรือfilter"}
           </p>
         </div>
       </div>

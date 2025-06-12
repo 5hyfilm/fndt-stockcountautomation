@@ -101,7 +101,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         <button
           onClick={onFilterClick}
           className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-2 rounded-lg transition-colors"
-          title="ตัวกรอง"
+          title="filter"
         >
           <Filter size={16} />
         </button>
@@ -160,7 +160,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 border-b flex items-center justify-between">
-          <h3 className="text-lg font-semibold">ตัวกรอง</h3>
+          <h3 className="text-lg font-semibold">filter</h3>
           <div className="flex items-center gap-2">
             {activeFiltersCount > 0 && (
               <span className="bg-fn-green text-white text-xs px-2 py-1 rounded-full">
@@ -217,7 +217,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
               onClick={onClearAll}
               className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg transition-colors"
             >
-              ล้างตัวกรองทั้งหมด
+              ล้าง filter ทั้งหมด
             </button>
           )}
         </div>
