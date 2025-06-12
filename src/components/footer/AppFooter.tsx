@@ -23,10 +23,7 @@ export const AppFooter: React.FC<AppFooterProps> = ({
       <div className="container mx-auto px-4 py-4 text-center">
         <p className="text-xs sm:text-sm text-gray-600">
           F&N Stock Management System | ระบบเช็ค Stock และจัดการสินค้า |
-          <span className="fn-green font-medium">
-            {" "}
-            พัฒนาด้วย Next.js & CSV Export
-          </span>
+          {/* <span className="fn-green font-medium"> พัฒนาด้วย Next.js</span> */}
         </p>
         <div className="flex justify-center items-center gap-4 mt-2 text-xs text-gray-500">
           <span>👤 {employeeName}</span>
