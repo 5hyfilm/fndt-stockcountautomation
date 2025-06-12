@@ -1,4 +1,4 @@
-// src/components/inventory/InventoryListItem.tsx
+// ./src/components/inventory/InventoryListItem.tsx
 "use client";
 
 import React from "react";
@@ -25,6 +25,23 @@ interface InventoryListItemProps {
   onRemove: () => void;
 }
 
+// Extended types for pack size information
+interface PackSizeInfo {
+  displayText: string;
+  count?: number;
+  unit?: string;
+}
+
+interface ExtendedInventoryItem extends InventoryItem {
+  packSizeInfo?: PackSizeInfo;
+  packSize?: number;
+}
+
+interface ExtendedProductData {
+  packSizeInfo?: PackSizeInfo;
+  packSize?: number;
+}
+
 export const InventoryListItem: React.FC<InventoryListItemProps> = ({
   item,
   isEditing,
@@ -47,29 +64,30 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
   };
 
   // ฟังก์ชันสำหรับแสดงขนาดสินค้า (ใช้ logic เดียวกับ ProductBasicInfo)
-  const getSizeDisplay = () => {
+  const getSizeDisplay = (): string | null => {
+    const extendedItem = item as ExtendedInventoryItem;
+    const extendedProductData = item.productData as
+      | ExtendedProductData
+      | undefined;
+
     // ถ้ามี packSizeInfo (จาก CSV parsing ใหม่)
-    if ((item as any).packSizeInfo) {
-      return (item as any).packSizeInfo.displayText;
+    if (extendedItem.packSizeInfo) {
+      return extendedItem.packSizeInfo.displayText;
     }
 
     // ถ้ามี packSize (จาก CSV แบบเก่า)
-    if ((item as any).packSize && (item as any).packSize > 1) {
-      return `${(item as any).packSize} ชิ้น/แพ็ค`;
+    if (extendedItem.packSize && extendedItem.packSize > 1) {
+      return `${extendedItem.packSize} ชิ้น/แพ็ค`;
     }
 
     // ถ้ามี productData และมี packSizeInfo ใน productData
-    if (item.productData && (item.productData as any).packSizeInfo) {
-      return (item.productData as any).packSizeInfo.displayText;
+    if (extendedProductData?.packSizeInfo) {
+      return extendedProductData.packSizeInfo.displayText;
     }
 
     // ถ้ามี productData และมี packSize ใน productData
-    if (
-      item.productData &&
-      (item.productData as any).packSize &&
-      (item.productData as any).packSize > 1
-    ) {
-      return `${(item.productData as any).packSize} ชิ้น/แพ็ค`;
+    if (extendedProductData?.packSize && extendedProductData.packSize > 1) {
+      return `${extendedProductData.packSize} ชิ้น/แพ็ค`;
     }
 
     // ถ้ามี size และ unit ปกติ
@@ -84,6 +102,8 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
 
     return null;
   };
+
+  const sizeDisplay = getSizeDisplay();
 
   return (
     <div className="p-4 hover:bg-gray-50 transition-colors">
@@ -100,110 +120,118 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
               </h3>
               {/* Brand & Category - แสดงในบรรทัดแรก */}
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span className="text-fn-green font-medium">{item.brand}</span>
-                <span>•</span>
-                <span>{item.category}</span>
-                {/* แสดงขนาดใน desktop เท่านั้น */}
-                {getSizeDisplay() && (
-                  <>
-                    <span className="hidden sm:inline">•</span>
-                    <span className="hidden sm:inline font-medium text-blue-600">
-                      {getSizeDisplay()}
-                    </span>
-                  </>
-                )}
+                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-xs font-medium">
+                  {item.brand}
+                </span>
+                <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-md text-xs font-medium">
+                  {item.category}
+                </span>
               </div>
-              {/* Size - แสดงในบรรทัดใหม่สำหรับ mobile */}
-              {getSizeDisplay() && (
-                <div className="sm:hidden text-sm text-blue-600 font-medium mt-1">
-                  📦 {getSizeDisplay()}
-                </div>
-              )}
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-sm text-gray-500 flex-wrap">
-            <span>บาร์โค้ด: {item.barcode}</span>
-            <span className="hidden sm:inline">
-              อัพเดต: {formatDate(item.lastUpdated)}
-            </span>
-            {/* แสดงวันที่อัพเดตแบบสั้นใน mobile */}
-            <span className="sm:hidden">{formatDate(item.lastUpdated)}</span>
+          {/* Size & Barcode - แสดงในบรรทัดที่สอง */}
+          <div className="ml-11 space-y-1">
+            {sizeDisplay && (
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span className="text-gray-500">ขนาด:</span>
+                <span className="font-medium">{sizeDisplay}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span>บาร์โค้ด:</span>
+              <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                {item.barcode}
+              </span>
+            </div>
+            <div className="text-xs text-gray-400">
+              อัปเดตล่าสุด: {formatDate(item.lastUpdated)}
+            </div>
           </div>
         </div>
 
         {/* Quantity Controls */}
-        <div className="flex items-center gap-2 sm:gap-3 ml-2 sm:ml-4 flex-shrink-0">
+        <div className="flex items-center gap-3 ml-4">
           {isEditing ? (
-            /* Edit Mode */
             <div className="flex items-center gap-2">
-              <input
-                type="number"
-                value={editQuantity}
-                onChange={(e) => onEditQuantityChange(Number(e.target.value))}
-                className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-transparent"
-                min="0"
-                autoFocus
-              />
               <button
-                onClick={onEditSave}
-                className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
-                title="บันทึก"
-              >
-                <CheckCircle size={16} />
-              </button>
-              <button
-                onClick={onEditCancel}
-                className="p-1 text-gray-500 hover:bg-gray-50 rounded transition-colors"
-                title="ยกเลิก"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          ) : (
-            /* Display Mode */
-            <div className="flex items-center gap-2">
-              {/* Quick Adjust Buttons */}
-              <button
-                onClick={() => onQuickAdjust(-1)}
-                className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition-colors"
-                disabled={item.quantity <= 0}
-                title="ลดจำนวน"
+                onClick={() =>
+                  onEditQuantityChange(Math.max(0, editQuantity - 1))
+                }
+                className="p-1 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-600"
               >
                 <Minus size={14} />
               </button>
-
-              {/* Quantity Display */}
-              <div className="min-w-[50px] sm:min-w-[60px] text-center">
-                <div className="text-xl sm:text-2xl font-bold text-gray-900">
-                  {item.quantity}
-                </div>
-                <div className="text-xs text-gray-500">ชิ้น</div>
-              </div>
-
+              <input
+                type="number"
+                value={editQuantity}
+                onChange={(e) =>
+                  onEditQuantityChange(parseInt(e.target.value) || 0)
+                }
+                className="w-16 text-center border border-gray-300 rounded-lg py-1 text-sm focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-fn-green"
+                min="0"
+              />
               <button
-                onClick={() => onQuickAdjust(1)}
-                className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition-colors"
-                title="เพิ่มจำนวน"
+                onClick={() => onEditQuantityChange(editQuantity + 1)}
+                className="p-1 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-600"
               >
                 <Plus size={14} />
               </button>
+              <div className="flex gap-1 ml-2">
+                <button
+                  onClick={onEditSave}
+                  className="p-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-600"
+                >
+                  <CheckCircle size={14} />
+                </button>
+                <button
+                  onClick={onEditCancel}
+                  className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              {/* Quantity Display */}
+              <div className="text-right">
+                <div className="text-lg font-semibold text-gray-900">
+                  {item.quantity.toLocaleString()}
+                </div>
+                <div className="text-xs text-gray-500">{item.unit}</div>
+              </div>
+
+              {/* Quick Adjust Buttons */}
+              <div className="flex flex-col gap-1">
+                <button
+                  onClick={() => onQuickAdjust(1)}
+                  className="p-1 rounded-md bg-green-100 hover:bg-green-200 text-green-600 text-xs"
+                >
+                  <Plus size={12} />
+                </button>
+                <button
+                  onClick={() => onQuickAdjust(-1)}
+                  className="p-1 rounded-md bg-red-100 hover:bg-red-200 text-red-600 text-xs"
+                  disabled={item.quantity <= 0}
+                >
+                  <Minus size={12} />
+                </button>
+              </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-1 ml-1 sm:ml-2">
+              <div className="flex gap-2">
                 <button
                   onClick={onEditStart}
-                  className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                  title="แก้ไขจำนวน"
+                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-600"
                 >
-                  <Edit3 size={14} className="sm:w-4 sm:h-4" />
+                  <Edit3 size={14} />
                 </button>
                 <button
                   onClick={onRemove}
-                  className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
-                  title="ลบรายการ"
+                  className="p-2 rounded-lg border border-red-300 hover:bg-red-50 text-red-600"
                 >
-                  <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                  <Trash2 size={14} />
                 </button>
               </div>
             </div>

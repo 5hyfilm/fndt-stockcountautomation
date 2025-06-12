@@ -1,18 +1,19 @@
-// src/components/layout/MobileProductSlide.tsx
+// ./src/components/layout/MobileProductSlide.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
 import { X, ArrowDown } from "lucide-react";
+import { Product } from "../../types/product";
 import { ProductInfo } from "../ProductInfo";
 
 interface MobileProductSlideProps {
   isVisible: boolean;
-  product: any;
+  product: Product | null;
   detectedBarcodeType?: "ea" | "dsp" | "cs";
   currentInventoryQuantity: number;
   onClose: () => void;
   onAddToInventory: (
-    product: any,
+    product: Product,
     quantity: number,
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
