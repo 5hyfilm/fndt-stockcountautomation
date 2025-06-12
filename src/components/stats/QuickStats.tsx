@@ -1,13 +1,14 @@
-// src/components/stats/QuickStats.tsx
+// ./src/components/stats/QuickStats.tsx
 "use client";
 
 import React from "react";
+import { Product } from "../../types/product";
 
 interface QuickStatsProps {
   totalProducts: number;
   totalItems: number;
-  categories: Record<string, any>;
-  product?: any;
+  categories: Record<string, number>;
+  product?: Product | null;
   currentInventoryQuantity: number;
 }
 
