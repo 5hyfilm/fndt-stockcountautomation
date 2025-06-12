@@ -21,14 +21,14 @@ export const DesktopAppTitle: React.FC = () => {
           />
         </div>
 
-        {/* Title Section */}
+        {/* Title Section - Removed Stock check text */}
         <div className="text-center">
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold flex items-center justify-center gap-2 sm:gap-3">
-            <span className="fn-gradient-text">ระบบเช็ค Stock สินค้า</span>
+            <span className="fn-gradient-text">ระบบจัดการสินค้า</span>
             <Sparkles className="fn-red" size={20} />
           </h1>
           <p className="text-gray-600 text-sm mt-2">
-            F&N Inventory Tracking & Stock Management System
+            F&N Inventory Management System
           </p>
         </div>
       </div>

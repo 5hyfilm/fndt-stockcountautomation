@@ -3,6 +3,7 @@
 
 import React from "react";
 import { User, LogOut } from "lucide-react";
+import Image from "next/image";
 
 interface MobileEmployeeHeaderProps {
   employeeName: string;
@@ -16,10 +17,18 @@ export const MobileEmployeeHeader: React.FC<MobileEmployeeHeaderProps> = ({
   return (
     <div className="bg-gradient-to-r from-fn-green to-fn-red text-white">
       <div className="px-3 py-2 flex items-center justify-between">
-        {/* Left side - Brand */}
+        {/* Left side - F&N Logo */}
         <div className="flex items-center gap-2">
-          <div className="text-lg font-bold">FN</div>
-          <div className="text-xs opacity-80">Stock</div>
+          <div className="bg-white/20 rounded-lg p-1">
+            <Image
+              src="/fn-logo.png"
+              alt="F&N Logo"
+              width={20}
+              height={20}
+              className="w-5 h-5 object-contain"
+              priority
+            />
+          </div>
         </div>
 
         {/* Right side - User info */}
