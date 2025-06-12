@@ -2,7 +2,6 @@
 "use client";
 
 import React from "react";
-import { VideoOff, Play } from "lucide-react";
 
 export const CameraOffOverlay: React.FC = () => {
   return (

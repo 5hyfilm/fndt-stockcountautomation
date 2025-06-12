@@ -26,7 +26,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   compact = false,
   transparent = false,
   floating = false,
-  formatTimeRemaining,
 }) => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 

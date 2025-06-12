@@ -28,7 +28,7 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
   onAddToInventory,
   children,
 }) => {
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [, setIsAnimating] = useState(false);
 
   // Handle slide animation
   useEffect(() => {

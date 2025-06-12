@@ -10,7 +10,6 @@ import {
   getAllBrands as csvGetAllBrands,
   getProductStats as csvGetProductStats,
   debugBarcodeMatching as csvDebugBarcodeMatching,
-  normalizeBarcode,
 } from "./csvProducts";
 
 // Maintain backward compatibility with existing imports
@@ -24,13 +23,11 @@ export const getProductStats = csvGetProductStats;
 export const debugBarcodeMatching = csvDebugBarcodeMatching;
 
 // For compatibility with components that expect sync functions
-let cachedProducts: any[] = [];
 
 // Load products on module initialization (for server-side)
 if (typeof window === "undefined") {
   loadCSVProducts()
     .then((products) => {
-      cachedProducts = products;
       console.log("🔄 CSV products preloaded for server:", products.length);
     })
     .catch((error) => {

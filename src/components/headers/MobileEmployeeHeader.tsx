@@ -14,8 +14,6 @@ interface MobileEmployeeHeaderProps {
 
 export const MobileEmployeeHeader: React.FC<MobileEmployeeHeaderProps> = ({
   employeeName,
-  branchCode = "",
-  branchName = "",
   onLogout,
 }) => {
   return (

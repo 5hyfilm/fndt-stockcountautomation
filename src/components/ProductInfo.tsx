@@ -57,13 +57,6 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
     }
   };
 
-  const handleAddToInventory = (product: Product, quantity: number) => {
-    if (onAddToInventory) {
-      return onAddToInventory(product, quantity, barcodeType);
-    }
-    return false;
-  };
-
   // Determine if inventory add section should be visible
   const shouldShowInventorySection = product && !error && onAddToInventory;
 

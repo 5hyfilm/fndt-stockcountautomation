@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Product, ProductResponse } from "../../types/product";
+import { Product } from "../../types/product";
 import { useProductCache } from "./useProductCache";
 import { useProductFetcher } from "./useProductFetcher";
 import { useProductValidator } from "./useProductValidator";
