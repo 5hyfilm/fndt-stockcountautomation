@@ -1,14 +1,34 @@
-// app/api/detect-barcode/route.ts
+// ./src/app/api/detect-barcode/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
 const PYTHON_BACKEND_URL =
   process.env.PYTHON_BACKEND_URL || "http://localhost:8000";
 
+// Define proper types instead of using 'any'
+interface BarcodeDetection {
+  format: string;
+  data: string;
+  position?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  confidence?: number;
+}
+
+interface BarcodeResult {
+  barcode: string;
+  format: string;
+  confidence?: number;
+  data?: string;
+}
+
 interface PythonBackendResponse {
   success: boolean;
-  detections?: any[];
-  results?: any[];
-  barcodes?: any[];
+  detections?: BarcodeDetection[];
+  results?: BarcodeResult[];
+  barcodes?: BarcodeResult[];
   confidence?: number;
   rotation_angle?: number;
   decode_method?: string;
@@ -54,7 +74,7 @@ export async function POST(request: NextRequest) {
 
       // ตรวจสอบว่าใช้ Flask หรือ FastAPI
       // ลองเรียก Flask endpoint ก่อน
-      let pythonResponse;
+      let pythonResponse: Response;
       let endpoint = "/api/detect-barcode"; // Flask endpoint
 
       try {
@@ -68,7 +88,7 @@ export async function POST(request: NextRequest) {
           throw new Error(`Flask backend error: ${pythonResponse.status}`);
         }
       } catch (flaskError) {
-        console.log("⚠️ Flask endpoint failed, trying FastAPI...");
+        console.log("⚠️ Flask endpoint failed, trying FastAPI...", flaskError);
         // ถ้า Flask ไม่ได้ ลอง FastAPI
         endpoint = "/scan-file"; // FastAPI endpoint
         pythonFormData.delete("image");
@@ -96,63 +116,34 @@ export async function POST(request: NextRequest) {
         success: result.success || false,
         detections: result.detections || [],
         barcodes: result.results || result.barcodes || [],
-        confidence: result.results?.[0]?.confidence || result.confidence || 0,
-        rotation_angle:
-          result.results?.[0]?.rotation_angle || result.rotation_angle || 0,
-        decode_method:
-          result.results?.[0]?.decode_method || result.decode_method || "",
+        confidence: result.confidence || 0,
+        rotation_angle: result.rotation_angle || 0,
+        decode_method: result.decode_method || "unknown",
         barcodes_found: result.barcodes_found || 0,
+        error: result.error,
       };
 
-      console.log("📤 Sending response:", response);
       return NextResponse.json(response);
-    } catch (backendError: unknown) {
-      console.error("❌ Backend connection error:", backendError);
-
-      const errorMessage =
-        backendError instanceof Error
-          ? backendError.message
-          : "Unknown backend error";
-
-      // ส่ง mock response เมื่อไม่สามารถเชื่อมต่อได้
-      return NextResponse.json({
-        success: false,
-        error: `ไม่สามารถเชื่อมต่อ backend ได้: ${errorMessage}`,
-        detections: [],
-        barcodes: [],
-        confidence: 0,
-        rotation_angle: 0,
-        decode_method: "error",
-        mock: true,
-      });
+    } catch (error) {
+      console.error("❌ Error calling Python backend:", error);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "เกิดข้อผิดพลาดในการเรียก Python backend",
+          details: error instanceof Error ? error.message : "Unknown error",
+        },
+        { status: 500 }
+      );
     }
-  } catch (error: unknown) {
-    console.error("💥 API Error:", error);
-
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-
+  } catch (error) {
+    console.error("❌ Unexpected error:", error);
     return NextResponse.json(
       {
         success: false,
-        error: `เกิดข้อผิดพลาดในระบบ: ${errorMessage}`,
-        detections: [],
-        barcodes: [],
+        error: "เกิดข้อผิดพลาดที่ไม่คาดคิด",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );
   }
-}
-
-export async function GET() {
-  console.log("📝 API health check");
-  return NextResponse.json({
-    message: "Barcode Detection API",
-    status: "running",
-    timestamp: new Date().toISOString(),
-    endpoints: {
-      POST: "/api/detect-barcode - Upload image for barcode detection",
-    },
-    backend_url: PYTHON_BACKEND_URL,
-  });
 }

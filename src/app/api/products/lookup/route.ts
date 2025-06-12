@@ -1,6 +1,12 @@
-// src/app/api/products/lookup/route.ts
+// ./src/app/api/products/lookup/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { findProductByBarcode } from "@/data/services/productServices";
+
+// Define proper error type instead of using 'any'
+interface ApiError extends Error {
+  message: string;
+  stack?: string;
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -70,17 +76,18 @@ export async function GET(request: NextRequest) {
         { status: 404 }
       );
     }
-  } catch (error: any) {
-    console.error("💥 Error in product lookup:", error);
+  } catch (error) {
+    const apiError = error as ApiError;
+    console.error("💥 Error in product lookup:", apiError);
 
     return NextResponse.json(
       {
         success: false,
-        error: `เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า: ${error.message}`,
+        error: `เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า: ${apiError.message}`,
         debug: {
-          error: error.message,
+          error: apiError.message,
           stack:
-            process.env.NODE_ENV === "development" ? error.stack : undefined,
+            process.env.NODE_ENV === "development" ? apiError.stack : undefined,
           timestamp: new Date().toISOString(),
         },
       },
@@ -89,8 +96,8 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Health check endpoint
-export async function POST(request: NextRequest) {
+// Health check endpoint - removed unused 'request' parameter
+export async function POST() {
   return NextResponse.json(
     {
       success: false,

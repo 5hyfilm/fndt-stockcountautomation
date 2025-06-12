@@ -1,4 +1,4 @@
-// src/app/api/products/route.ts - Updated to use CSV
+// ./src/app/api/products/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import {
   loadCSVProducts,
@@ -6,6 +6,12 @@ import {
   getProductStats,
 } from "@/data/csvProducts";
 import { ProductCategory, ProductStatus } from "@/types/product";
+
+// Define proper error type instead of using 'any'
+interface ApiError extends Error {
+  message: string;
+  stack?: string;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -52,12 +58,13 @@ export async function GET(request: NextRequest) {
       total: filteredProducts.length,
       stats: await getProductStats(),
     });
-  } catch (error: any) {
-    console.error("Error fetching products:", error);
+  } catch (error) {
+    const apiError = error as ApiError;
+    console.error("Error fetching products:", apiError);
     return NextResponse.json(
       {
         success: false,
-        error: `เกิดข้อผิดพลาดในการดึงข้อมูลสินค้า: ${error.message}`,
+        error: `เกิดข้อผิดพลาดในการดึงข้อมูลสินค้า: ${apiError.message}`,
       },
       { status: 500 }
     );
@@ -112,12 +119,13 @@ export async function POST(request: NextRequest) {
       data: newProduct,
       message: "เพิ่มสินค้าใหม่เรียบร้อยแล้ว (สำหรับ demo เท่านั้น)",
     });
-  } catch (error: any) {
-    console.error("Error creating product:", error);
+  } catch (error) {
+    const apiError = error as ApiError;
+    console.error("Error creating product:", apiError);
     return NextResponse.json(
       {
         success: false,
-        error: `เกิดข้อผิดพลาดในการเพิ่มสินค้า: ${error.message}`,
+        error: `เกิดข้อผิดพลาดในการเพิ่มสินค้า: ${apiError.message}`,
       },
       { status: 500 }
     );
