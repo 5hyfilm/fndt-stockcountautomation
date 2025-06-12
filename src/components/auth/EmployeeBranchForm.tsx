@@ -42,6 +42,8 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
       newErrors.branchCode = "กรุณากรอกรหัสสาขา";
     } else if (branchCode.trim().length < 2) {
       newErrors.branchCode = "รหัสสาขาต้องมีอย่างน้อย 2 ตัวอักษร";
+    } else if (!/^\d+$/.test(branchCode.trim())) {
+      newErrors.branchCode = "รหัสสาขาต้องเป็นตัวเลขเท่านั้น";
     }
 
     if (!branchName.trim()) {
@@ -52,6 +54,13 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleBranchCodeChange = (value: string) => {
+    // อนุญาตเฉพาะตัวเลข
+    const numericValue = value.replace(/[^0-9]/g, "");
+    setBranchCode(numericValue);
+    setErrors((prev) => ({ ...prev, branchCode: undefined }));
   };
 
   const handleSubmit = () => {
@@ -129,29 +138,59 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
             )}
           </div>
 
-          {/* Branch Code */}
+          {/* Branch Code - Numeric Only */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Building2 size={16} className="inline mr-2" />
-              รหัสสาขา
+              รหัสสาขา (ตัวเลขเท่านั้น)
             </label>
             <input
               type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={branchCode}
-              onChange={(e) => {
-                setBranchCode(e.target.value);
-                setErrors((prev) => ({ ...prev, branchCode: undefined }));
+              onChange={(e) => handleBranchCodeChange(e.target.value)}
+              onKeyPress={(e) => {
+                // อนุญาตเฉพาะตัวเลขและปุ่มควบคุม
+                if (
+                  !/[0-9]/.test(e.key) &&
+                  ![
+                    "Backspace",
+                    "Delete",
+                    "ArrowLeft",
+                    "ArrowRight",
+                    "Tab",
+                    "Enter",
+                  ].includes(e.key)
+                ) {
+                  e.preventDefault();
+                }
+                if (e.key === "Enter") {
+                  handleSubmit();
+                }
               }}
-              onKeyPress={handleKeyPress}
-              placeholder="กรอกรหัสสาขา เช่น 001, BKK01"
+              onPaste={(e) => {
+                // ควบคุมการ paste ให้เป็นตัวเลขเท่านั้น
+                e.preventDefault();
+                const paste = (
+                  e.clipboardData || (window as any).clipboardData
+                ).getData("text");
+                const numericPaste = paste.replace(/[^0-9]/g, "");
+                handleBranchCodeChange(branchCode + numericPaste);
+              }}
+              placeholder="กรอกรหัสสาขา เช่น 001, 123"
               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-fn-green transition-colors ${
                 errors.branchCode ? "border-red-300" : "border-gray-300"
               }`}
               disabled={isLoading}
+              maxLength={10} // จำกัดความยาว
             />
             {errors.branchCode && (
               <p className="text-red-500 text-xs mt-1">{errors.branchCode}</p>
             )}
+            <p className="text-gray-500 text-xs mt-1">
+              ใส่ได้เฉพาะตัวเลข 0-9 เท่านั้น
+            </p>
           </div>
 
           {/* Branch Name */}
