@@ -1,13 +1,14 @@
-// src/components/status/DesktopStatusBar.tsx
+// ./src/components/status/DesktopStatusBar.tsx
 "use client";
 
 import React from "react";
 import { Package, Info, BarChart3 } from "lucide-react";
+import { Product } from "../../types/product";
 
 interface DesktopStatusBarProps {
   isStreaming: boolean;
   lastDetectedCode?: string;
-  product?: any;
+  product?: Product | null; // แก้ไขจาก any เป็น Product | null
   totalItems: number;
 }
 
