@@ -151,7 +151,7 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
           <div className="text-center">
             <button
               onClick={startCamera}
-              className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-full text-lg font-medium shadow-xl transition-colors mb-4"
+              className="bg-[rgb(162,193,82)] hover:bg-[rgb(142,173,62)] text-white px-8 py-4 rounded-full text-lg font-medium shadow-xl transition-colors mb-4"
             >
               <div className="flex items-center gap-3">
                 <svg
