@@ -99,6 +99,14 @@ export default function BarcodeDetectionPage() {
   } = useBarcodeDetection();
 
   useEffect(() => {
+    // หยุดกล้องเมื่อไม่ได้อยู่ใน scanner tab
+    if (activeTab !== "scanner" && isStreaming) {
+      console.log("🔄 Switching away from scanner tab, stopping camera...");
+      stopCamera();
+    }
+  }, [activeTab, isStreaming, stopCamera]);
+
+  useEffect(() => {
     console.log("🏷️ Detected Barcode Type:", detectedBarcodeType);
     console.log("📦 Product:", product?.name || "No product");
     console.log("📱 Last Detected Code:", lastDetectedCode);
