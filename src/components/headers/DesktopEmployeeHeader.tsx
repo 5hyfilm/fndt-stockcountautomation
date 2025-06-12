@@ -30,9 +30,9 @@ export const DesktopEmployeeHeader: React.FC<DesktopEmployeeHeaderProps> = ({
           <Image
             src="/fn-logo.png"
             alt="F&N Logo"
-            width={24}
-            height={24}
-            className="w-6 h-6 object-contain"
+            width={30}
+            height={30}
+            className="w-10 h-10 object-contain"
             priority
           />
           {/* </div> */}

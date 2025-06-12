@@ -19,16 +19,14 @@ export const MobileEmployeeHeader: React.FC<MobileEmployeeHeaderProps> = ({
       <div className="px-3 py-2 flex items-center justify-between">
         {/* Left side - F&N Logo */}
         <div className="flex items-center gap-2">
-          <div className="bg-white/20 rounded-lg p-1">
-            <Image
-              src="/fn-logo.png"
-              alt="F&N Logo"
-              width={40} // ← เปลี่ยนให้ตรงกับ className
-              height={40} // ← เปลี่ยนให้ตรงกับ className
-              className="w-10 h-10 object-contain"
-              priority
-            />
-          </div>
+          <Image
+            src="/fn-logo.png"
+            alt="F&N Logo"
+            width={40}
+            height={40}
+            className="w-10 h-10 object-contain"
+            priority
+          />
         </div>
 
         {/* Right side - User info */}
