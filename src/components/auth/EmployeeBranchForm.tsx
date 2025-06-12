@@ -196,17 +196,17 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
           </button>
 
           {/* Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+          {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
             <p className="text-blue-700 text-xs leading-relaxed">
               ข้อมูลจะถูกบันทึกในเครื่องและใช้สำหรับการส่งออกรายงาน Stock
             </p>
-          </div>
+          </div> */}
         </div>
 
         {/* Footer */}
         <div className="bg-gray-50 px-6 py-4 rounded-b-2xl border-t border-gray-200">
           <div className="text-center text-xs text-gray-500">
-            F&N Stock Management System v1.0
+            F&N Stock Management System
             <br />
             พัฒนาสำหรับการจัดการ Stock และ Inventory
           </div>
