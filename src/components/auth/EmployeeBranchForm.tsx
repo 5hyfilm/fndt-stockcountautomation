@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { User, Building2, MapPin, Save, ArrowRight } from "lucide-react";
 
 export interface EmployeeInfo {
@@ -15,6 +16,20 @@ interface EmployeeBranchFormProps {
   onSubmit: (employeeInfo: EmployeeInfo) => void;
   isLoading?: boolean;
 }
+
+// รายการสาขาตัวอย่าง
+const BRANCH_OPTIONS = [
+  { code: "001", name: "สาขาสยามพารากอน" },
+  { code: "002", name: "สาขาเซ็นทรัลเวิลด์" },
+  { code: "003", name: "สาขาเอ็มบีเค" },
+  { code: "004", name: "สาขาเทอร์มินอล 21" },
+  { code: "005", name: "สาขาไอคอนสยาม" },
+  { code: "006", name: "สาขาเซ็นทรัลลาดพร้าว" },
+  { code: "007", name: "สาขาเซ็นทรัลบางนา" },
+  { code: "008", name: "สาขาเซ็นทรัลเวสต์เกต" },
+  { code: "009", name: "สาขาเกตเวย์เอกมัย" },
+  { code: "010", name: "สาขาเซ็นทรัลพิษณุโลก" },
+];
 
 export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
   onSubmit,
@@ -39,28 +54,30 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
     }
 
     if (!branchCode.trim()) {
-      newErrors.branchCode = "กรุณากรอกรหัสสาขา";
-    } else if (branchCode.trim().length < 2) {
-      newErrors.branchCode = "รหัสสาขาต้องมีอย่างน้อย 2 ตัวอักษร";
-    } else if (!/^\d+$/.test(branchCode.trim())) {
-      newErrors.branchCode = "รหัสสาขาต้องเป็นตัวเลขเท่านั้น";
+      newErrors.branchCode = "กรุณาเลือกสาขา";
     }
 
     if (!branchName.trim()) {
       newErrors.branchName = "กรุณากรอกชื่อสาขา";
-    } else if (branchName.trim().length < 2) {
-      newErrors.branchName = "ชื่อสาขาต้องมีอย่างน้อย 2 ตัวอักษร";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleBranchCodeChange = (value: string) => {
-    // อนุญาตเฉพาะตัวเลข
-    const numericValue = value.replace(/[^0-9]/g, "");
-    setBranchCode(numericValue);
-    setErrors((prev) => ({ ...prev, branchCode: undefined }));
+  const handleBranchChange = (code: string) => {
+    setBranchCode(code);
+    const selectedBranch = BRANCH_OPTIONS.find(
+      (branch) => branch.code === code
+    );
+    setBranchName(selectedBranch?.name || "");
+
+    // Clear branch-related errors
+    setErrors((prev) => ({
+      ...prev,
+      branchCode: undefined,
+      branchName: undefined,
+    }));
   };
 
   const handleSubmit = () => {
@@ -91,10 +108,14 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
         <div className="bg-gradient-to-r from-fn-green to-fn-red/80 text-white p-6 rounded-t-2xl">
           <div className="text-center">
             <div className="text-center">
-              <img
+              {/* แก้ไข: ใช้ next/image แทน <img> */}
+              <Image
                 src="/fn-logo.png"
                 alt="F&N Logo"
-                className="w-16 h-16 mx-auto mb-3 object-contain"
+                width={64}
+                height={64}
+                className="mx-auto mb-3 object-contain"
+                priority
               />
               <h1 className="text-xl font-bold mb-1">ระบบเช็ค Stock สินค้า</h1>
               <p className="text-white/90 text-sm">F&N Inventory Management</p>
@@ -138,91 +159,50 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
             )}
           </div>
 
-          {/* Branch Code - Numeric Only */}
+          {/* Branch Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Building2 size={16} className="inline mr-2" />
-              รหัสสาขา (ตัวเลขเท่านั้น)
+              รหัสสาขา
             </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
+            <select
               value={branchCode}
-              onChange={(e) => handleBranchCodeChange(e.target.value)}
-              onKeyPress={(e) => {
-                // อนุญาตเฉพาะตัวเลขและปุ่มควบคุม
-                if (
-                  !/[0-9]/.test(e.key) &&
-                  ![
-                    "Backspace",
-                    "Delete",
-                    "ArrowLeft",
-                    "ArrowRight",
-                    "Tab",
-                    "Enter",
-                  ].includes(e.key)
-                ) {
-                  e.preventDefault();
-                }
-                if (e.key === "Enter") {
-                  handleSubmit();
-                }
-              }}
-              onPaste={(e) => {
-                // ควบคุมการ paste ให้เป็นตัวเลขเท่านั้น
-                e.preventDefault();
-                const paste = (
-                  e.clipboardData || (window as any).clipboardData
-                ).getData("text");
-                const numericPaste = paste.replace(/[^0-9]/g, "");
-                handleBranchCodeChange(branchCode + numericPaste);
-              }}
-              placeholder="กรอกรหัสสาขา เช่น 001, 123"
+              onChange={(e) => handleBranchChange(e.target.value)}
               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-fn-green transition-colors ${
                 errors.branchCode ? "border-red-300" : "border-gray-300"
               }`}
               disabled={isLoading}
-              maxLength={10} // จำกัดความยาว
-            />
+            >
+              <option value="">เลือกสาขา</option>
+              {BRANCH_OPTIONS.map((branch) => (
+                <option key={branch.code} value={branch.code}>
+                  {branch.code} - {branch.name}
+                </option>
+              ))}
+            </select>
             {errors.branchCode && (
               <p className="text-red-500 text-xs mt-1">{errors.branchCode}</p>
             )}
-            <p className="text-gray-500 text-xs mt-1">
-              ใส่ได้เฉพาะตัวเลข 0-9 เท่านั้น
-            </p>
           </div>
 
-          {/* Branch Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <MapPin size={16} className="inline mr-2" />
-              ชื่อสาขา
-            </label>
-            <input
-              type="text"
-              value={branchName}
-              onChange={(e) => {
-                setBranchName(e.target.value);
-                setErrors((prev) => ({ ...prev, branchName: undefined }));
-              }}
-              onKeyPress={handleKeyPress}
-              placeholder="กรอกชื่อสาขา เช่น สาขาสยามพารากอน"
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-fn-green transition-colors ${
-                errors.branchName ? "border-red-300" : "border-gray-300"
-              }`}
-              disabled={isLoading}
-            />
-            {errors.branchName && (
-              <p className="text-red-500 text-xs mt-1">{errors.branchName}</p>
-            )}
-          </div>
+          {/* Branch Name Display */}
+          {branchName && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <MapPin size={16} className="inline mr-2" />
+                ชื่อสาขา
+              </label>
+              <div className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
+                {branchName}
+              </div>
+            </div>
+          )}
 
           {/* Submit Button */}
           <button
             onClick={handleSubmit}
-            disabled={isLoading}
-            className="w-full bg-fn-green hover:bg-fn-green/90 disabled:bg-gray-400 disabled:cursor-not-allowed text-white py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
+            disabled={isLoading || !employeeName || !branchCode}
+            className="w-full bg-gradient-to-r from-fn-green to-fn-red/80 text-white py-3 px-6 rounded-lg font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
           >
             {isLoading ? (
               <>
@@ -239,11 +219,11 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
           </button>
 
           {/* Info */}
-          {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
             <p className="text-blue-700 text-xs leading-relaxed">
               ข้อมูลจะถูกบันทึกในเครื่องและใช้สำหรับการส่งออกรายงาน Stock
             </p>
-          </div> */}
+          </div>
         </div>
 
         {/* Footer */}

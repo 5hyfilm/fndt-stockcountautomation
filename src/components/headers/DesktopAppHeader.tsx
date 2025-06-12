@@ -2,6 +2,7 @@
 "use client";
 
 import React from "react";
+import { Product } from "../../types/product";
 import { DesktopEmployeeHeader } from "./DesktopEmployeeHeader";
 import { DesktopAppTitle } from "./DesktopAppTitle";
 import { DesktopTabNavigation } from "../navigation/DesktopTabNavigation";
@@ -16,7 +17,7 @@ interface DesktopAppHeaderProps {
   totalProducts: number;
   isStreaming: boolean;
   lastDetectedCode?: string;
-  product?: any;
+  product?: Product | null;
   totalItems: number;
   onLogout: () => void;
   onTabChange: (tab: "scanner" | "inventory") => void;

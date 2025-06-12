@@ -2,11 +2,12 @@
 "use client";
 
 import React from "react";
+import { Product } from "../../types/product";
 
 interface AppFooterProps {
   employeeName: string;
   branchName: string;
-  product?: any;
+  product?: Product | null;
   totalItems: number;
   lastUpdate?: string;
 }
