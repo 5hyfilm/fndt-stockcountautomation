@@ -29,17 +29,29 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy backend source code
 COPY . .
 
-# Create non-root user
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
-# Create directories and set permissions
-RUN mkdir -p /app/uploads /app/models && \
+# ⭐ สร้าง user และ home directory ด้วย permission ที่ถูกต้อง
+RUN groupadd -r appuser && \
+    useradd -r -g appuser -d /home/appuser -m appuser && \
+    mkdir -p /home/appuser/.cache && \
+    mkdir -p /app/uploads /app/models && \
+    chown -R appuser:appuser /home/appuser && \
     chown -R appuser:appuser /app
+
+# ⭐ ตั้งค่า environment variables สำหรับ PyTorch cache
+ENV TORCH_HOME=/home/appuser/.cache/torch
+ENV HF_HOME=/home/appuser/.cache/huggingface
+ENV TRANSFORMERS_CACHE=/home/appuser/.cache/huggingface
+ENV XDG_CACHE_HOME=/home/appuser/.cache
 
 # Download YOLOv5 model if not exists (optional)
 # RUN if [ ! -f model.pt ]; then \
 #     python -c "import torch; torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)" \
 #     ; fi
+
+# ⭐ สร้าง cache directories ด้วย permission ที่ถูกต้อง
+RUN mkdir -p /home/appuser/.cache/torch/hub && \
+    mkdir -p /home/appuser/.cache/huggingface && \
+    chown -R appuser:appuser /home/appuser/.cache
 
 # Switch to non-root user
 USER appuser
