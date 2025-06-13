@@ -14,6 +14,9 @@ import { InventoryDisplay } from "../components/InventoryDisplay";
 import { ErrorDisplay } from "../components/ErrorDisplay";
 import { ExportSuccessToast } from "../components/ExportSuccessToast";
 
+// Import Product type
+import { Product } from "../types/product";
+
 // Import new sub-components
 import { MobileAppHeader } from "../components/headers/MobileAppHeader";
 import { DesktopAppHeader } from "../components/headers/DesktopAppHeader";
@@ -238,9 +241,9 @@ export default function BarcodeDetectionPage() {
     return item?.quantity || 0;
   }, [lastDetectedCode, findItemByBarcode]);
 
-  // Handle add to inventory with employee info
+  // Handle add to inventory with employee info - FIXED: Replace 'any' with 'Product'
   const handleAddToInventory = (
-    product: any,
+    product: Product,
     quantity: number,
     barcodeType?: "ea" | "dsp" | "cs"
   ): boolean => {
