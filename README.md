@@ -1,42 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Path: /README.md
 
-## Getting Started
+# Webcam Barcode Scanner & Inventory Management
 
-First, run the development server:
+AI-powered barcode scanning system with Next.js frontend and Python Flask backend using YOLO v5 and OpenCV.
+
+## Features
+
+- **Real-time webcam scanning** with YOLO v5 object detection
+- **Multi-format support**: QR Code, Code 128, Code 39, EAN, UPC
+- **Multiple barcode types**: EA (Each), DSP (Display Pack), CS (Case/Carton)
+- **CSV-based product database** with automatic loading from `/public/product_list_csv.csv`
+- **Employee authentication** with branch and session management
+- **Inventory tracking** with history logging
+
+## Tech Stack
+
+**Frontend**: Next.js 14, TypeScript, Tailwind CSS  
+**Backend**: Flask, YOLO v5, OpenCV, pyzbar  
+**DevOps**: Docker, Docker Compose
+
+## Quick Start
+
+### Docker (Recommended)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/5hyfilm/f-and-n.git
+cd f-and-n
+docker-compose up --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Access at:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Local Development
 
-## Learn More
+```bash
+# Frontend
+npm install
+npm run dev
 
-To learn more about Next.js, take a look at the following resources:
+# Backend
+cd backend
+pip(3) install -r requirements.txt
+python(3) app.py
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+├── src/
+│   ├── app/api/detect-barcode/    # Barcode detection API
+│   ├── components/headers/        # Header components
+│   ├── hooks/                     # React hooks
+│   └── types/                     # TypeScript definitions
+├── backend/
+│   ├── app.py                     # Flask application
+│   └── requirements.txt           # Python dependencies
+├── public/product_list_csv.csv    # Product database
+├── docker-compose.yml             # Container setup
+└── Dockerfile                     # Frontend container
+```
 
-## Deploy on Vercel
+## API Endpoints
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `POST /api/detect-barcode` - Image barcode detection
+- `GET /api/health` - Backend health check
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Usage
 
+1. Open http://localhost:3000
+2. Login with employee credentials
+3. Allow camera access
+4. Scan barcode by positioning in frame
+5. View product results and update inventory
 
+## Configuration
 
+### Environment Variables
 
-# Ref
-https://github.com/Tyan-Ng/Webcam-Barcode-Scanner
+```bash
+# Frontend (.env.local)
+PYTHON_BACKEND_URL=http://localhost:8000
+
+# Backend (.env)
+FLASK_ENV=production
+PYTHONUNBUFFERED=1
+```
+
+### Product Data
+
+Place CSV file at `/public/product_list_csv.csv` with format:
+Material, Description, Thai Desc., Pack Size, Product Group, Bar Code EA/DSP/CS
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## Reference
+
+Based on [Tyan-Ng/Webcam-Barcode-Scanner](https://github.com/Tyan-Ng/Webcam-Barcode-Scanner)
