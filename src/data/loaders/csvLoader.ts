@@ -1,4 +1,4 @@
-// src/data/loaders/csvLoader.ts
+// ./src/data/loaders/csvLoader.ts
 import Papa from "papaparse";
 import { ProductWithMultipleBarcodes, CSVProductRow } from "../types/csvTypes";
 import { csvRowToProduct } from "../utils/csvUtils";
@@ -8,6 +8,41 @@ import { readCSVFile } from "../readers/csvReader";
 let csvProducts: ProductWithMultipleBarcodes[] = [];
 let csvLoaded = false;
 let csvLoading = false;
+
+// Define proper error type instead of using any
+interface CSVLoaderError {
+  message: string;
+  name?: string;
+  code?: string;
+  cause?: unknown;
+}
+
+// Type guard to check if error has message property
+const isErrorWithMessage = (error: unknown): error is CSVLoaderError => {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as Record<string, unknown>).message === "string"
+  );
+};
+
+// Helper function to get error message
+const getErrorMessage = (error: unknown): string => {
+  if (isErrorWithMessage(error)) {
+    return error.message;
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "เกิดข้อผิดพลาดในการโหลดข้อมูล CSV";
+};
 
 export const loadCSVProducts = async (): Promise<
   ProductWithMultipleBarcodes[]
@@ -54,7 +89,8 @@ export const loadCSVProducts = async (): Promise<
         dynamicTyping: false,
       });
     } catch (parseError) {
-      throw new Error(`Failed to parse CSV: ${parseError}`);
+      const errorMessage = getErrorMessage(parseError);
+      throw new Error(`Failed to parse CSV: ${errorMessage}`);
     }
 
     if (parseResult.errors && parseResult.errors.length > 0) {
@@ -120,19 +156,21 @@ export const loadCSVProducts = async (): Promise<
     console.log("🏷️ Sample products with barcodes:", sampleWithBarcodes);
 
     return products;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    // ✅ Fixed: Changed from 'any' to 'unknown'
     csvLoading = false;
     csvLoaded = false;
     csvProducts = [];
 
+    const errorMessage = getErrorMessage(error);
     console.error("❌ Error loading CSV products:", error);
 
-    if (error.message.includes("fetch")) {
-      throw new Error(`Cannot load product data file: ${error.message}`);
-    } else if (error.message.includes("parse")) {
-      throw new Error(`Product data format error: ${error.message}`);
+    if (errorMessage.includes("fetch")) {
+      throw new Error(`Cannot load product data file: ${errorMessage}`);
+    } else if (errorMessage.includes("parse")) {
+      throw new Error(`Product data format error: ${errorMessage}`);
     } else {
-      throw new Error(`Product data loading failed: ${error.message}`);
+      throw new Error(`Product data loading failed: ${errorMessage}`);
     }
   }
 };
