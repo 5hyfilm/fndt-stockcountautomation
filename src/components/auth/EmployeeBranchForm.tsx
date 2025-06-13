@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
 import { User, Building2, MapPin, Save, ArrowRight } from "lucide-react";
 
 export interface EmployeeInfo {
@@ -16,20 +15,6 @@ interface EmployeeBranchFormProps {
   onSubmit: (employeeInfo: EmployeeInfo) => void;
   isLoading?: boolean;
 }
-
-// รายการสาขาตัวอย่าง
-const BRANCH_OPTIONS = [
-  { code: "001", name: "สาขาสยามพารากอน" },
-  { code: "002", name: "สาขาเซ็นทรัลเวิลด์" },
-  { code: "003", name: "สาขาเอ็มบีเค" },
-  { code: "004", name: "สาขาเทอร์มินอล 21" },
-  { code: "005", name: "สาขาไอคอนสยาม" },
-  { code: "006", name: "สาขาเซ็นทรัลลาดพร้าว" },
-  { code: "007", name: "สาขาเซ็นทรัลบางนา" },
-  { code: "008", name: "สาขาเซ็นทรัลเวสต์เกต" },
-  { code: "009", name: "สาขาเกตเวย์เอกมัย" },
-  { code: "010", name: "สาขาเซ็นทรัลพิษณุโลก" },
-];
 
 export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
   onSubmit,
@@ -54,30 +39,19 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
     }
 
     if (!branchCode.trim()) {
-      newErrors.branchCode = "กรุณาเลือกสาขา";
+      newErrors.branchCode = "กรุณากรอกรหัสสาขา";
+    } else if (branchCode.trim().length < 3) {
+      newErrors.branchCode = "รหัสสาขาต้องมีอย่างน้อย 3 ตัวอักษร";
     }
 
     if (!branchName.trim()) {
       newErrors.branchName = "กรุณากรอกชื่อสาขา";
+    } else if (branchName.trim().length < 2) {
+      newErrors.branchName = "ชื่อสาขาต้องมีอย่างน้อย 2 ตัวอักษร";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
-
-  const handleBranchChange = (code: string) => {
-    setBranchCode(code);
-    const selectedBranch = BRANCH_OPTIONS.find(
-      (branch) => branch.code === code
-    );
-    setBranchName(selectedBranch?.name || "");
-
-    // Clear branch-related errors
-    setErrors((prev) => ({
-      ...prev,
-      branchCode: undefined,
-      branchName: undefined,
-    }));
   };
 
   const handleSubmit = () => {
@@ -101,25 +75,33 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
     }
   };
 
+  const handleBranchCodeChange = (value: string) => {
+    setBranchCode(value);
+    // Clear branch code error when user starts typing
+    if (errors.branchCode) {
+      setErrors((prev) => ({ ...prev, branchCode: undefined }));
+    }
+  };
+
+  const handleBranchNameChange = (value: string) => {
+    setBranchName(value);
+    // Clear branch name error when user starts typing
+    if (errors.branchName) {
+      setErrors((prev) => ({ ...prev, branchName: undefined }));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-fn-green/10 to-fn-red/10 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md">
         {/* Header */}
         <div className="bg-gradient-to-r from-fn-green to-fn-red/80 text-white p-6 rounded-t-2xl">
           <div className="text-center">
-            <div className="text-center">
-              {/* แก้ไข: ใช้ next/image แทน <img> */}
-              <Image
-                src="/fn-logo.png"
-                alt="F&N Logo"
-                width={64}
-                height={64}
-                className="mx-auto mb-3 object-contain"
-                priority
-              />
-              <h1 className="text-xl font-bold mb-1">ระบบเช็ค Stock สินค้า</h1>
-              <p className="text-white/90 text-sm">F&N Inventory Management</p>
+            <div className="bg-white/20 backdrop-blur-sm rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
+              <Building2 size={32} />
             </div>
+            <h1 className="text-xl font-bold mb-1">ระบบเช็ค Stock สินค้า</h1>
+            <p className="text-white/90 text-sm">F&N Inventory Management</p>
           </div>
         </div>
 
@@ -159,55 +141,61 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
             )}
           </div>
 
-          {/* Branch Selection */}
+          {/* Branch Code Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Building2 size={16} className="inline mr-2" />
               รหัสสาขา
             </label>
-            <select
+            <input
+              type="text"
               value={branchCode}
-              onChange={(e) => handleBranchChange(e.target.value)}
+              onChange={(e) => handleBranchCodeChange(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="กรอกรหัสสาขา เช่น 001, 002"
               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-fn-green transition-colors ${
                 errors.branchCode ? "border-red-300" : "border-gray-300"
               }`}
               disabled={isLoading}
-            >
-              <option value="">เลือกสาขา</option>
-              {BRANCH_OPTIONS.map((branch) => (
-                <option key={branch.code} value={branch.code}>
-                  {branch.code} - {branch.name}
-                </option>
-              ))}
-            </select>
+              maxLength={10}
+            />
             {errors.branchCode && (
               <p className="text-red-500 text-xs mt-1">{errors.branchCode}</p>
             )}
           </div>
 
-          {/* Branch Name Display */}
-          {branchName && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <MapPin size={16} className="inline mr-2" />
-                ชื่อสาขา
-              </label>
-              <div className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
-                {branchName}
-              </div>
-            </div>
-          )}
+          {/* Branch Name Input */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <MapPin size={16} className="inline mr-2" />
+              ชื่อสาขา
+            </label>
+            <input
+              type="text"
+              value={branchName}
+              onChange={(e) => handleBranchNameChange(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="กรอกชื่อสาขา เช่น สาขาสยามพารากอน"
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-fn-green transition-colors ${
+                errors.branchName ? "border-red-300" : "border-gray-300"
+              }`}
+              disabled={isLoading}
+            />
+            {errors.branchName && (
+              <p className="text-red-500 text-xs mt-1">{errors.branchName}</p>
+            )}
+          </div>
 
           {/* Submit Button */}
           <button
             onClick={handleSubmit}
-            disabled={isLoading || !employeeName || !branchCode}
+            disabled={isLoading || !employeeName || !branchCode || !branchName}
             className="w-full bg-gradient-to-r from-fn-green to-fn-red/80 text-white py-3 px-6 rounded-lg font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
           >
             {isLoading ? (
               <>
-                <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                <span>กำลังเริ่มระบบ...</span>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span>กำลังบันทึก...</span>
               </>
             ) : (
               <>
@@ -217,21 +205,12 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
               </>
             )}
           </button>
-
-          {/* Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-            <p className="text-blue-700 text-xs leading-relaxed">
-              ข้อมูลจะถูกบันทึกในเครื่องและใช้สำหรับการส่งออกรายงาน Stock
-            </p>
-          </div>
         </div>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 rounded-b-2xl border-t border-gray-200">
+        <div className="px-6 pb-6">
           <div className="text-center text-xs text-gray-500">
-            F&N Stock Management System
-            <br />
-            พัฒนาสำหรับการจัดการ Stock และ Inventory
+            <p>© 2024 F&N Inventory Management System</p>
           </div>
         </div>
       </div>
