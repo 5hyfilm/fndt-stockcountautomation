@@ -1,5 +1,6 @@
-// src/hooks/product/useProductLookup.tsx
+// ./src/hooks/product/useProductLookup.tsx
 "use client";
+
 import { useState, useCallback } from "react";
 import { Product } from "../../types/product";
 import { findProductByBarcode, normalizeBarcode } from "../../data/csvProducts";
@@ -7,6 +8,41 @@ import { findProductByBarcode, normalizeBarcode } from "../../data/csvProducts";
 interface UseProductLookupProps {
   onProductFound?: () => void; // เพิ่ม callback เมื่อเจอสินค้า
 }
+
+// Define proper error type instead of using any
+interface ProductLookupError {
+  message: string;
+  name?: string;
+  code?: string;
+  cause?: unknown;
+}
+
+// Type guard to check if error has message property
+const isErrorWithMessage = (error: unknown): error is ProductLookupError => {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as Record<string, unknown>).message === "string"
+  );
+};
+
+// Helper function to get error message
+const getErrorMessage = (error: unknown): string => {
+  if (isErrorWithMessage(error)) {
+    return error.message;
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "เกิดข้อผิดพลาดในการค้นหาสินค้า";
+};
 
 export const useProductLookup = (props?: UseProductLookupProps) => {
   const { onProductFound } = props || {};
@@ -63,11 +99,13 @@ export const useProductLookup = (props?: UseProductLookupProps) => {
           setProductError("ไม่พบข้อมูลสินค้าในระบบ");
           console.log("❌ Product not found for barcode:", normalizedBarcode);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
+        // ✅ Fixed: Changed from 'any' to 'unknown'
+        const errorMessage = getErrorMessage(error);
         console.error("❌ Error fetching product:", error);
         setProduct(null);
         setDetectedBarcodeType(null);
-        setProductError(error.message || "เกิดข้อผิดพลาดในการค้นหาสินค้า");
+        setProductError(errorMessage);
       } finally {
         setIsLoadingProduct(false);
       }

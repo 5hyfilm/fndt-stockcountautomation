@@ -1,4 +1,4 @@
-// src/hooks/detection/useDetectionProcessor.tsx
+// ./src/hooks/detection/useDetectionProcessor.tsx
 "use client";
 
 import { useState, useCallback } from "react";
@@ -9,6 +9,41 @@ interface UseDetectionProcessorProps {
   lastDetectedCode: string;
   updateBarcode: (barcode: string) => Promise<void>;
 }
+
+// Define proper error type instead of using any
+interface ProcessingError {
+  message: string;
+  name?: string;
+  code?: string;
+  cause?: unknown;
+}
+
+// Type guard to check if error has message property
+const isErrorWithMessage = (error: unknown): error is ProcessingError => {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as Record<string, unknown>).message === "string"
+  );
+};
+
+// Helper function to get error message
+const getErrorMessage = (error: unknown): string => {
+  if (isErrorWithMessage(error)) {
+    return error.message;
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "เกิดข้อผิดพลาดในการประมวลผลเฟรม";
+};
 
 export const useDetectionProcessor = ({
   videoRef,
@@ -95,9 +130,11 @@ export const useDetectionProcessor = ({
       } else {
         console.error("Detection failed:", result.error);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      // ✅ Fixed: Changed from 'any' to 'unknown'
+      const errorMessage = getErrorMessage(error);
       console.error("Error processing frame:", error);
-      throw new Error(`ข้อผิดพลาดในการประมวลผล: ${error.message}`);
+      throw new Error(`ข้อผิดพลาดในการประมวลผล: ${errorMessage}`);
     } finally {
       setProcessingQueue((prev) => Math.max(0, prev - 1));
     }
