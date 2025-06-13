@@ -4,6 +4,8 @@
 import React, { useEffect, useState } from "react";
 import { CameraSection } from "../CameraSection";
 import { MobileProductSlide } from "./MobileProductSlide";
+import { Detection } from "../../hooks/detection/types";
+import { Product } from "../../types/product";
 
 interface MobileScannerLayoutProps {
   // Camera props
@@ -12,7 +14,7 @@ interface MobileScannerLayoutProps {
   containerRef: React.RefObject<HTMLDivElement>;
   isStreaming: boolean;
   processingQueue: number;
-  detections: any[];
+  detections: Detection[];
 
   // Camera actions
   startCamera: () => void;
@@ -23,7 +25,7 @@ interface MobileScannerLayoutProps {
   updateCanvasSize: () => void;
 
   // Product props
-  product: any;
+  product: Product | null;
   detectedBarcodeType?: "ea" | "dsp" | "cs" | null;
   isLoadingProduct: boolean;
   productError: string | null;
@@ -31,7 +33,7 @@ interface MobileScannerLayoutProps {
 
   // Product actions
   onAddToInventory: (
-    product: any,
+    product: Product,
     quantity: number,
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
