@@ -1,4 +1,4 @@
-// src/components/product/utils.ts - Product Component Utilities (Fixed Icons)
+// src/components/product/utils.ts - Product Component Utilities (Fixed TypeScript)
 import {
   Coffee,
   Package,
@@ -11,7 +11,7 @@ import {
   UtensilsCrossed,
   Droplets,
 } from "lucide-react";
-import { ProductCategory } from "../../types/product";
+import { ProductCategory, Product, NutritionInfo } from "../../types/product";
 import { CategoryStyling, NutritionItem } from "./types";
 
 /**
@@ -93,7 +93,9 @@ export const getCategoryStyling = (
 /**
  * Format nutrition data for display with proper typing
  */
-export const formatNutritionData = (nutritionInfo: any): NutritionItem[] => {
+export const formatNutritionData = (
+  nutritionInfo: NutritionInfo | undefined
+): NutritionItem[] => {
   if (!nutritionInfo || typeof nutritionInfo !== "object") return [];
 
   const nutritionItems: NutritionItem[] = [
@@ -206,7 +208,7 @@ export const formatQuantity = (quantity: number, unit?: string): string => {
 /**
  * Check if product has detailed information
  */
-export const hasProductDetails = (product: any): boolean => {
+export const hasProductDetails = (product: Product | undefined): boolean => {
   if (!product || typeof product !== "object") return false;
 
   return !!(
@@ -226,7 +228,7 @@ export const hasProductDetails = (product: any): boolean => {
 /**
  * Check if product has nutrition information
  */
-export const hasNutritionInfo = (product: any): boolean => {
+export const hasNutritionInfo = (product: Product | undefined): boolean => {
   if (!product || typeof product !== "object") return false;
 
   return !!(
@@ -291,7 +293,7 @@ export const validateQuantity = (
 /**
  * Generate product display name with fallback
  */
-export const getDisplayName = (product: any): string => {
+export const getDisplayName = (product: Product | undefined): string => {
   if (!product || typeof product !== "object") return "ไม่ระบุชื่อสินค้า";
 
   const name = product.name?.trim() || product.name_en?.trim() || "";
@@ -301,7 +303,7 @@ export const getDisplayName = (product: any): string => {
 /**
  * Generate product subtitle with proper formatting
  */
-export const getProductSubtitle = (product: any): string => {
+export const getProductSubtitle = (product: Product | undefined): string => {
   if (!product || typeof product !== "object") return "";
 
   const parts: string[] = [];
@@ -406,9 +408,9 @@ export const formatFileSize = (bytes: number): string => {
 };
 
 /**
- * Debounce function for search inputs
+ * Debounce function for search inputs with proper typing
  */
-export const debounce = <T extends (...args: any[]) => any>(
+export const debounce = <T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
 ): ((...args: Parameters<T>) => void) => {
