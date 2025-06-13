@@ -1,4 +1,4 @@
-# Path: /backend/app.py
+# backend/app.py
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import torch
@@ -92,156 +92,250 @@ def rotate_image(image, angle):
     height, width = image.shape[:2]
     center = (width // 2, height // 2)
     
-    # คำนวณ rotation matrix
     rotation_matrix = cv2.getRotationMatrix2D(center, -angle, 1.0)
-    
-    # คำนวณขนาดใหม่หลังหมุน
-    cos = np.abs(rotation_matrix[0, 0])
-    sin = np.abs(rotation_matrix[0, 1])
-    
-    new_width = int((height * sin) + (width * cos))
-    new_height = int((height * cos) + (width * sin))
-    
-    # ปรับ translation
-    rotation_matrix[0, 2] += (new_width / 2) - center[0]
-    rotation_matrix[1, 2] += (new_height / 2) - center[1]
-    
-    # หมุนรูปภาพ
-    rotated = cv2.warpAffine(image, rotation_matrix, (new_width, new_height))
+    rotated = cv2.warpAffine(image, rotation_matrix, (width, height), 
+                            flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
     
     return rotated
 
-def scan_barcodes_pyzbar(image):
+def filter_lines_by_angle(lines, target_angle, angle_tolerance=10, min_length=10):
     """
-    Scan barcodes using pyzbar
+    Filter line segments based on target angle and minimum length
     """
-    try:
-        # แปลงเป็น grayscale
-        if len(image.shape) == 3:
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        else:
-            gray = image.copy()
-        
-        # ค้นหาบาร์โค้ด
-        barcodes = pyzbar.decode(gray)
-        
-        results = []
-        for barcode in barcodes:
-            # แปลง data เป็น string
-            barcode_data = barcode.data.decode('utf-8')
-            barcode_type = barcode.type
-            
-            # ตำแหน่งของบาร์โค้ด
-            rect = barcode.rect
-            
-            results.append({
-                'data': barcode_data,
-                'format': barcode_type,
-                'position': {
-                    'x': rect.left,
-                    'y': rect.top,
-                    'width': rect.width,
-                    'height': rect.height
-                }
-            })
-        
-        return results
-    
-    except Exception as e:
-        print(f"Error in pyzbar scanning: {e}")
+    if lines is None or len(lines) == 0:
         return []
+    
+    filtered_lines = []
+    
+    for line in lines:
+        x1, y1, x2, y2 = line
+        
+        length = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+        
+        if length < min_length:
+            continue
+        
+        angle = math.atan2(y2 - y1, x2 - x1) * 180 / math.pi
+        if angle < 0:
+            angle += 180
+        
+        angle_diff = min(abs(angle - target_angle), 
+                        abs(angle - target_angle + 180),
+                        abs(angle - target_angle - 180))
+        
+        if angle_diff <= angle_tolerance:
+            filtered_lines.append(line)
+    
+    return filtered_lines
+
+def create_convex_hull_mask(image_shape, lines):
+    """
+    Create mask from convex hull of line segment endpoints
+    """
+    if not lines:
+        return np.zeros(image_shape[:2], dtype=np.uint8)
+    
+    points = []
+    for line in lines:
+        x1, y1, x2, y2 = line
+        points.extend([(int(x1), int(y1)), (int(x2), int(y2))])
+    
+    if len(points) < 3:
+        return np.zeros(image_shape[:2], dtype=np.uint8)
+    
+    points = np.array(points, dtype=np.int32)
+    hull = cv2.convexHull(points)
+    
+    mask = np.zeros(image_shape[:2], dtype=np.uint8)
+    cv2.fillPoly(mask, [hull], 255)
+    
+    return mask
+
+def preprocess_for_decoding(image):
+    """
+    Advanced preprocessing to improve barcode readability
+    """
+    if len(image.shape) == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image.copy()
+    
+    processed_images = []
+    
+    # Method 1: Original grayscale
+    processed_images.append(("original", gray))
+    
+    # Method 2: Gaussian blur + threshold
+    blurred = cv2.GaussianBlur(gray, (3, 3), 0)
+    _, thresh1 = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    processed_images.append(("otsu", thresh1))
+    
+    # Method 3: Adaptive threshold
+    adaptive = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+                                   cv2.THRESH_BINARY, 11, 2)
+    processed_images.append(("adaptive", adaptive))
+    
+    # Method 4: Morphological operations
+    kernel = np.ones((2,2), np.uint8)
+    morph = cv2.morphologyEx(thresh1, cv2.MORPH_CLOSE, kernel)
+    processed_images.append(("morph", morph))
+    
+    # Method 5: Histogram equalization
+    equalized = cv2.equalizeHist(gray)
+    _, thresh_eq = cv2.threshold(equalized, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    processed_images.append(("equalized", thresh_eq))
+    
+    # Method 6: Contrast enhancement
+    enhanced = cv2.convertScaleAbs(gray, alpha=1.5, beta=30)
+    _, thresh_enh = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    processed_images.append(("enhanced", thresh_enh))
+    
+    return processed_images
+
+def try_multiple_decoding_methods(image):
+    """
+    Try multiple preprocessing methods for better decoding
+    """
+    processed_images = preprocess_for_decoding(image)
+    
+    for method_name, processed_img in processed_images:
+        scales = [1.0, 1.5, 2.0, 0.8]
+        
+        for scale in scales:
+            if scale != 1.0:
+                height, width = processed_img.shape
+                new_width = int(width * scale)
+                new_height = int(height * scale)
+                scaled_img = cv2.resize(processed_img, (new_width, new_height), 
+                                      interpolation=cv2.INTER_CUBIC)
+            else:
+                scaled_img = processed_img
+            
+            barcodes = pyzbar.decode(scaled_img)
+            if barcodes:
+                print(f"✅ Decoded with method: {method_name}, scale: {scale}")
+                return barcodes, scaled_img, method_name
+    
+    return [], None, "failed"
+
+def enhanced_barcode_detection(cropped_img):
+    """
+    Enhanced barcode detection following the paper's methodology
+    """
+    original_height, original_width = cropped_img.shape[:2]
+    
+    # Resize if too small
+    if original_width < 100:
+        scale_factor = 100 / original_width
+        new_width = int(original_width * scale_factor)
+        new_height = int(original_height * scale_factor)
+        cropped_img = cv2.resize(cropped_img, (new_width, new_height), 
+                               interpolation=cv2.INTER_CUBIC)
+        print(f"🔍 Upscaled image: {original_width}x{original_height} -> {new_width}x{new_height}")
+    
+    # Try multiple decoding methods first
+    barcodes, best_img, method = try_multiple_decoding_methods(cropped_img)
+    if barcodes:
+        return barcodes, best_img, 0, [], method
+    
+    # Stage 1.2: Line Segment Detection
+    lines = detect_line_segments(cropped_img)
+    
+    if lines is None or len(lines) == 0:
+        print("⚠️ No lines detected, using original processing")
+        return barcodes, best_img if best_img is not None else cv2.cvtColor(cropped_img, cv2.COLOR_BGR2GRAY), 0, [], "fallback"
+    
+    angles, lengths = calculate_line_angles_and_lengths(lines)
+    rotation_angle = predict_rotation_angle(angles, lengths)
+    print(f"🔄 Detected rotation angle: {rotation_angle}°")
+    
+    # Stage 2.1: Rotate image
+    rotated_img = rotate_image(cropped_img, rotation_angle)
+    
+    barcodes, best_img, method = try_multiple_decoding_methods(rotated_img)
+    if barcodes:
+        return barcodes, best_img, rotation_angle, [], f"rotated_{method}"
+    
+    # Stage 2.2: Filter lines and create region
+    rotated_lines = detect_line_segments(rotated_img)
+    
+    if rotated_lines is not None:
+        filtered_lines = filter_lines_by_angle(rotated_lines, 0, angle_tolerance=15)
+        if len(filtered_lines) < 3:
+            filtered_lines = filter_lines_by_angle(rotated_lines, 90, angle_tolerance=15)
+        
+        print(f"📏 Found {len(filtered_lines)} filtered lines")
+        
+        if filtered_lines:
+            mask = create_convex_hull_mask(rotated_img.shape, filtered_lines)
+            masked_img = cv2.bitwise_and(rotated_img, rotated_img, mask=mask)
+            
+            barcodes, best_img, method = try_multiple_decoding_methods(masked_img)
+            if barcodes:
+                return barcodes, best_img, rotation_angle, filtered_lines, f"masked_{method}"
+    
+    gray = cv2.cvtColor(rotated_img, cv2.COLOR_BGR2GRAY)
+    return [], gray, rotation_angle, [], "no_decode"
 
 def process_detections(frame):
     """
-    Process frame and detect barcodes
+    Process frame through YOLO model and detect barcodes
     """
+    if model is None:
+        return {
+            'success': False,
+            'error': 'โมเดลยังไม่ถูกโหลด'
+        }
+    
     try:
+        # รันโมเดล YOLO
+        results = model(frame)
+        detections = results.pandas().xyxy[0]
+        
         detection_results = []
         barcode_results = []
         
-        # วิธีที่ 1: ใช้ pyzbar แบบปกติ
-        barcodes = scan_barcodes_pyzbar(frame)
-        
-        if barcodes:
-            for barcode in barcodes:
-                detection_results.append({
-                    'format': barcode['format'],
-                    'data': barcode['data'],
-                    'position': barcode['position'],
-                    'confidence': 0.9  # Default confidence สำหรับ pyzbar
-                })
+        for i, detection in detections.iterrows():
+            x1, y1, x2, y2 = detection[['xmin', 'ymin', 'xmax', 'ymax']]
+            x1, y1, x2, y2 = [round(num) for num in [x1, y1, x2, y2]]
+            
+            class_id = detection['class']
+            confidence = detection['confidence']
+            
+            # เก็บข้อมูล detection
+            detection_result = {
+                'xmin': x1,
+                'ymin': y1,
+                'xmax': x2,
+                'ymax': y2,
+                'class': int(class_id),
+                'confidence': float(confidence)
+            }
+            detection_results.append(detection_result)
+            
+            # Crop และวิเคราะห์ barcode
+            cropped_img = frame[y1:y2, x1:x2]
+            
+            if cropped_img.size > 0:
+                barcodes, processed_img, rotation_angle, filtered_lines, decode_method = enhanced_barcode_detection(cropped_img)
                 
-                barcode_results.append({
-                    'barcode': barcode['data'],
-                    'format': barcode['format'],
-                    'confidence': 0.9,
-                    'decode_method': 'pyzbar_direct',
-                    'rotation_angle': 0
-                })
-        
-        # วิธีที่ 2: ถ้าไม่เจอ ลองหมุนรูป
-        if not barcodes:
-            print("🔄 ไม่เจอบาร์โค้ด ลองหมุนรูป...")
-            
-            # ตรวจหา line segments เพื่อประเมิน rotation angle
-            lines = detect_line_segments(frame)
-            angles, lengths = calculate_line_angles_and_lengths(lines)
-            rotation_angle = predict_rotation_angle(angles, lengths)
-            
-            print(f"📐 Predicted rotation angle: {rotation_angle}")
-            
-            # ลองหมุนรูปตาม angle ที่คำนวณได้
-            if rotation_angle != 0:
-                rotated = rotate_image(frame, rotation_angle)
-                barcodes_rotated = scan_barcodes_pyzbar(rotated)
-                
-                if barcodes_rotated:
-                    for barcode in barcodes_rotated:
-                        detection_results.append({
-                            'format': barcode['format'],
-                            'data': barcode['data'],
-                            'position': barcode['position'],
-                            'confidence': 0.85
-                        })
-                        
-                        barcode_results.append({
-                            'barcode': barcode['data'],
-                            'format': barcode['format'],
-                            'confidence': 0.85,
-                            'decode_method': 'pyzbar_rotated',
-                            'rotation_angle': rotation_angle
-                        })
-            
-            # ถ้ายังไม่เจอ ลองหมุนทุก ๆ 90 องศา
-            if not barcode_results:
-                print("🔄 ลองหมุนทุก 90 องศา...")
-                for angle in [90, 180, 270]:
-                    rotated = rotate_image(frame, angle)
-                    barcodes_rotated = scan_barcodes_pyzbar(rotated)
-                    
-                    if barcodes_rotated:
-                        for barcode in barcodes_rotated:
-                            detection_results.append({
-                                'format': barcode['format'],
-                                'data': barcode['data'],
-                                'position': barcode['position'],
-                                'confidence': 0.8
-                            })
-                            
-                            barcode_results.append({
-                                'barcode': barcode['data'],
-                                'format': barcode['format'],
-                                'confidence': 0.8,
-                                'decode_method': f'pyzbar_rotated_{angle}',
-                                'rotation_angle': angle
-                            })
-                        break
+                for barcode in barcodes:
+                    data = barcode.data.decode("utf-8")
+                    barcode_result = {
+                        'data': data,
+                        'type': barcode.type,
+                        'rotation_angle': rotation_angle,
+                        'decode_method': decode_method,
+                        'confidence': confidence,
+                        'bbox': detection_result
+                    }
+                    barcode_results.append(barcode_result)
+                    print(f"🎯 Successfully decoded: {data} using {decode_method}")
         
         return {
             'success': True,
             'detections': detection_results,
             'barcodes': barcode_results,
-            'barcodes_found': len(barcode_results),
             'rotation_angle': barcode_results[0]['rotation_angle'] if barcode_results else 0,
             'decode_method': barcode_results[0]['decode_method'] if barcode_results else '',
             'confidence': barcode_results[0]['confidence'] if barcode_results else 0
