@@ -1,8 +1,43 @@
-// src/hooks/camera/useCameraControl.tsx
+// ./src/hooks/camera/useCameraControl.tsx
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import { VideoConstraints } from "../../types/detection";
+
+// Define proper error type instead of using any
+interface CameraError {
+  message: string;
+  name?: string;
+  code?: string;
+  cause?: unknown;
+}
+
+// Type guard to check if error has message property
+const isErrorWithMessage = (error: unknown): error is CameraError => {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as Record<string, unknown>).message === "string"
+  );
+};
+
+// Helper function to get error message
+const getErrorMessage = (error: unknown): string => {
+  if (isErrorWithMessage(error)) {
+    return error.message;
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "เกิดข้อผิดพลาดในการเปิดกล้อง";
+};
 
 export const useCameraControl = () => {
   // Refs
@@ -38,15 +73,20 @@ export const useCameraControl = () => {
           video.onloadedmetadata = () => resolve();
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error starting camera:", error);
-      setErrors(
-        error.name === "NotAllowedError"
-          ? "กรุณาอนุญาตการใช้งานกล้อง"
-          : error.name === "NotFoundError"
-          ? "ไม่พบกล้องในอุปกรณ์"
-          : `เกิดข้อผิดพลาด: ${error.message}`
-      );
+
+      // Use proper error handling instead of any
+      const errorMessage =
+        isErrorWithMessage(error) && error.name
+          ? error.name === "NotAllowedError"
+            ? "กรุณาอนุญาตการใช้งานกล้อง"
+            : error.name === "NotFoundError"
+            ? "ไม่พบกล้องในอุปกรณ์"
+            : `เกิดข้อผิดพลาด: ${error.message}`
+          : getErrorMessage(error);
+
+      setErrors(errorMessage);
     }
   }, [videoConstraints]);
 

@@ -1,4 +1,4 @@
-// src/hooks/useBarcodeDetection.tsx
+// ./src/hooks/useBarcodeDetection.tsx
 "use client";
 
 import { useCallback } from "react";
@@ -62,14 +62,14 @@ export const useBarcodeDetection = () => {
     } else {
       await detection.captureAndProcess();
     }
-  }, [camera.isStreaming, camera.startCamera, detection.captureAndProcess]);
+  }, [camera, detection]);
 
   // Force rescan current view
   const rescanCurrentView = useCallback(async () => {
     if (camera.isStreaming) {
       await detection.captureAndProcess();
     }
-  }, [camera.isStreaming, detection.captureAndProcess]);
+  }, [camera, detection]);
 
   // Enhanced stop camera that resets everything
   const stopCamera = useCallback(() => {
