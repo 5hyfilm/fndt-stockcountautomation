@@ -1,12 +1,13 @@
-// src/components/sections/ProductInfoSection.tsx
+// ./src/components/sections/ProductInfoSection.tsx
 "use client";
 
 import React from "react";
 import { Package } from "lucide-react";
 import { ProductInfo } from "../ProductInfo";
+import { Product } from "../../types/product";
 
 interface ProductInfoSectionProps {
-  product?: any;
+  product: Product | null;
   barcode?: string;
   barcodeType?: "ea" | "dsp" | "cs";
   isLoading: boolean;
@@ -14,7 +15,7 @@ interface ProductInfoSectionProps {
   currentInventoryQuantity: number;
   isMobile: boolean;
   onAddToInventory: (
-    product: any,
+    product: Product,
     quantity: number,
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;

@@ -1,4 +1,4 @@
-// src/hooks/product/useProductFetcher.tsx
+// ./src/hooks/product/useProductFetcher.tsx
 "use client";
 
 import { useCallback } from "react";
@@ -13,6 +13,55 @@ interface UseProductFetcherProps {
 interface UseProductFetcherReturn {
   fetchProduct: (barcode: string) => Promise<ProductResponse>;
 }
+
+// Define proper error types instead of using any
+interface FetchError {
+  name: string;
+  message: string;
+  cause?: unknown;
+}
+
+// Type guard to check if error has standard error properties
+const isFetchError = (error: unknown): error is FetchError => {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    "message" in error &&
+    typeof (error as Record<string, unknown>).name === "string" &&
+    typeof (error as Record<string, unknown>).message === "string"
+  );
+};
+
+// Helper function to get error message safely
+const getErrorMessage = (error: unknown): string => {
+  if (isFetchError(error)) {
+    return error.message;
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Unknown error occurred";
+};
+
+// Helper function to get error name safely
+const getErrorName = (error: unknown): string => {
+  if (isFetchError(error)) {
+    return error.name;
+  }
+
+  if (error instanceof Error) {
+    return error.name;
+  }
+
+  return "Error";
+};
 
 export const useProductFetcher = ({
   retryAttempts,
@@ -55,15 +104,22 @@ export const useProductFetcher = ({
           throw new Error(
             `Server error: ${response.status} ${response.statusText}`
           );
-        } catch (err: any) {
-          lastError = err;
-          console.warn(`❌ Fetch attempt ${attempt + 1} failed:`, err.message);
+        } catch (error: unknown) {
+          lastError =
+            error instanceof Error ? error : new Error(getErrorMessage(error));
+          console.warn(
+            `❌ Fetch attempt ${attempt + 1} failed:`,
+            getErrorMessage(error)
+          );
+
+          const errorName = getErrorName(error);
+          const errorMessage = getErrorMessage(error);
 
           // Don't retry on certain errors
           if (
-            err.name === "AbortError" ||
-            err.name === "TypeError" ||
-            err.message.includes("Failed to fetch") ||
+            errorName === "AbortError" ||
+            errorName === "TypeError" ||
+            errorMessage.includes("Failed to fetch") ||
             attempt === maxRetries
           ) {
             break;
@@ -160,25 +216,31 @@ export const useProductFetcher = ({
             debug: result.debug,
           };
         }
-      } catch (err: any) {
-        console.error("❌ Error fetching product:", err);
+      } catch (error: unknown) {
+        console.error("❌ Error fetching product:", error);
+
+        const errorName = getErrorName(error);
+        const errorMessage = getErrorMessage(error);
 
         // Handle different types of errors
-        let errorMessage = "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ";
+        let finalErrorMessage = "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ";
 
-        if (err.name === "AbortError") {
-          errorMessage = "การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่";
-        } else if (err.name === "TypeError" && err.message.includes("fetch")) {
-          errorMessage = "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้";
-        } else if (err.message.includes("Server error")) {
-          errorMessage = "เซิร์ฟเวอร์มีปัญหา กรุณาลองใหม่ในภายหลัง";
-        } else if (err.message.includes("Network")) {
-          errorMessage = "ปัญหาการเชื่อมต่ออินเทอร์เน็ต";
-        } else if (err.message) {
-          errorMessage = `เกิดข้อผิดพลาด: ${err.message}`;
+        if (errorName === "AbortError") {
+          finalErrorMessage = "การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่";
+        } else if (
+          errorName === "TypeError" &&
+          errorMessage.includes("fetch")
+        ) {
+          finalErrorMessage = "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้";
+        } else if (errorMessage.includes("Server error")) {
+          finalErrorMessage = "เซิร์ฟเวอร์มีปัญหา กรุณาลองใหม่ในภายหลัง";
+        } else if (errorMessage.includes("Network")) {
+          finalErrorMessage = "ปัญหาการเชื่อมต่ออินเทอร์เน็ต";
+        } else if (errorMessage) {
+          finalErrorMessage = `เกิดข้อผิดพลาด: ${errorMessage}`;
         }
 
-        throw new Error(errorMessage);
+        throw new Error(finalErrorMessage);
       }
     },
     [fetchWithRetry, retryAttempts, setRetryCount]

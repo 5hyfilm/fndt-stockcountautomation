@@ -1,4 +1,4 @@
-// src/hooks/product/useProductInfo.tsx - Main Hook (ย่อแล้ว)
+// ./src/hooks/product/useProductInfo.tsx
 "use client";
 
 import { useState, useCallback } from "react";
@@ -15,6 +15,41 @@ const DEFAULT_CONFIG: ProductInfoConfig = {
   retryDelayMs: 1000,
   enableDebouncing: true,
   debounceDelayMs: 300,
+};
+
+// Define proper error type instead of using any
+interface ProductInfoError {
+  message: string;
+  name?: string;
+  code?: string;
+  cause?: unknown;
+}
+
+// Type guard to check if error has message property
+const isErrorWithMessage = (error: unknown): error is ProductInfoError => {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as Record<string, unknown>).message === "string"
+  );
+};
+
+// Helper function to get error message
+const getErrorMessage = (error: unknown): string => {
+  if (isErrorWithMessage(error)) {
+    return error.message;
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ";
 };
 
 export const useProductInfo = (
@@ -49,46 +84,42 @@ export const useProductInfo = (
     setRetryCount(0);
   }, []);
 
-  // Clear error
+  // Clear error only
   const clearError = useCallback(() => {
     setError(null);
-    setRetryCount(0);
   }, []);
 
   // Main fetch function
   const fetchProductByBarcode = useCallback(
     async (barcode: string) => {
+      if (!barcode.trim()) return;
+
       const normalizedBarcode = validator.normalizeBarcode(barcode);
-
-      // Skip if same barcode or empty
-      if (
-        !normalizedBarcode ||
-        normalizedBarcode === validator.normalizeBarcode(lastSearchedBarcode)
-      ) {
-        return;
-      }
-
-      // Validate barcode format
-      const validation = validator.validateBarcode(normalizedBarcode);
-      if (!validation.isValid) {
-        setError(`รูปแบบบาร์โค้ดไม่ถูกต้อง: ${validation.errors.join(", ")}`);
-        return;
-      }
+      if (normalizedBarcode === lastSearchedBarcode) return;
 
       setIsLoading(true);
       setError(null);
-      setRetryCount(0);
       setLastSearchedBarcode(normalizedBarcode);
 
       try {
         // Check cache first
         if (config.enableCaching) {
-          const cachedResult = cache.get(normalizedBarcode);
-          if (cachedResult) {
-            setProduct(cachedResult);
+          const cachedProduct = cache.get(normalizedBarcode);
+          if (cachedProduct) {
+            console.log("✅ Using cached product:", cachedProduct.name);
+            setProduct(cachedProduct);
             setIsLoading(false);
             return;
           }
+        }
+
+        // Validate barcode
+        const validation = validator.validateBarcode(normalizedBarcode);
+        if (!validation.isValid) {
+          setError(`รหัสสินค้าไม่ถูกต้อง: ${validation.errors.join(", ")}`);
+          setProduct(null);
+          setIsLoading(false);
+          return;
         }
 
         // Fetch from API
@@ -96,9 +127,8 @@ export const useProductInfo = (
 
         if (result.success && result.data) {
           setProduct(result.data);
-          setError(null);
 
-          // Cache result
+          // Cache the result
           if (config.enableCaching) {
             cache.set(normalizedBarcode, result.data);
           }
@@ -106,9 +136,9 @@ export const useProductInfo = (
           setProduct(null);
           setError(result.error || "ไม่พบข้อมูลสินค้า");
         }
-      } catch (err: any) {
+      } catch (error: unknown) {
         setProduct(null);
-        setError(err.message || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ");
+        setError(getErrorMessage(error));
       } finally {
         setIsLoading(false);
       }
