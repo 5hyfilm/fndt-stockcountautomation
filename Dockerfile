@@ -1,4 +1,4 @@
-# Path: /Dockerfile.frontend
+# Path: /Dockerfile
 # Multi-stage build for Next.js frontend
 
 # Stage 1: Dependencies
@@ -8,14 +8,19 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY yarn.lock* pnpm-lock.yaml* ./
 
-# Install dependencies
+# ⭐ แก้ไข: Copy lock files แบบ optional (ถ้ามี)
+# แทนที่จะ copy ทุกไฟล์ให้ copy เฉพาะที่มีอยู่จริง
+COPY package-lock.json* ./
+# หรือถ้าใช้ yarn/pnpm ให้เพิ่มบรรทัดนี้
+# COPY yarn.lock* pnpm-lock.yaml* ./
+
+# Install dependencies based on available lock file
 RUN \
   if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
   elif [ -f package-lock.json ]; then npm ci; \
   elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i; \
-  else echo "Lockfile not found." && exit 1; \
+  else echo "No lockfile found, running npm install" && npm install; \
   fi
 
 # Stage 2: Builder
@@ -36,7 +41,7 @@ RUN \
   if [ -f yarn.lock ]; then yarn build; \
   elif [ -f package-lock.json ]; then npm run build; \
   elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm build; \
-  else echo "Lockfile not found." && exit 1; \
+  else echo "Running npm run build" && npm run build; \
   fi
 
 # Stage 3: Runner
@@ -52,11 +57,11 @@ COPY --from=builder /app/next.config.* ./
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
 
-# ⭐ แก้ไขการ copy standalone files
+# ⭐ Copy standalone files
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# ⭐ Copy healthcheck script
+# ⭐ Copy healthcheck script (สร้างในขั้นตอนถัดไป)
 COPY --from=builder /app/healthcheck.js ./healthcheck.js
 
 # Set environment variables
@@ -75,5 +80,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node healthcheck.js
 
-# ⭐ Start the application (server.js จะถูกสร้างโดย Next.js standalone)
+# ⭐ Start the application
 CMD ["node", "server.js"]
