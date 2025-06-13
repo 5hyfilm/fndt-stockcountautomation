@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const PYTHON_BACKEND_URL =
   process.env.PYTHON_BACKEND_URL ||
-  "http://localhost:https://fndt-stock-count-backend-ver-1-554640844166.asia-southeast1.run.app";
+  "https://fndt-stock-count-backend-ver-1-554640844166.asia-southeast1.run.app";
 
 // Define proper types instead of using 'any'
 interface BarcodeDetection {
