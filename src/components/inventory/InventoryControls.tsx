@@ -153,12 +153,13 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
 
       {/* Advanced Filters Section */}
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        {/* Filter Header Button - Always Visible */}
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors duration-200 group"
-        >
-          <div className="flex items-center gap-3">
+        {/* Filter Header - Always Visible */}
+        <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors duration-200 group">
+          {/* Left side - clickable area for toggle */}
+          <div
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-3 cursor-pointer flex-1"
+          >
             <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-2 rounded-lg">
               <Filter className="text-white" size={18} />
             </div>
@@ -182,6 +183,8 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Right side - actions and toggle icon */}
           <div className="flex items-center gap-2">
             {hasActiveFilters && (
               <button
@@ -190,17 +193,23 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
                   onClearFilters();
                 }}
                 className="text-red-500 hover:text-red-600 hover:bg-red-50 p-1 rounded-lg transition-colors text-xs"
+                title="ล้างตัวกรอง"
               >
                 <X size={14} />
               </button>
             )}
-            {showFilters ? (
-              <ChevronUp className="text-gray-400" size={20} />
-            ) : (
-              <ChevronDown className="text-gray-400" size={20} />
-            )}
+            <div
+              onClick={() => setShowFilters(!showFilters)}
+              className="cursor-pointer p-1"
+            >
+              {showFilters ? (
+                <ChevronUp className="text-gray-400" size={20} />
+              ) : (
+                <ChevronDown className="text-gray-400" size={20} />
+              )}
+            </div>
           </div>
-        </button>
+        </div>
 
         {/* Filter Content - Show/Hide */}
         {showFilters && (
@@ -244,12 +253,12 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
                 </select>
               </div>
 
-              {/* Sort Options */}
+              {/* Sort Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  เรียงลำดับ
+                  เรียงตาม
                 </label>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                   <select
                     value={sortBy}
                     onChange={(e) => onSortChange(e.target.value, sortOrder)}

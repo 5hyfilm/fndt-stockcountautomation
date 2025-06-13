@@ -1,4 +1,4 @@
-// src/components/search/SearchBar.tsx
+// ./src/components/search/SearchBar.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -196,28 +196,31 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
             <select
               value={`${filters.sortBy.value}-${filters.sortOrder.value}`}
               onChange={(e) => {
-                const [sortBy, sortOrder] = e.target.value.split("-");
+                const [sortBy, sortOrder] = e.target.value.split("-") as [
+                  string,
+                  "asc" | "desc"
+                ];
                 filters.sortBy.onChange(sortBy);
-                filters.sortOrder.onChange(sortOrder as "asc" | "desc");
+                filters.sortOrder.onChange(sortOrder);
               }}
-              className="w-full p-2 border border-gray-300 rounded-lg"
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fn-green focus:border-fn-green"
             >
-              <option value="date-desc">วันที่ใหม่สุด</option>
-              <option value="date-asc">วันที่เก่าสุด</option>
-              <option value="name-asc">ชื่อ A-Z</option>
-              <option value="name-desc">ชื่อ Z-A</option>
-              <option value="quantity-desc">จำนวนมากสุด</option>
-              <option value="quantity-asc">จำนวนน้อยสุด</option>
+              <option value="name-asc">ชื่อ (ก-ฮ)</option>
+              <option value="name-desc">ชื่อ (ฮ-ก)</option>
+              <option value="brand-asc">แบรนด์ (ก-ฮ)</option>
+              <option value="brand-desc">แบรนด์ (ฮ-ก)</option>
+              <option value="category-asc">หมวดหมู่ (ก-ฮ)</option>
+              <option value="category-desc">หมวดหมู่ (ฮ-ก)</option>
             </select>
           </div>
 
-          {/* Clear All */}
+          {/* Clear All Button */}
           {activeFiltersCount > 0 && (
             <button
               onClick={onClearAll}
-              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg transition-colors"
+              className="w-full py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
             >
-              ล้าง filter ทั้งหมด
+              ล้างตัวกรองทั้งหมด
             </button>
           )}
         </div>
@@ -226,24 +229,24 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   );
 };
 
-// src/components/search/FilterGroup.tsx
+// FilterGroup component
 interface FilterGroupProps {
   title: string;
   value: string;
   options: FilterOption[];
   onChange: (value: string) => void;
-  maxVisible?: number;
+  showCount?: number;
 }
 
-export const FilterGroup: React.FC<FilterGroupProps> = ({
+const FilterGroup: React.FC<FilterGroupProps> = ({
   title,
   value,
   options,
   onChange,
-  maxVisible = 8,
+  showCount = 5,
 }) => {
   const [showAll, setShowAll] = useState(false);
-  const visibleOptions = showAll ? options : options.slice(0, maxVisible);
+  const displayOptions = showAll ? options : options.slice(0, showCount);
 
   return (
     <div>
@@ -253,15 +256,14 @@ export const FilterGroup: React.FC<FilterGroupProps> = ({
           <input
             type="radio"
             name={title}
-            value="all"
-            checked={value === "all"}
-            onChange={() => onChange("all")}
-            className="mr-2 text-fn-green"
+            value=""
+            checked={value === ""}
+            onChange={() => onChange("")}
+            className="mr-2"
           />
-          <span className="text-sm">ทั้งหมด</span>
+          <span>ทั้งหมด</span>
         </label>
-
-        {visibleOptions.map((option) => (
+        {displayOptions.map((option) => (
           <label
             key={option.value}
             className="flex items-center justify-between"
@@ -273,19 +275,16 @@ export const FilterGroup: React.FC<FilterGroupProps> = ({
                 value={option.value}
                 checked={value === option.value}
                 onChange={() => onChange(option.value)}
-                className="mr-2 text-fn-green"
+                className="mr-2"
               />
-              <span className="text-sm">{option.label}</span>
+              <span>{option.label}</span>
             </div>
-            {option.count && (
-              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                {option.count}
-              </span>
+            {option.count !== undefined && (
+              <span className="text-sm text-gray-500">({option.count})</span>
             )}
           </label>
         ))}
-
-        {options.length > maxVisible && (
+        {options.length > showCount && (
           <button
             onClick={() => setShowAll(!showAll)}
             className="text-fn-green text-sm hover:underline"
@@ -298,14 +297,24 @@ export const FilterGroup: React.FC<FilterGroupProps> = ({
   );
 };
 
+// Define proper types for search results
+interface SearchResult {
+  id?: string;
+  barcode?: string;
+  name?: string;
+  brand?: string;
+  category?: string;
+  [key: string]: unknown; // Allow additional properties
+}
+
 // src/components/search/SearchResults.tsx
 interface SearchResultsProps {
   query: string;
-  results: any[];
+  results: SearchResult[];
   isLoading: boolean;
   totalResults: number;
-  onSelectResult: (result: any) => void;
-  renderResult: (result: any) => React.ReactNode;
+  onSelectResult: (result: SearchResult) => void;
+  renderResult: (result: SearchResult) => React.ReactNode;
   emptyMessage?: string;
 }
 
@@ -349,7 +358,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   return (
     <div>
       <div className="mb-4 text-sm text-gray-600">
-        พบ {totalResults} ผลลัพธ์สำหรับ "{query}"
+        พบ {totalResults} ผลลัพธ์สำหรับ &ldquo;{query}&rdquo;
       </div>
       <div className="space-y-2">
         {results.map((result, index) => (
