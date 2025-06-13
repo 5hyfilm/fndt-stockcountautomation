@@ -1,4 +1,4 @@
-// src/hooks/inventory/useInventoryManager.tsx - Refactored Main Hook
+// ./src/hooks/inventory/useInventoryManager.tsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -23,10 +23,19 @@ export const useInventoryManager = (
   const storage = useInventoryStorage();
   const { summary } = useInventorySummary({ inventory });
 
+  // Destructure storage properties to avoid dependency array warnings
+  const {
+    loadInventory,
+    saveInventory,
+    isLoading,
+    clearError: clearStorageError,
+    clearStorage,
+  } = storage;
+
   const operations = useInventoryOperations({
     inventory,
     setInventory,
-    saveInventory: storage.saveInventory,
+    saveInventory,
     employeeContext,
     setError,
   });
@@ -39,30 +48,30 @@ export const useInventoryManager = (
 
   // Load inventory on mount
   useEffect(() => {
-    const loadedInventory = storage.loadInventory();
+    const loadedInventory = loadInventory();
     setInventory(loadedInventory);
-  }, [storage.loadInventory]);
+  }, [loadInventory]);
 
   // Auto-save inventory when it changes (debounced)
   useEffect(() => {
-    if (!storage.isLoading && inventory.length > 0) {
+    if (!isLoading && inventory.length > 0) {
       const timeoutId = setTimeout(() => {
-        storage.saveInventory(inventory);
+        saveInventory(inventory);
       }, 1000); // Auto-save after 1 second of no changes
 
       return () => clearTimeout(timeoutId);
     }
-  }, [inventory, storage.isLoading, storage.saveInventory]);
+  }, [inventory, isLoading, saveInventory]);
 
   // Clear error (combining all error sources)
   const clearError = () => {
     setError(null);
-    storage.clearError();
+    clearStorageError();
   };
 
   // Enhanced load inventory that merges storage and local state
-  const loadInventory = () => {
-    const loadedData = storage.loadInventory();
+  const loadInventoryData = () => {
+    const loadedData = loadInventory();
     setInventory(loadedData);
   };
 
@@ -76,10 +85,10 @@ export const useInventoryManager = (
 
       // Clear any errors
       setError(null);
-      storage.clearError();
+      clearStorageError();
 
       // Clear storage
-      storage.clearStorage();
+      clearStorage();
 
       console.log("✅ Inventory state reset successfully");
       return true;
@@ -92,12 +101,12 @@ export const useInventoryManager = (
 
       return false;
     }
-  }, [storage]);
+  }, [clearStorageError, clearStorage]);
 
   return {
     // State
     inventory,
-    isLoading: storage.isLoading,
+    isLoading,
     error: error || storage.error,
     summary,
 
@@ -116,7 +125,7 @@ export const useInventoryManager = (
 
     // Error handling and utilities
     clearError,
-    loadInventory,
+    loadInventory: loadInventoryData,
     resetInventoryState, // เพิ่มฟังก์ชัน reset สำหรับ logout
   };
 };

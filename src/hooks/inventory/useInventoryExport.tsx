@@ -1,4 +1,4 @@
-// src/hooks/inventory/useInventoryExport.tsx
+// ./src/hooks/inventory/useInventoryExport.tsx
 "use client";
 
 import { useCallback } from "react";
@@ -145,27 +145,9 @@ export const useInventoryExport = ({
           group.csCount > 0 ? group.csCount.toString() : "",
           group.pieceCount > 0 ? group.pieceCount.toString() : "",
         ];
+
         csvRows.push(row.join(","));
       });
-
-      // Optional: Add summary statistics
-      if (config.includeStats) {
-        csvRows.push(""); // Empty row
-        csvRows.push("ข้อมูลสรุป");
-        csvRows.push(`รายการสินค้าทั้งหมด,${groupedData.size} รายการ`);
-        csvRows.push(
-          `จำนวนสินค้า (cs),${Array.from(groupedData.values()).reduce(
-            (sum, item) => sum + item.csCount,
-            0
-          )} ลัง`
-        );
-        csvRows.push(
-          `จำนวนสินค้า (ชิ้น),${Array.from(groupedData.values()).reduce(
-            (sum, item) => sum + item.pieceCount,
-            0
-          )} ชิ้น`
-        );
-      }
 
       return csvRows.join("\n");
     },
@@ -175,22 +157,25 @@ export const useInventoryExport = ({
   // Generate filename
   const generateFileName = useCallback((): string => {
     const now = new Date();
-    const dateStr = now.toISOString().split("T")[0];
-    const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-");
-    const branchCode = employeeContext?.branchCode || "XXX";
+    const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
+    const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-"); // HH-MM-SS
 
-    return `สถานะคลัง_${branchCode}_${dateStr}_${timeStr}.csv`;
+    let fileName = `inventory_${dateStr}_${timeStr}`;
+
+    if (employeeContext) {
+      fileName += `_${employeeContext.branchCode}`;
+    }
+
+    return `${fileName}.csv`;
   }, [employeeContext]);
 
   // Download CSV file
   const downloadCSV = useCallback(
     (csvContent: string, fileName: string): boolean => {
       try {
-        // Add BOM for UTF-8 encoding to support Thai characters
+        // Add BOM for proper Unicode handling in Excel
         const BOM = "\uFEFF";
-        const csvWithBOM = BOM + csvContent;
-
-        const blob = new Blob([csvWithBOM], {
+        const blob = new Blob([BOM + csvContent], {
           type: "text/csv;charset=utf-8;",
         });
 
@@ -207,8 +192,8 @@ export const useInventoryExport = ({
 
         URL.revokeObjectURL(url);
         return true;
-      } catch (err: any) {
-        console.error("❌ Error downloading CSV:", err);
+      } catch (error: unknown) {
+        console.error("❌ Error downloading CSV:", error);
         setError("เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์");
         return false;
       }
@@ -242,8 +227,8 @@ export const useInventoryExport = ({
         }
 
         return success;
-      } catch (err: any) {
-        console.error("❌ Error exporting inventory:", err);
+      } catch (error: unknown) {
+        console.error("❌ Error exporting inventory:", error);
         setError("เกิดข้อผิดพลาดในการส่งออกข้อมูล");
         return false;
       }
@@ -293,8 +278,8 @@ export const useInventoryExport = ({
 
       console.log("📤 Exported inventory as JSON:", inventory.length, "items");
       return true;
-    } catch (err: any) {
-      console.error("❌ Error exporting JSON:", err);
+    } catch (error: unknown) {
+      console.error("❌ Error exporting JSON:", error);
       setError("เกิดข้อผิดพลาดในการส่งออก JSON");
       return false;
     }

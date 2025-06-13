@@ -1,4 +1,4 @@
-// src/hooks/inventory/useInventoryOperations.tsx
+// ./src/hooks/inventory/useInventoryOperations.tsx
 "use client";
 
 import { useCallback } from "react";
@@ -119,8 +119,8 @@ export const useInventoryOperations = ({
         });
 
         return true;
-      } catch (err: any) {
-        console.error("❌ Error adding/updating item:", err);
+      } catch (error: unknown) {
+        console.error("❌ Error adding/updating item:", error);
         setError("เกิดข้อผิดพลาดในการเพิ่มสินค้า");
         return false;
       }
@@ -165,8 +165,8 @@ export const useInventoryOperations = ({
         });
 
         return true;
-      } catch (err: any) {
-        console.error("❌ Error updating item quantity:", err);
+      } catch (error: unknown) {
+        console.error("❌ Error updating item quantity:", error);
         setError("เกิดข้อผิดพลาดในการอัพเดตจำนวน");
         return false;
       }
@@ -195,8 +195,8 @@ export const useInventoryOperations = ({
         });
 
         return true;
-      } catch (err: any) {
-        console.error("❌ Error removing item:", err);
+      } catch (error: unknown) {
+        console.error("❌ Error removing item:", error);
         setError("เกิดข้อผิดพลาดในการลบสินค้า");
         return false;
       }
@@ -212,8 +212,8 @@ export const useInventoryOperations = ({
       saveInventory([]);
       console.log("🗑️ Cleared all inventory by", employeeContext?.employeeName);
       return true;
-    } catch (err: any) {
-      console.error("❌ Error clearing inventory:", err);
+    } catch (error: unknown) {
+      console.error("❌ Error clearing inventory:", error);
       setError("เกิดข้อผิดพลาดในการลบข้อมูลทั้งหมด");
       return false;
     }

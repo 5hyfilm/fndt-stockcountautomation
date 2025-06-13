@@ -1,4 +1,4 @@
-// src/hooks/inventory/useInventoryStorage.tsx
+// ./src/hooks/inventory/useInventoryStorage.tsx
 "use client";
 
 import { useState, useCallback } from "react";
@@ -48,8 +48,8 @@ export const useInventoryStorage = (config: StorageConfig = DEFAULT_CONFIG) => {
         console.log("📦 No saved inventory found, starting fresh");
         return [];
       }
-    } catch (err: any) {
-      console.error("❌ Error loading inventory:", err);
+    } catch (error: unknown) {
+      console.error("❌ Error loading inventory:", error);
       setError("ไม่สามารถโหลดข้อมูล inventory ได้");
       return [];
     } finally {
@@ -65,8 +65,8 @@ export const useInventoryStorage = (config: StorageConfig = DEFAULT_CONFIG) => {
         localStorage.setItem(config.versionKey, config.currentVersion);
         console.log("💾 Saved inventory:", data.length, "items");
         return true;
-      } catch (err: any) {
-        console.error("❌ Error saving inventory:", err);
+      } catch (error: unknown) {
+        console.error("❌ Error saving inventory:", error);
         setError("ไม่สามารถบันทึกข้อมูลได้");
         return false;
       }
@@ -81,8 +81,8 @@ export const useInventoryStorage = (config: StorageConfig = DEFAULT_CONFIG) => {
       localStorage.removeItem(config.versionKey);
       console.log("🗑️ Cleared inventory storage");
       return true;
-    } catch (err: any) {
-      console.error("❌ Error clearing storage:", err);
+    } catch (error: unknown) {
+      console.error("❌ Error clearing storage:", error);
       setError("ไม่สามารถลบข้อมูลได้");
       return false;
     }
@@ -100,7 +100,7 @@ export const useInventoryStorage = (config: StorageConfig = DEFAULT_CONFIG) => {
         dataSize: data ? data.length : 0,
         itemCount: data ? JSON.parse(data).length : 0,
       };
-    } catch (err) {
+    } catch {
       return {
         hasData: false,
         version: "error",
