@@ -4,6 +4,7 @@ import {
   CSVProductRow,
   ProductWithMultipleBarcodes,
   PRODUCT_GROUP_MAPPING,
+  PackSizeInfo, // Import PackSizeInfo from csvTypes.ts
 } from "../types/csvTypes";
 
 // Brand extraction from description
@@ -46,13 +47,6 @@ export const formatProductName = (
 };
 
 // Enhanced pack size parsing
-export interface PackSizeInfo {
-  rawPackSize: string;
-  displayText: string;
-  totalQuantity: number;
-  unit: string | null;
-}
-
 export const parsePackSizeInfo = (packSize: string): PackSizeInfo => {
   const raw = packSize.trim();
 
