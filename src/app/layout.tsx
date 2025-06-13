@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "FN Stock Scanner",
+    title: "F&N Barcode Scanner",
   },
   other: {
     "mobile-web-app-capable": "yes",
