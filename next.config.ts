@@ -1,6 +1,9 @@
-// next.config.js
+// Path: /next.config.ts
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // ⭐ เพิ่ม standalone output สำหรับ Docker
+  output: "standalone",
+
   // Enable static file serving
   experimental: {
     // This ensures CSV files in public folder are properly served

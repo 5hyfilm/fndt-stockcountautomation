@@ -47,13 +47,17 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy built application
+# Set the correct permissions for precompiled dependencies
+COPY --from=builder /app/next.config.* ./
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
 
-# Copy built Next.js files
+# ⭐ แก้ไขการ copy standalone files
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# ⭐ Copy healthcheck script
+COPY --from=builder /app/healthcheck.js ./healthcheck.js
 
 # Set environment variables
 ENV NODE_ENV production
@@ -71,5 +75,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node healthcheck.js
 
-# Start the application
+# ⭐ Start the application (server.js จะถูกสร้างโดย Next.js standalone)
 CMD ["node", "server.js"]
