@@ -1,0 +1,25 @@
+{
+  "name": "F&N Barcode Scanner",
+  "short_name": "FN Scanner",
+  "description": "ระบบตรวจจับและอ่าน barcode แบบ real-time สำหรับ F&N",
+  "theme_color": "#1f2937",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/fn-barcode-scanner.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/fn-barcode-scanner.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
