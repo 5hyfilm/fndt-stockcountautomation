@@ -1,3 +1,4 @@
+// Path: ./src/types/global.d.ts
 // Global type declarations
 
 declare global {
@@ -44,6 +45,7 @@ declare global {
 }
 
 // Extend window object for potential future use
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare interface Window {
   webkitRequestAnimationFrame?: (callback: FrameRequestCallback) => number;
   mozRequestAnimationFrame?: (callback: FrameRequestCallback) => number;
@@ -51,6 +53,7 @@ declare interface Window {
 }
 
 // Type for environment variables
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare namespace NodeJS {
   interface ProcessEnv {
     PYTHON_BACKEND_URL?: string;

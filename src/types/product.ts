@@ -1,4 +1,5 @@
-// src/types/product.ts - Updated with debug property
+// Path: ./src/types/product.ts
+// Updated with debug property
 export interface Product {
   id: string;
   barcode: string;
@@ -72,17 +73,23 @@ export interface ProductSearchParams {
   offset?: number;
 }
 
-// Updated ProductResponse interface with debug property
+// Debug information with proper types
+export interface DebugInfo {
+  searchedBarcode?: string;
+  cleanBarcode?: string;
+  availableBarcodes?: string[];
+  timestamp?: number;
+  processingTime?: number;
+  source?: string;
+  metadata?: Record<string, string | number | boolean>;
+}
+
+// Updated ProductResponse interface with proper debug typing
 export interface ProductResponse {
   success: boolean;
   data?: Product;
   error?: string;
-  debug?: {
-    searchedBarcode?: string;
-    cleanBarcode?: string;
-    availableBarcodes?: string[];
-    [key: string]: any; // Allow for additional debug properties
-  };
+  debug?: DebugInfo;
 }
 
 export interface ProductListResponse {
