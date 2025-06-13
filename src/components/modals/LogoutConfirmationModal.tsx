@@ -119,14 +119,14 @@ export const LogoutConfirmationModal: React.FC<
           )}
 
           {/* Confirmation message */}
-          <div className="text-center text-gray-700 mb-6">
+          {/* <div className="text-center text-gray-700 mb-6">
             คุณต้องการออกจากระบบใช่หรือไม่?
             {hasUnsavedData && (
               <div className="text-sm text-red-600 mt-2">
                 ข้อมูลที่ยังไม่ได้บันทึกจะหายไป
               </div>
             )}
-          </div>
+          </div> */}
 
           {/* Action Buttons */}
           <div className="flex gap-3">

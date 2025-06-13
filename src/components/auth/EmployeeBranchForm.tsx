@@ -30,21 +30,38 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
     branchName?: string;
   }>({});
 
+  // ✅ Helper function สำหรับตรวจสอบตัวเลขเท่านั้น
+  const isNumericOnly = (value: string): boolean => {
+    return /^\d*$/.test(value);
+  };
+
+  // ✅ Normalize รหัสสาขา (เอาเฉพาะตัวเลข)
+  const normalizeBranchCode = (value: string): string => {
+    return value.replace(/[^0-9]/g, "");
+  };
+
   const validateForm = () => {
     const newErrors: typeof errors = {};
 
+    // ตรวจสอบชื่อพนักงาน
     if (!employeeName.trim()) {
       newErrors.employeeName = "กรุณากรอกชื่อพนักงาน";
     } else if (employeeName.trim().length < 2) {
       newErrors.employeeName = "ชื่อพนักงานต้องมีอย่างน้อย 2 ตัวอักษร";
     }
 
+    // ✅ ตรวจสอบรหัสสาขา - เพิ่ม validation สำหรับตัวเลขเท่านั้น
     if (!branchCode.trim()) {
       newErrors.branchCode = "กรุณากรอกรหัสสาขา";
+    } else if (!isNumericOnly(branchCode.trim())) {
+      newErrors.branchCode = "รหัสสาขาต้องเป็นตัวเลข 0-9 เท่านั้น";
     } else if (branchCode.trim().length < 3) {
-      newErrors.branchCode = "รหัสสาขาต้องมีอย่างน้อย 3 ตัวอักษร";
+      newErrors.branchCode = "รหัสสาขาต้องมีอย่างน้อย 3 หลัก";
+    } else if (branchCode.trim().length > 10) {
+      newErrors.branchCode = "รหัสสาขาไม่ควรเกิน 10 หลัก";
     }
 
+    // ตรวจสอบชื่อสาขา
     if (!branchName.trim()) {
       newErrors.branchName = "กรุณากรอกชื่อสาขา";
     } else if (branchName.trim().length < 2) {
@@ -76,8 +93,14 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
     }
   };
 
+  // ✅ ปรับปรุง handleBranchCodeChange ให้กรอกได้เฉพาะตัวเลข
   const handleBranchCodeChange = (value: string) => {
-    setBranchCode(value);
+    // กรองเอาเฉพาะตัวเลข และจำกัดความยาว
+    const numericValue = normalizeBranchCode(value);
+    const limitedValue = numericValue.slice(0, 10); // จำกัดไม่เกิน 6 หลัก
+
+    setBranchCode(limitedValue);
+
     // Clear branch code error when user starts typing
     if (errors.branchCode) {
       setErrors((prev) => ({ ...prev, branchCode: undefined }));
@@ -147,7 +170,7 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
             )}
           </div>
 
-          {/* Branch Code Input */}
+          {/* ✅ Branch Code Input - ปรับปรุงให้กรอกได้เฉพาะตัวเลข */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Building2 size={16} className="inline mr-2" />
@@ -155,19 +178,38 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
             </label>
             <input
               type="text"
+              inputMode="numeric" // ✅ แสดง numeric keyboard บนมือถือ
+              pattern="[0-9]*" // ✅ HTML5 pattern สำหรับตัวเลขเท่านั้น
               value={branchCode}
               onChange={(e) => handleBranchCodeChange(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyPress={(e) => {
+                // ✅ ป้องกันการพิมพ์ตัวอักษรที่ไม่ใช่ตัวเลข
+                if (
+                  !/[0-9]/.test(e.key) &&
+                  e.key !== "Backspace" &&
+                  e.key !== "Delete" &&
+                  e.key !== "Enter"
+                ) {
+                  e.preventDefault();
+                }
+                if (e.key === "Enter") {
+                  handleSubmit();
+                }
+              }}
               placeholder="กรอกรหัสสาขา เช่น 001, 002"
               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-fn-green transition-colors ${
                 errors.branchCode ? "border-red-300" : "border-gray-300"
               }`}
               disabled={isLoading}
-              maxLength={10}
+              maxLength={10} // ✅ จำกัดความยาวสูงสุด 6 หลัก
             />
             {errors.branchCode && (
               <p className="text-red-500 text-xs mt-1">{errors.branchCode}</p>
             )}
+            {/* ✅ เพิ่มคำแนะนำ */}
+            <p className="text-gray-500 text-xs mt-1">
+              ใส่ได้เฉพาะตัวเลข 0-9 (3-10 หลัก)
+            </p>
           </div>
 
           {/* Branch Name Input */}
