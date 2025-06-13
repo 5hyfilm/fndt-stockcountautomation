@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ระบบตรวจจับ Barcode",
+  title: "F&N Barcode Scanner",
   description: "ระบบตรวจจับและอ่าน barcode แบบ real-time",
   appleWebApp: {
     capable: true,
