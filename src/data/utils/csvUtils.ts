@@ -4,7 +4,7 @@ import {
   CSVProductRow,
   ProductWithMultipleBarcodes,
   PRODUCT_GROUP_MAPPING,
-  PackSizeInfo, // Import PackSizeInfo from csvTypes.ts
+  PackSizeInfo,
 } from "../types/csvTypes";
 
 // Brand extraction from description
@@ -168,6 +168,13 @@ export const csvRowToProduct = (
     const packSizeInfo = parsePackSizeInfo(row["Pack Size"] || "1");
     const packSize = packSizeInfo.totalQuantity;
 
+    // Parse shelf life
+    const shelfLifeString = row["Shelflife (Months)"]?.trim();
+    const shelfLife =
+      shelfLifeString && !isNaN(Number(shelfLifeString))
+        ? parseInt(shelfLifeString)
+        : undefined;
+
     return {
       id: row.Material,
       barcode: primaryBarcode,
@@ -175,8 +182,9 @@ export const csvRowToProduct = (
       brand,
       category,
       packSize,
-      packSizeInfo, // เพิ่ม field ใหม่
+      packSizeInfo,
       status: ProductStatus.ACTIVE,
+      sku: row.Material, // sku is same as Material
       barcodes: {
         ea: eaBarcode || undefined,
         dsp: dspBarcode || undefined,
@@ -185,6 +193,12 @@ export const csvRowToProduct = (
       },
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+
+      // เพิ่ม properties ที่ขาดหายไป
+      materialCode: row.Material, // Material code from CSV
+      productGroup: row["Product Group"], // Product group from CSV
+      thaiDescription: row["Thai Desc."], // Thai description from CSV
+      shelfLife, // Shelf life in months
     };
   } catch (error) {
     console.error(`Error converting row ${index}:`, error);

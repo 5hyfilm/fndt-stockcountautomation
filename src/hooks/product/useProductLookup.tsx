@@ -1,53 +1,48 @@
-// ./src/hooks/product/useProductLookup.tsx
-"use client";
-
+// src/hooks/product/useProductLookup.tsx - Enhanced with Manual Product Support
 import { useState, useCallback } from "react";
 import { Product } from "../../types/product";
-import { findProductByBarcode, normalizeBarcode } from "../../data/csvProducts";
+import { findProductByBarcode } from "../../data/services/productServices";
+import { normalizeBarcode } from "../../data/utils/csvUtils";
 
+// ===== TYPES =====
 interface UseProductLookupProps {
-  onProductFound?: () => void; // เพิ่ม callback เมื่อเจอสินค้า
+  onProductFound?: () => void;
+  onProductAdded?: (product: any) => void; // เพิ่มสำหรับ manual product addition
 }
 
-// Define proper error type instead of using any
-interface ProductLookupError {
-  message: string;
-  name?: string;
-  code?: string;
-  cause?: unknown;
+interface UseProductLookupReturn {
+  // State
+  product: Product | null;
+  detectedBarcodeType: "ea" | "dsp" | "cs" | null;
+  isLoadingProduct: boolean;
+  productError: string | null;
+  lastDetectedCode: string;
+
+  // Actions
+  updateBarcode: (barcode: string) => Promise<void>;
+  clearProduct: () => void;
+  clearCurrentDetection: () => void;
+  handleProductAdded: (newProduct: any) => void; // เพิ่มสำหรับ manual product
 }
 
-// Type guard to check if error has message property
-const isErrorWithMessage = (error: unknown): error is ProductLookupError => {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error &&
-    typeof (error as Record<string, unknown>).message === "string"
-  );
-};
-
-// Helper function to get error message
+// Helper function to get error message from unknown error type
 const getErrorMessage = (error: unknown): string => {
-  if (isErrorWithMessage(error)) {
-    return error.message;
-  }
-
-  if (typeof error === "string") {
-    return error;
-  }
-
   if (error instanceof Error) {
     return error.message;
   }
-
-  return "เกิดข้อผิดพลาดในการค้นหาสินค้า";
+  if (typeof error === "string") {
+    return error;
+  }
+  return "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ";
 };
 
-export const useProductLookup = (props?: UseProductLookupProps) => {
-  const { onProductFound } = props || {};
+// ===== MAIN HOOK =====
+export const useProductLookup = (
+  props?: UseProductLookupProps
+): UseProductLookupReturn => {
+  const { onProductFound, onProductAdded } = props || {};
 
-  // State - แก้ไข syntax error
+  // State
   const [product, setProduct] = useState<Product | null>(null);
   const [detectedBarcodeType, setDetectedBarcodeType] = useState<
     "ea" | "dsp" | "cs" | null
@@ -88,7 +83,7 @@ export const useProductLookup = (props?: UseProductLookupProps) => {
             } (${result.barcodeType.toUpperCase()})`
           );
 
-          // 🔥 เรียก callback เพื่อปิดกล้องเมื่อเจอสินค้า
+          // เรียก callback เพื่อปิดกล้องเมื่อเจอสินค้า
           if (onProductFound) {
             console.log("📷 Stopping camera after product found");
             onProductFound();
@@ -97,20 +92,40 @@ export const useProductLookup = (props?: UseProductLookupProps) => {
           setProduct(null);
           setDetectedBarcodeType(null);
           setProductError("ไม่พบข้อมูลสินค้าในระบบ");
+          setLastDetectedCode(normalizedBarcode); // ยังคง barcode ไว้สำหรับ manual addition
           console.log("❌ Product not found for barcode:", normalizedBarcode);
         }
       } catch (error: unknown) {
-        // ✅ Fixed: Changed from 'any' to 'unknown'
         const errorMessage = getErrorMessage(error);
         console.error("❌ Error fetching product:", error);
         setProduct(null);
         setDetectedBarcodeType(null);
         setProductError(errorMessage);
+        setLastDetectedCode(normalizedBarcode); // ยังคง barcode ไว้สำหรับ manual addition
       } finally {
         setIsLoadingProduct(false);
       }
     },
-    [lastDetectedCode, onProductFound] // เพิ่ม onProductFound ใน dependency
+    [lastDetectedCode, onProductFound]
+  );
+
+  // Handle manually added product
+  const handleProductAdded = useCallback(
+    (newProduct: any) => {
+      console.log("🎉 Product added manually:", newProduct);
+
+      // Update state with the new product
+      setProduct(newProduct);
+      setProductError(null);
+      setDetectedBarcodeType(newProduct.barcodeType || "ea");
+
+      // Call parent callback
+      onProductAdded?.(newProduct);
+
+      // Call onProductFound to trigger any UI updates (like closing camera)
+      onProductFound?.();
+    },
+    [onProductAdded, onProductFound]
   );
 
   // Clear product
@@ -137,5 +152,8 @@ export const useProductLookup = (props?: UseProductLookupProps) => {
     updateBarcode,
     clearProduct,
     clearCurrentDetection,
+    handleProductAdded, // เพิ่มสำหรับ manual product addition
   };
 };
+
+export default useProductLookup;

@@ -36,6 +36,12 @@ export interface ProductWithMultipleBarcodes
   packSizeInfo: PackSizeInfo; // เพิ่ม field ใหม่สำหรับข้อมูลรายละเอียดของ pack size
   createdAt?: Date; // Make optional
   updatedAt?: Date; // Make optional
+
+  // เพิ่ม properties ที่ใช้ในระบบ manual product addition
+  materialCode?: string; // Material code from CSV (same as sku)
+  productGroup?: string; // Product group from CSV
+  thaiDescription?: string; // Thai description from CSV (same as description)
+  shelfLife?: number; // Shelf life in months
 }
 
 // Product group to category mapping
