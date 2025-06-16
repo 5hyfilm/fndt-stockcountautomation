@@ -25,6 +25,7 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
   barcodeType,
 }) => {
   const [quantity, setQuantity] = useState(1);
+  const [inputValue, setInputValue] = useState("1"); // เพิ่ม state สำหรับแสดงผลใน input
   const [isAdding, setIsAdding] = useState(false);
   const [addSuccess, setAddSuccess] = useState(false);
 
@@ -32,41 +33,83 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
   useEffect(() => {
     if (isVisible) {
       setQuantity(1);
+      setInputValue("1");
       setAddSuccess(false);
     }
   }, [isVisible]);
 
-  const handleQuantityChange = (value: number) => {
-    if (value >= 1 && value <= 999) {
-      setQuantity(value);
+  const handleQuantityChange = (value: string) => {
+    setInputValue(value); // อัพเดท input value ทันที
+
+    if (value === "" || value === "0") {
+      // อนุญาตให้เป็นว่างหรือ 0 ชั่วคราว
+      return;
+    }
+
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue >= 1 && numValue <= 999) {
+      setQuantity(numValue);
+    }
+  };
+
+  const handleInputBlur = () => {
+    // เมื่อผู้ใช้คลิกออกจาก input
+    if (inputValue === "" || parseInt(inputValue) < 1) {
+      setInputValue("1");
+      setQuantity(1);
+    } else {
+      const numValue = parseInt(inputValue);
+      if (!isNaN(numValue) && numValue >= 1 && numValue <= 999) {
+        const validValue = Math.max(1, Math.min(999, numValue));
+        setQuantity(validValue);
+        setInputValue(validValue.toString());
+      } else {
+        setInputValue("1");
+        setQuantity(1);
+      }
+    }
+  };
+
+  const handleInputKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleInputBlur();
     }
   };
 
   const increaseQuantity = () => {
     if (quantity < 999) {
-      setQuantity(quantity + 1);
+      const newQuantity = quantity + 1;
+      setQuantity(newQuantity);
+      setInputValue(newQuantity.toString());
     }
   };
 
   const decreaseQuantity = () => {
     if (quantity > 1) {
-      setQuantity(quantity - 1);
+      const newQuantity = quantity - 1;
+      setQuantity(newQuantity);
+      setInputValue(newQuantity.toString());
     }
   };
 
   const handleAddToInventory = async () => {
+    // ตรวจสอบค่า quantity ก่อนเพิ่ม
+    const finalQuantity =
+      inputValue === "" || parseInt(inputValue) < 1 ? 1 : quantity;
+
     console.log("🔘 InventoryAddSection calling onAddToInventory:");
     console.log("  📦 Product:", product.name);
-    console.log("  🔢 Quantity:", quantity);
+    console.log("  🔢 Quantity:", finalQuantity);
     console.log("  🏷️ BarcodeType:", barcodeType);
 
     setIsAdding(true);
     try {
-      const success = onAddToInventory(product, quantity, barcodeType);
+      const success = onAddToInventory(product, finalQuantity, barcodeType);
 
       if (success) {
         setAddSuccess(true);
         setQuantity(1);
+        setInputValue("1");
 
         setTimeout(() => {
           setAddSuccess(false);
@@ -74,7 +117,7 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
 
         const unitText = barcodeType === "cs" ? "ลัง" : "ชิ้น";
         console.log(
-          `✅ Added ${quantity} ${unitText} (${barcodeType || "ea"}) of ${
+          `✅ Added ${finalQuantity} ${unitText} (${barcodeType || "ea"}) of ${
             product.name
           } to inventory`
         );
@@ -87,6 +130,9 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
   };
 
   if (!isVisible) return null;
+
+  // ตรวจสอบว่าสามารถเพิ่มได้หรือไม่
+  const canAdd = inputValue !== "" && parseInt(inputValue) >= 1;
 
   return (
     <div className="space-y-4">
@@ -133,10 +179,10 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
               </button>
               <input
                 type="number"
-                value={quantity}
-                onChange={(e) =>
-                  handleQuantityChange(parseInt(e.target.value) || 1)
-                }
+                value={inputValue}
+                onChange={(e) => handleQuantityChange(e.target.value)}
+                onBlur={handleInputBlur}
+                onKeyPress={handleInputKeyPress}
                 min="1"
                 max="999"
                 disabled={isAdding}
@@ -158,45 +204,33 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
           {/* Add to Inventory Button */}
           <button
             onClick={handleAddToInventory}
-            disabled={isAdding || addSuccess}
+            disabled={isAdding || addSuccess || !canAdd}
             className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 font-medium shadow-lg transform ml-auto border ${
               addSuccess
                 ? "bg-green-100 text-green-700 border-green-200 cursor-not-allowed"
-                : isAdding
+                : isAdding || !canAdd
                 ? "bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed"
                 : "bg-fn-green hover:bg-fn-green/90 text-white border-fn-green hover:shadow-xl hover:scale-105"
             }`}
           >
             {isAdding ? (
               <>
-                <div className="animate-spin w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full"></div>
-                <span>กำลังเพิ่ม...</span>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                กำลังเพิ่ม...
               </>
             ) : addSuccess ? (
               <>
                 <Check size={16} />
-                <span>เพิ่มแล้ว</span>
+                เพิ่มแล้ว
               </>
             ) : (
               <>
-                <Archive size={16} />
-                <span>เพิ่มเข้า Stock</span>
+                <Plus size={16} />
+                เพิ่มเข้า Inventory
               </>
             )}
           </button>
         </div>
-
-        {/* Current inventory display */}
-        {currentInventoryQuantity > 0 && (
-          <div className="mt-3 text-sm text-gray-600 bg-blue-50 p-2 rounded">
-            📦 ปัจจุบันใน Stock: {currentInventoryQuantity} {"ชิ้น"}
-            {quantity > 0 && (
-              <span className="text-blue-600 font-medium">
-                → จะเป็น {currentInventoryQuantity + quantity} {"ชิ้น"}
-              </span>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
