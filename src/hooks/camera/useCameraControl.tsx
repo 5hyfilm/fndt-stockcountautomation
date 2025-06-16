@@ -1,4 +1,4 @@
-// Path: /src/hooks/camera/useCameraControl.tsx
+// ./src/hooks/camera/useCameraControl.tsx
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
@@ -53,59 +53,6 @@ export const useCameraControl = () => {
     facingMode: "environment",
   });
 
-  // 🔥 NEW: Flash/Torch State
-  const [flashEnabled, setFlashEnabled] = useState(false);
-  const [hasFlash, setHasFlash] = useState(false);
-
-  // 🔥 NEW: Check if device supports torch/flashlight
-  const checkFlashSupport = useCallback(async () => {
-    try {
-      const stream = streamRef.current;
-      if (stream) {
-        const videoTrack = stream.getVideoTracks()[0];
-        if (videoTrack) {
-          const capabilities = videoTrack.getCapabilities();
-          const supportsFlash = "torch" in capabilities && capabilities.torch;
-          setHasFlash(!!supportsFlash);
-          console.log("🔦 Flash support:", !!supportsFlash);
-          return !!supportsFlash;
-        }
-      }
-      return false;
-    } catch (error) {
-      console.log("🔦 Flash check error:", error);
-      setHasFlash(false);
-      return false;
-    }
-  }, []);
-
-  // 🔥 NEW: Toggle Flash/Torch
-  const toggleFlash = useCallback(async () => {
-    try {
-      const stream = streamRef.current;
-      if (!stream || !hasFlash) {
-        console.log("🔦 Flash not available");
-        return;
-      }
-
-      const videoTrack = stream.getVideoTracks()[0];
-      if (videoTrack) {
-        const newFlashState = !flashEnabled;
-
-        await videoTrack.applyConstraints({
-          advanced: [{ torch: newFlashState }],
-        });
-
-        setFlashEnabled(newFlashState);
-        console.log("🔦 Flash toggled:", newFlashState ? "ON" : "OFF");
-      }
-    } catch (error) {
-      console.error("🔦 Flash toggle error:", error);
-      // Reset flash state on error
-      setFlashEnabled(false);
-    }
-  }, [flashEnabled, hasFlash]);
-
   // Start camera
   const startCamera = useCallback(async () => {
     try {
@@ -125,11 +72,6 @@ export const useCameraControl = () => {
         await new Promise<void>((resolve) => {
           video.onloadedmetadata = () => resolve();
         });
-
-        // 🔥 NEW: Check flash support after camera starts
-        setTimeout(() => {
-          checkFlashSupport();
-        }, 500);
       }
     } catch (error: unknown) {
       console.error("Error starting camera:", error);
@@ -146,26 +88,10 @@ export const useCameraControl = () => {
 
       setErrors(errorMessage);
     }
-  }, [videoConstraints, checkFlashSupport]);
+  }, [videoConstraints]);
 
   // Stop camera
   const stopCamera = useCallback(() => {
-    // 🔥 NEW: Turn off flash before stopping
-    if (flashEnabled && streamRef.current) {
-      const videoTrack = streamRef.current.getVideoTracks()[0];
-      if (videoTrack) {
-        try {
-          videoTrack
-            .applyConstraints({
-              advanced: [{ torch: false }],
-            })
-            .catch(console.warn);
-        } catch (error) {
-          console.warn("Error turning off flash:", error);
-        }
-      }
-    }
-
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
@@ -177,10 +103,7 @@ export const useCameraControl = () => {
     }
 
     setIsStreaming(false);
-    // 🔥 NEW: Reset flash state when camera stops
-    setFlashEnabled(false);
-    setHasFlash(false);
-  }, [flashEnabled]);
+  }, []);
 
   // Switch camera
   const switchCamera = useCallback(() => {
@@ -220,17 +143,10 @@ export const useCameraControl = () => {
     errors,
     videoConstraints,
 
-    // 🔥 NEW: Flash State
-    flashEnabled,
-    hasFlash,
-
     // Actions
     startCamera,
     stopCamera,
     switchCamera,
     setVideoConstraints,
-
-    // 🔥 NEW: Flash Actions
-    toggleFlash,
   };
 };

@@ -1,4 +1,4 @@
-// Path: /src/components/CameraSection.tsx
+// src/components/CameraSection.tsx
 "use client";
 
 import React, { useEffect } from "react";
@@ -6,7 +6,6 @@ import { Detection } from "../types/detection";
 import { CameraHeader } from "./camera/CameraHeader";
 import { CameraViewfinder } from "./camera/CameraViewfinder";
 
-// 🔥 UPDATED: Interface with flash properties
 interface CameraSectionProps {
   videoRef: React.RefObject<HTMLVideoElement>;
   canvasRef: React.RefObject<HTMLCanvasElement>;
@@ -23,11 +22,6 @@ interface CameraSectionProps {
   fullScreen?: boolean; // New prop for full screen mode
   showHeader?: boolean; // New prop to control header visibility
   showGuideFrame?: boolean; // New prop to control guide frame visibility
-
-  // 🔥 NEW: Flash properties
-  hasFlash: boolean;
-  flashEnabled: boolean;
-  onToggleFlash: () => void;
 }
 
 export const CameraSection: React.FC<CameraSectionProps> = ({
@@ -46,11 +40,6 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
   fullScreen = false,
   showHeader = true,
   showGuideFrame = true, // Show guide frame by default
-
-  // 🔥 NEW: Flash props
-  hasFlash,
-  flashEnabled,
-  onToggleFlash,
 }) => {
   // Draw detections when detections change
   useEffect(() => {
@@ -86,10 +75,6 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
                 onCaptureAndProcess={captureAndProcess}
                 compact={true} // Use compact mode for overlay
                 transparent={true} // Make header transparent
-                // 🔥 NEW: Pass flash props to header
-                hasFlash={hasFlash}
-                flashEnabled={flashEnabled}
-                onToggleFlash={onToggleFlash}
               />
             </div>
           </div>
@@ -122,10 +107,6 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
           onStopCamera={stopCamera}
           onSwitchCamera={switchCamera}
           onCaptureAndProcess={captureAndProcess}
-          // 🔥 NEW: Pass flash props to header
-          hasFlash={hasFlash}
-          flashEnabled={flashEnabled}
-          onToggleFlash={onToggleFlash}
         />
       )}
 
