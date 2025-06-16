@@ -20,7 +20,6 @@ interface InventoryAddSectionProps {
 
 export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
   product,
-  currentInventoryQuantity,
   onAddToInventory,
   isVisible,
   barcodeType,
