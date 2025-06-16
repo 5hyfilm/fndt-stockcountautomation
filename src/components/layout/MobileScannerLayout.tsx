@@ -1,250 +1,252 @@
 // src/components/layout/MobileScannerLayout.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
-import BarcodeScanner from "../scanner/BarcodeScanner";
-import ProductInfo from "../ProductInfo"; // ใช้ enhanced version
+import React, { useEffect, useState } from "react";
+import { CameraSection } from "../CameraSection";
 import { MobileProductSlide } from "./MobileProductSlide";
-import { useProductLookup } from "../../hooks/product/useProductLookup"; // enhanced version
+import { Detection } from "../../hooks/detection/types";
 import { Product } from "../../types/product";
 
-// ===== INTERFACES =====
 interface MobileScannerLayoutProps {
+  // Camera props
+  videoRef: React.RefObject<HTMLVideoElement>;
+  canvasRef: React.RefObject<HTMLCanvasElement>;
+  containerRef: React.RefObject<HTMLDivElement>;
+  isStreaming: boolean;
+  processingQueue: number;
+  detections: Detection[];
+
+  // Camera actions
+  startCamera: () => void;
+  stopCamera: () => void;
+  switchCamera: () => void;
+  captureAndProcess: () => void;
+  drawDetections: () => void;
+  updateCanvasSize: () => void;
+
+  // Product props
+  product: Product | null;
+  detectedBarcodeType?: "ea" | "dsp" | "cs" | null;
+  isLoadingProduct: boolean;
+  productError: string | null;
+  lastDetectedCode: string;
+
+  // Product actions
   onAddToInventory: (
     product: Product,
     quantity: number,
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
-  currentInventoryQuantity?: number;
-  employeeContext?: {
-    employeeName: string;
-    branchCode: string;
-    branchName: string;
-  };
+  restartForNextScan: () => void;
+  currentInventoryQuantity: number;
+
+  // Layout options
+  fullScreen?: boolean;
+  showHeader?: boolean;
 }
 
-// ===== MAIN COMPONENT =====
 export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
+  // Camera props
+  videoRef,
+  canvasRef,
+  containerRef,
+  isStreaming,
+  processingQueue,
+  detections,
+
+  // Camera actions
+  startCamera,
+  stopCamera,
+  switchCamera,
+  captureAndProcess,
+  drawDetections,
+  updateCanvasSize,
+
+  // Product props
+  product,
+  detectedBarcodeType,
+  isLoadingProduct,
+  productError,
+  lastDetectedCode,
+
+  // Product actions
   onAddToInventory,
-  currentInventoryQuantity = 0,
-  employeeContext = {
-    employeeName: "Demo User",
-    branchCode: "DEMO",
-    branchName: "Demo Branch",
-  },
+  restartForNextScan,
+  currentInventoryQuantity,
+
+  // Layout options
+  fullScreen = true,
+  showHeader = true,
 }) => {
-  // Scanner state
-  const [isStreaming, setIsStreaming] = useState(false);
   const [showProductSlide, setShowProductSlide] = useState(false);
 
-  // Product lookup with manual addition support
-  const {
-    product,
-    detectedBarcodeType,
-    isLoadingProduct,
-    productError,
-    lastDetectedCode,
-    updateBarcode,
-    clearProduct,
-    clearCurrentDetection,
-    handleProductAdded, // สำหรับ manual product addition
-  } = useProductLookup({
-    onProductFound: () => {
-      console.log("📱 Product found, showing slide panel");
-      setShowProductSlide(true);
-      setIsStreaming(false); // หยุดกล้องเมื่อเจอสินค้า
-    },
-    onProductAdded: (newProduct) => {
-      console.log("🎉 New product added via manual entry:", newProduct);
-      setShowProductSlide(true);
-      setIsStreaming(false); // หยุดกล้องเมื่อเพิ่มสินค้าใหม่สำเร็จ
-    },
-  });
-
-  // Handle barcode detection from scanner
-  const handleBarcodeDetected = (barcode: string) => {
-    console.log("📱 Barcode detected:", barcode);
-    updateBarcode(barcode);
-  };
-
-  // Handle starting camera
-  const handleStartCamera = () => {
-    console.log("📷 Starting camera");
-    setIsStreaming(true);
-    clearCurrentDetection();
-    setShowProductSlide(false);
-  };
-
-  // Handle stopping camera
-  const handleStopCamera = () => {
-    console.log("📷 Stopping camera");
-    setIsStreaming(false);
-  };
-
-  // Handle closing product slide
-  const handleCloseProductSlide = () => {
-    console.log("📱 Closing product slide");
-    setShowProductSlide(false);
-    clearProduct();
-  };
-
-  // Handle adding to inventory
-  const handleAddToInventory = (
-    product: Product,
-    quantity: number,
-    barcodeType?: "ea" | "dsp" | "cs"
-  ) => {
-    const success = onAddToInventory(product, quantity, barcodeType);
-    if (success) {
-      console.log("✅ Added to inventory:", product.name, quantity);
-      // Could show success toast here
-    }
-    return success;
-  };
-
-  // Auto-start camera on mount
+  // Show product slide when product is found and camera is stopped
   useEffect(() => {
-    handleStartCamera();
-  }, []);
+    if (product && !isStreaming && !isLoadingProduct) {
+      setShowProductSlide(true);
+    } else {
+      setShowProductSlide(false);
+    }
+  }, [product, isStreaming, isLoadingProduct]);
+
+  // Handle close product slide and restart scanning
+  const handleCloseProductSlide = () => {
+    setShowProductSlide(false);
+    restartForNextScan();
+    setTimeout(() => {
+      startCamera();
+    }, 300);
+  };
+
+  // Container styles
+  const containerClasses = fullScreen
+    ? "relative bg-black overflow-hidden"
+    : "relative h-screen bg-gray-900 overflow-hidden";
+
+  const containerStyle = fullScreen
+    ? {
+        height: "calc(100vh - 120px)",
+        minHeight: "calc(100vh - 120px)",
+      }
+    : {};
 
   return (
-    <div className="min-h-screen bg-gray-100 relative">
-      {/* Camera Scanner */}
-      <div className="relative w-full h-screen">
-        <BarcodeScanner
-          onBarcodeDetected={handleBarcodeDetected}
+    <div className={containerClasses} style={containerStyle}>
+      {/* Camera Section - Full Screen */}
+      <div className="absolute inset-0">
+        <CameraSection
+          videoRef={videoRef}
+          canvasRef={canvasRef}
+          containerRef={containerRef}
           isStreaming={isStreaming}
-          onStreamStart={() => setIsStreaming(true)}
-          onStreamStop={() => setIsStreaming(false)}
+          processingQueue={processingQueue}
+          detections={detections}
+          startCamera={startCamera}
+          stopCamera={stopCamera}
+          switchCamera={switchCamera}
+          captureAndProcess={captureAndProcess}
+          drawDetections={drawDetections}
+          updateCanvasSize={updateCanvasSize}
+          fullScreen={fullScreen}
+          showHeader={showHeader}
         />
-
-        {/* Camera Controls */}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-30">
-          <div className="flex space-x-4">
-            {isStreaming ? (
-              <button
-                onClick={handleStopCamera}
-                className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-full font-medium transition-colors shadow-lg"
-              >
-                หยุดสแกน
-              </button>
-            ) : (
-              <button
-                onClick={handleStartCamera}
-                className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-full font-medium transition-colors shadow-lg"
-              >
-                เริ่มสแกน
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Loading Overlay */}
-        {isLoadingProduct && (
-          <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-20">
-            <div className="bg-white rounded-lg p-4 flex items-center space-x-3">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-              <span className="text-gray-700 font-medium">
-                กำลังค้นหาสินค้า...
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Product Error */}
-        {productError && !isLoadingProduct && (
-          <div className="absolute top-4 left-4 right-4 bg-red-500/90 backdrop-blur-sm text-white p-3 rounded-lg z-20">
-            <p className="text-sm">{productError}</p>
-          </div>
-        )}
-
-        {/* Barcode Display */}
-        {lastDetectedCode && !product && !isLoadingProduct && (
-          <div className="absolute top-4 left-4 right-4 bg-blue-500/90 backdrop-blur-sm text-white p-3 rounded-lg z-20">
-            <p className="text-sm">
-              Barcode: <span className="font-mono">{lastDetectedCode}</span>
-            </p>
-          </div>
-        )}
       </div>
 
-      {/* Product Slide Panel */}
-      {showProductSlide && product && (
-        <MobileProductSlide
-          product={product}
-          detectedBarcodeType={detectedBarcodeType || "ea"}
-          currentInventoryQuantity={currentInventoryQuantity}
-          onAddToInventory={handleAddToInventory}
-          onClose={handleCloseProductSlide}
-          onContinueScanning={() => {
-            handleCloseProductSlide();
-            handleStartCamera();
-          }}
-          employeeContext={employeeContext}
-        />
+      {/* ปุ่มปิดกล้อง มุมบนขวา - เฉพาะเมื่อกล้องเปิดและไม่แสดง header */}
+      {!showHeader && isStreaming && (
+        <div className="absolute top-4 right-4 z-30">
+          <button
+            onClick={stopCamera}
+            className="bg-red-500 hover:bg-red-600 text-white p-3 rounded-full shadow-lg transition-colors"
+            title="หยุดกล้อง"
+          >
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M6 6h12v12H6V6z" />
+            </svg>
+          </button>
+        </div>
       )}
 
-      {/* Manual Product Addition for Not Found */}
-      {showProductSlide &&
-        !product &&
-        lastDetectedCode &&
-        !isLoadingProduct && (
-          <div className="absolute inset-0 bg-black/50 flex items-end z-40">
-            <div className="bg-white w-full rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto">
-              <div className="text-center py-8">
-                <div className="bg-yellow-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
-                  <svg
-                    className="w-8 h-8 text-yellow-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  ไม่พบสินค้าในระบบ
-                </h3>
-                <p className="text-gray-600 text-sm mb-4">
-                  Barcode: <span className="font-mono">{lastDetectedCode}</span>
-                </p>
+      {/* ปุ่มเปิดกล้องใหญ่ ตรงกลาง - เมื่อกล้องปิด */}
+      {!showHeader && !isStreaming && (
+        <div className="absolute inset-0 flex items-center justify-center z-30">
+          <div className="text-center">
+            <button
+              onClick={startCamera}
+              className="bg-[rgb(162,193,82)] hover:bg-[rgb(142,173,62)] text-white px-8 py-4 rounded-full text-lg font-medium shadow-xl transition-colors mb-4"
+            >
+              <div className="flex items-center gap-3">
+                <svg
+                  width="28"
+                  height="28"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M9.5 6.5v3h5v-3h2.5l-5-5-5 5h2.5zM11 4H9l3-3 3 3h-2v5.5h-2V4z" />
+                  <path d="M4 6h5v2H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2h-5V6h5c2.21 0 4 1.79 4 4v8c0 2.21-1.79 4-4 4H4c-2.21 0-4-1.79-4-4v-8c0-2.21 1.79-4 4-4z" />
+                  <circle cx="12" cy="14" r="2.5" />
+                </svg>
+                เปิดกล้อง
+              </div>
+            </button>
+            {/* <p className="text-white/80 text-sm">แตะเพื่อเริ่มสแกนบาร์โค้ด</p> */}
+          </div>
+        </div>
+      )}
 
-                <div className="space-y-3">
-                  <button
-                    onClick={() => {
-                      // Handle manual product addition
-                      if (handleProductAdded && lastDetectedCode) {
-                        // This would open manual product addition flow
-                        console.log(
-                          "Opening manual product addition for:",
-                          lastDetectedCode
-                        );
-                      }
-                    }}
-                    className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-                  >
-                    เพิ่มสินค้าใหม่
-                  </button>
+      {/* ปุ่มสแกน ข้างล่าง - เมื่อกล้องเปิด */}
+      {/* {!showHeader && isStreaming && (
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30">
+          <button
+            onClick={captureAndProcess}
+            disabled={processingQueue > 0}
+            className="bg-white hover:bg-gray-100 text-black p-4 rounded-full shadow-xl transition-colors disabled:opacity-50"
+            title="สแกนด้วยตนเอง"
+          >
+            <svg width="32" height="32" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M9.5 2A1.5 1.5 0 0 0 8 3.5v1A1.5 1.5 0 0 0 9.5 6h5A1.5 1.5 0 0 0 16 4.5v-1A1.5 1.5 0 0 0 14.5 2h-5zM6 7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H6z" />
+            </svg>
+          </button>
+        </div>
+      )} */}
 
-                  <button
-                    onClick={() => {
-                      handleCloseProductSlide();
-                      handleStartCamera();
-                    }}
-                    className="w-full bg-gray-500 hover:bg-gray-600 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-                  >
-                    สแกนใหม่
-                  </button>
-                </div>
+      {/* Loading Overlay */}
+      {isLoadingProduct && (
+        <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-40">
+          <div className="bg-white rounded-lg p-4 flex items-center space-x-3 mx-4">
+            <div className="animate-spin w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full"></div>
+            <span className="text-gray-900 font-medium">
+              กำลังค้นหาสินค้า...
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Error Overlay */}
+      {productError && (
+        <div className="absolute top-4 left-4 right-4 z-40">
+          <div className="bg-red-100 border border-red-300 rounded-lg p-4">
+            <div className="text-red-800 text-sm font-medium">
+              {productError}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Detection Feedback */}
+      {lastDetectedCode && !productError && (
+        <div className="absolute top-4 left-4 right-4 z-40">
+          <div className="bg-green-100 border border-green-300 rounded-lg p-3">
+            <div className="text-green-800 text-sm">
+              ✅ ตรวจพบ: {lastDetectedCode}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Product Slide Panel */}
+      <MobileProductSlide
+        isVisible={showProductSlide}
+        product={product}
+        detectedBarcodeType={detectedBarcodeType || undefined}
+        currentInventoryQuantity={currentInventoryQuantity}
+        onClose={handleCloseProductSlide}
+        onAddToInventory={onAddToInventory}
+      />
+
+      {/* Scan Instructions */}
+      {/* {isStreaming && !product && !isLoadingProduct && (
+        <div className="absolute bottom-20 left-4 right-4 z-30">
+          <div className="bg-black/70 backdrop-blur-sm rounded-lg p-4">
+            <div className="text-white text-center">
+              <div className="text-lg font-medium mb-1">วางบาร์โค้ดในกรอบ</div>
+              <div className="text-sm opacity-90">
+                เครื่องจะสแกนโดยอัตโนมัติ
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )} */}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-// src/components/ProductInfo.tsx - Enhanced with Manual Product Addition
+// src/components/ProductInfo.tsx - Refactored Main Component
 "use client";
 
 import React, { useState } from "react";
@@ -16,12 +16,9 @@ import {
   LoadingState,
   ErrorState,
   WaitingScanState,
+  ProductNotFoundState,
 } from "./product/EmptyStates";
 
-// Import enhanced ProductNotFoundState
-import ProductNotFoundState from "./product/ProductNotFoundState";
-
-// ===== INTERFACES =====
 interface ProductInfoProps {
   product: Product | null;
   barcode?: string;
@@ -33,16 +30,9 @@ interface ProductInfoProps {
     quantity: number,
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
-  onProductAdded?: (product: any) => void; // Callback เมื่อเพิ่มสินค้าใหม่สำเร็จ
   currentInventoryQuantity?: number;
-  employeeContext?: {
-    employeeName: string;
-    branchCode: string;
-    branchName: string;
-  };
 }
 
-// ===== MAIN COMPONENT =====
 export const ProductInfo: React.FC<ProductInfoProps> = ({
   product,
   barcode,
@@ -50,9 +40,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
   isLoading,
   error,
   onAddToInventory,
-  onProductAdded,
   currentInventoryQuantity = 0,
-  employeeContext,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -67,12 +55,6 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
     } catch (err) {
       console.error("Failed to copy barcode:", err);
     }
-  };
-
-  // Handle new product added
-  const handleProductAdded = (newProduct: any) => {
-    console.log("🎉 New product added via manual entry:", newProduct);
-    onProductAdded?.(newProduct);
   };
 
   // Determine if inventory add section should be visible
@@ -91,15 +73,12 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
     return <WaitingScanState />;
   }
 
-  // Product not found - show enhanced version with manual addition
   if (!product && barcode) {
     return (
       <ProductNotFoundState
         barcode={barcode}
         onCopyBarcode={copyBarcode}
         copied={copied}
-        onProductAdded={handleProductAdded}
-        employeeContext={employeeContext}
       />
     );
   }
@@ -124,6 +103,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
             product={product!}
             currentInventoryQuantity={currentInventoryQuantity}
             onAddToInventory={onAddToInventory!}
+            isVisible={true}
             barcodeType={barcodeType}
           />
         )}
@@ -132,13 +112,9 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
         <ProductDescription product={product!} />
 
         {/* Barcode Information */}
-        <BarcodeInfo
-          product={product!}
-          scannedBarcode={barcode}
-          detectedBarcodeType={barcodeType}
-        />
+        <BarcodeInfo product={product!} scannedBarcode={barcode} />
 
-        {/* Product Details */}
+        {/* Additional Product Details */}
         <ProductDetails product={product!} />
 
         {/* Nutrition Information */}
@@ -147,5 +123,3 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
     </div>
   );
 };
-
-export default ProductInfo;
