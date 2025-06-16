@@ -1,4 +1,5 @@
-// src/components/product/InventoryAddSection.tsx
+// Path: src/components/product/InventoryAddSection.tsx - Complete Updated Version
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -25,7 +26,7 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
   barcodeType,
 }) => {
   const [quantity, setQuantity] = useState(1);
-  const [inputValue, setInputValue] = useState("1"); // เพิ่ม state สำหรับแสดงผลใน input
+  const [inputValue, setInputValue] = useState("1");
   const [isAdding, setIsAdding] = useState(false);
   const [addSuccess, setAddSuccess] = useState(false);
 
@@ -38,6 +39,7 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
     }
   }, [isVisible]);
 
+  // ✅ Updated - Remove maximum limit validation
   const handleQuantityChange = (value: string) => {
     setInputValue(value); // อัพเดท input value ทันที
 
@@ -47,11 +49,13 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
     }
 
     const numValue = parseInt(value);
-    if (!isNaN(numValue) && numValue >= 1 && numValue <= 999) {
+    // ✅ เอาการเช็ค upper limit ออก - ให้กรอกได้ไม่จำกัด
+    if (!isNaN(numValue) && numValue >= 1) {
       setQuantity(numValue);
     }
   };
 
+  // ✅ Updated - Remove maximum limit validation
   const handleInputBlur = () => {
     // เมื่อผู้ใช้คลิกออกจาก input
     if (inputValue === "" || parseInt(inputValue) < 1) {
@@ -59,8 +63,9 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
       setQuantity(1);
     } else {
       const numValue = parseInt(inputValue);
-      if (!isNaN(numValue) && numValue >= 1 && numValue <= 999) {
-        const validValue = Math.max(1, Math.min(999, numValue));
+      // ✅ เอาการเช็ค upper limit ออก - ให้กรอกได้ไม่จำกัด
+      if (!isNaN(numValue) && numValue >= 1) {
+        const validValue = Math.max(1, numValue); // เอา Math.min(999, numValue) ออก
         setQuantity(validValue);
         setInputValue(validValue.toString());
       } else {
@@ -76,12 +81,12 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
     }
   };
 
+  // ✅ Updated - Remove maximum limit
   const increaseQuantity = () => {
-    if (quantity < 999) {
-      const newQuantity = quantity + 1;
-      setQuantity(newQuantity);
-      setInputValue(newQuantity.toString());
-    }
+    // ✅ เอาการเช็ค quantity < 999 ออก - ให้เพิ่มได้ไม่จำกัด
+    const newQuantity = quantity + 1;
+    setQuantity(newQuantity);
+    setInputValue(newQuantity.toString());
   };
 
   const decreaseQuantity = () => {
@@ -184,13 +189,16 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
                 onBlur={handleInputBlur}
                 onKeyPress={handleInputKeyPress}
                 min="1"
-                max="999"
+                // ✅ เอา max="999" ออก - ให้กรอกได้ไม่จำกัด
                 disabled={isAdding}
-                className="w-16 text-center py-2 border-none outline-none bg-white text-gray-900 font-medium disabled:bg-gray-50"
+                className="w-20 text-center py-2 border-none outline-none bg-white text-gray-900 font-medium disabled:bg-gray-50"
+                // ✅ เพิ่ม width เป็น w-20 เพื่อรองรับตัวเลขที่มากขึ้น
+                placeholder="จำนวน"
               />
               <button
                 onClick={increaseQuantity}
-                disabled={quantity >= 999 || isAdding}
+                // ✅ เอา disabled={quantity >= 999 || isAdding} ออก - ให้เพิ่มได้ไม่จำกัด
+                disabled={isAdding}
                 className="bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 px-3 py-2 transition-colors"
               >
                 <Plus size={16} />
@@ -215,18 +223,18 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
           >
             {isAdding ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                กำลังเพิ่ม...
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>กำลังเพิ่ม...</span>
               </>
             ) : addSuccess ? (
               <>
                 <Check size={16} />
-                เพิ่มแล้ว
+                <span>เพิ่มแล้ว</span>
               </>
             ) : (
               <>
                 <Plus size={16} />
-                เพิ่มเข้า Inventory
+                <span>เพิ่มเข้า Inventory</span>
               </>
             )}
           </button>

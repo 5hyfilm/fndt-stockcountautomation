@@ -168,12 +168,15 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
                 onChange={(e) =>
                   onEditQuantityChange(parseInt(e.target.value) || 0)
                 }
-                className="w-16 text-center border border-gray-300 rounded-lg py-1 text-sm focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-fn-green"
+                className="w-20 text-center border border-gray-300 rounded-lg py-1 text-sm focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-fn-green"
+                // ✅ เอา max limit ออก - ให้แก้ไขได้ไม่จำกัด
                 min="0"
+                placeholder="จำนวน"
               />
               <button
                 onClick={() => onEditQuantityChange(editQuantity + 1)}
                 className="p-1 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-600"
+                // ✅ ไม่มีการจำกัดการเพิ่ม
               >
                 <Plus size={14} />
               </button>
@@ -207,6 +210,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
                 <button
                   onClick={() => onQuickAdjust(1)}
                   className="p-1 rounded-md bg-green-100 hover:bg-green-200 text-green-600 text-xs"
+                  // ✅ ไม่มีการจำกัดการเพิ่ม
                 >
                   <Plus size={12} />
                 </button>

@@ -95,7 +95,47 @@ export interface InventoryError extends Error {
 // Validation rules
 export interface InventoryValidationRules {
   minQuantity: number;
-  maxQuantity: number;
+  maxQuantity?: number; // ✅ เปลี่ยนเป็น optional - ไม่จำกัดจำนวนสูงสุด
   requiredFields: (keyof InventoryItem)[];
   uniqueFields: (keyof InventoryItem)[];
 }
+
+// ✅ Default validation rules - ไม่มี max limit
+export const DEFAULT_VALIDATION_RULES: InventoryValidationRules = {
+  minQuantity: 1,
+  // maxQuantity ไม่ได้กำหนด = ไม่จำกัด
+  requiredFields: ["id", "barcode", "productName", "quantity"],
+  uniqueFields: ["id", "barcode"],
+};
+
+// ✅ Updated validation function
+export const validateInventoryItem = (
+  item: Partial<InventoryItem>,
+  rules: InventoryValidationRules = DEFAULT_VALIDATION_RULES
+): { isValid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+
+  // Check required fields
+  rules.requiredFields.forEach((field) => {
+    if (!item[field]) {
+      errors.push(`${field} is required`);
+    }
+  });
+
+  // Check quantity constraints
+  if (item.quantity !== undefined) {
+    if (item.quantity < rules.minQuantity) {
+      errors.push(`Quantity must be at least ${rules.minQuantity}`);
+    }
+
+    // ✅ เช็ค maxQuantity เฉพาะเมื่อมีการกำหนดไว้
+    if (rules.maxQuantity !== undefined && item.quantity > rules.maxQuantity) {
+      errors.push(`Quantity must not exceed ${rules.maxQuantity}`);
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+};

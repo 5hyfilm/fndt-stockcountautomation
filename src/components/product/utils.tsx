@@ -279,13 +279,15 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
 export const validateQuantity = (
   value: number | string,
   min: number = 1,
-  max: number = 999
+  max?: number // ✅ เปลี่ยนเป็น optional และไม่มี default value
 ): number => {
   const numValue = typeof value === "string" ? parseInt(value, 10) : value;
 
   if (isNaN(numValue) || !isFinite(numValue)) return min;
   if (numValue < min) return min;
-  if (numValue > max) return max;
+
+  // ✅ เอาการเช็ค max limit ออก - ให้กรอกได้ไม่จำกัด
+  if (max !== undefined && numValue > max) return max;
 
   return Math.floor(Math.abs(numValue));
 };
