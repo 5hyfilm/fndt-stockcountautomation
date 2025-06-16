@@ -1,9 +1,10 @@
-// src/components/camera/CameraHeader.tsx
+// Path: /src/components/camera/CameraHeader.tsx
 "use client";
 
 import React from "react";
-import { Camera, CameraOff, RotateCcw, Scan } from "lucide-react";
+import { Camera, CameraOff, RotateCcw, Scan, Flashlight } from "lucide-react";
 
+// 🔥 UPDATED: Interface with flash properties
 interface CameraHeaderProps {
   isStreaming: boolean;
   processingQueue: number;
@@ -13,6 +14,11 @@ interface CameraHeaderProps {
   onCaptureAndProcess: () => void;
   compact?: boolean; // New prop for compact mode
   transparent?: boolean; // New prop for transparent background
+
+  // 🔥 NEW: Flash properties
+  hasFlash: boolean;
+  flashEnabled: boolean;
+  onToggleFlash: () => void;
 }
 
 export const CameraStatusBadge: React.FC<{
@@ -67,6 +73,11 @@ export const CameraHeader: React.FC<CameraHeaderProps> = ({
   onCaptureAndProcess,
   compact = false,
   transparent = false,
+
+  // 🔥 NEW: Flash props
+  hasFlash,
+  flashEnabled,
+  onToggleFlash,
 }) => {
   // Dynamic styles based on props
   const headerClasses = `
@@ -138,6 +149,25 @@ export const CameraHeader: React.FC<CameraHeaderProps> = ({
             title="สลับกล้อง"
           >
             <RotateCcw size={iconSize} />
+          </button>
+        )}
+
+        {/* 🔥 NEW: Flash Toggle Button (only when streaming and device supports flash) */}
+        {isStreaming && hasFlash && (
+          <button
+            onClick={onToggleFlash}
+            className={`${buttonSize} ${
+              flashEnabled
+                ? transparent
+                  ? "bg-yellow-500/80 hover:bg-yellow-600/80 text-white"
+                  : "bg-yellow-500 hover:bg-yellow-600 text-white"
+                : transparent
+                ? "bg-white/20 hover:bg-white/30 text-white"
+                : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+            } rounded-lg transition-colors`}
+            title={flashEnabled ? "ปิดไฟฉาย" : "เปิดไฟฉาย"}
+          >
+            <Flashlight size={iconSize} />
           </button>
         )}
 
