@@ -1,4 +1,4 @@
-// src/components/layout/MobileScannerLayout.tsx - Enhanced with Manual Product Addition
+// src/components/layout/MobileScannerLayout.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -124,86 +124,127 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
             {isStreaming ? (
               <button
                 onClick={handleStopCamera}
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-full font-medium transition-colors"
+                className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-full font-medium transition-colors shadow-lg"
               >
-                หยุดกล้อง
+                หยุดสแกน
               </button>
             ) : (
               <button
                 onClick={handleStartCamera}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full font-medium transition-colors"
+                className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-full font-medium transition-colors shadow-lg"
               >
                 เริ่มสแกน
               </button>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Loading Overlay */}
-      {isLoadingProduct && (
-        <div className="absolute top-4 left-4 right-4 z-40">
-          <div className="bg-blue-100 border border-blue-300 rounded-lg p-4">
-            <div className="flex items-center space-x-3">
-              <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-              <span className="text-blue-900 font-medium">
+        {/* Loading Overlay */}
+        {isLoadingProduct && (
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-20">
+            <div className="bg-white rounded-lg p-4 flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+              <span className="text-gray-700 font-medium">
                 กำลังค้นหาสินค้า...
               </span>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Error Overlay */}
-      {productError && !showProductSlide && (
-        <div className="absolute top-4 left-4 right-4 z-40">
-          <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4">
-            <div className="text-yellow-800 text-sm font-medium">
-              {productError}
-            </div>
+        {/* Product Error */}
+        {productError && !isLoadingProduct && (
+          <div className="absolute top-4 left-4 right-4 bg-red-500/90 backdrop-blur-sm text-white p-3 rounded-lg z-20">
+            <p className="text-sm">{productError}</p>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Success Detection Feedback */}
-      {lastDetectedCode && !productError && !showProductSlide && (
-        <div className="absolute top-4 left-4 right-4 z-40">
-          <div className="bg-green-100 border border-green-300 rounded-lg p-3">
-            <div className="text-green-800 text-sm">
-              ✅ ตรวจพบ: {lastDetectedCode}
-            </div>
+        {/* Barcode Display */}
+        {lastDetectedCode && !product && !isLoadingProduct && (
+          <div className="absolute top-4 left-4 right-4 bg-blue-500/90 backdrop-blur-sm text-white p-3 rounded-lg z-20">
+            <p className="text-sm">
+              Barcode: <span className="font-mono">{lastDetectedCode}</span>
+            </p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Product Slide Panel */}
-      <MobileProductSlide
-        isVisible={showProductSlide}
-        product={product}
-        detectedBarcodeType={detectedBarcodeType || undefined}
-        currentInventoryQuantity={currentInventoryQuantity}
-        onClose={handleCloseProductSlide}
-        onAddToInventory={handleAddToInventory}
-      />
-
-      {/* Product Info with Manual Addition Support */}
-      {!showProductSlide && (
-        <div className="absolute bottom-20 left-4 right-4 z-30">
-          <ProductInfo
-            product={product}
-            barcode={lastDetectedCode}
-            barcodeType={detectedBarcodeType || undefined}
-            isLoading={isLoadingProduct}
-            error={productError}
-            onAddToInventory={handleAddToInventory}
-            onProductAdded={handleProductAdded} // เพิ่มสำหรับ manual addition
-            currentInventoryQuantity={currentInventoryQuantity}
-            employeeContext={employeeContext} // ส่ง employee context
-          />
-        </div>
+      {showProductSlide && product && (
+        <MobileProductSlide
+          product={product}
+          detectedBarcodeType={detectedBarcodeType || "ea"}
+          currentInventoryQuantity={currentInventoryQuantity}
+          onAddToInventory={handleAddToInventory}
+          onClose={handleCloseProductSlide}
+          onContinueScanning={() => {
+            handleCloseProductSlide();
+            handleStartCamera();
+          }}
+          employeeContext={employeeContext}
+        />
       )}
+
+      {/* Manual Product Addition for Not Found */}
+      {showProductSlide &&
+        !product &&
+        lastDetectedCode &&
+        !isLoadingProduct && (
+          <div className="absolute inset-0 bg-black/50 flex items-end z-40">
+            <div className="bg-white w-full rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto">
+              <div className="text-center py-8">
+                <div className="bg-yellow-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                  <svg
+                    className="w-8 h-8 text-yellow-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  ไม่พบสินค้าในระบบ
+                </h3>
+                <p className="text-gray-600 text-sm mb-4">
+                  Barcode: <span className="font-mono">{lastDetectedCode}</span>
+                </p>
+
+                <div className="space-y-3">
+                  <button
+                    onClick={() => {
+                      // Handle manual product addition
+                      if (handleProductAdded && lastDetectedCode) {
+                        // This would open manual product addition flow
+                        console.log(
+                          "Opening manual product addition for:",
+                          lastDetectedCode
+                        );
+                      }
+                    }}
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+                  >
+                    เพิ่มสินค้าใหม่
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      handleCloseProductSlide();
+                      handleStartCamera();
+                    }}
+                    className="w-full bg-gray-500 hover:bg-gray-600 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+                  >
+                    สแกนใหม่
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 };
-
-export default MobileScannerLayout;
