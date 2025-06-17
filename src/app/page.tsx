@@ -1,4 +1,4 @@
-// Path: src/app/page.tsx
+// Path: src/app/page.tsx - Updated with Dual Unit Support
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -14,8 +14,9 @@ import { InventoryDisplay } from "../components/InventoryDisplay";
 import { ErrorDisplay } from "../components/ErrorDisplay";
 import { ExportSuccessToast } from "../components/ExportSuccessToast";
 
-// Import Product type
+// Import Product type and Dual Unit Data
 import { Product } from "../types/product";
+import { DualUnitInputData } from "../hooks/inventory/types"; // ✅ NEW
 
 // Import new sub-components
 import { MobileAppHeader } from "../components/headers/MobileAppHeader";
@@ -121,20 +122,23 @@ export default function BarcodeDetectionPage() {
     console.log("---");
   }, [detectedBarcodeType, product, lastDetectedCode]);
 
-  // Inventory Management with Employee Context
+  // ✅ Updated Inventory Management with Employee Context - Dual Unit Support
   const {
     inventory,
     isLoading: isLoadingInventory,
     error: inventoryError,
     addOrUpdateItem,
+    addOrUpdateItemDualUnit, // ✅ NEW - Dual unit method
     updateItemQuantity,
+    updateItemDualUnit, // ✅ NEW - Dual unit update
     removeItem,
     clearInventory,
     findItemByBarcode,
     searchItems,
     exportInventory,
+    exportInventoryWithDualUnits, // ✅ NEW - Dual unit export
     clearError: clearInventoryError,
-    resetInventoryState, // เพิ่มฟังก์ชัน reset
+    resetInventoryState,
     summary,
   } = useInventoryManager(
     employee
@@ -243,7 +247,7 @@ export default function BarcodeDetectionPage() {
     return item?.quantity || 0;
   }, [lastDetectedCode, findItemByBarcode]);
 
-  // Handle add to inventory with employee info - FIXED: Replace 'any' with 'Product'
+  // ✅ Handle add to inventory (Legacy method)
   const handleAddToInventory = (
     product: Product,
     quantity: number,
@@ -272,22 +276,50 @@ export default function BarcodeDetectionPage() {
     return success;
   };
 
-  // Handle export with employee info
-  const handleExportInventory = () => {
+  // ✅ NEW: Handle add to inventory with dual unit data
+  const handleAddToInventoryDualUnit = (
+    product: Product,
+    dualUnitData: DualUnitInputData
+  ): boolean => {
+    console.log("🔄 handleAddToInventoryDualUnit called with:");
+    console.log("  📦 Product:", product?.name);
+    console.log("  🔢 DualUnitData:", dualUnitData);
+
+    const success = addOrUpdateItemDualUnit(product, dualUnitData);
+
+    if (success && employee) {
+      console.log(
+        `✅ Added dual unit: ${dualUnitData.primaryValue} ${dualUnitData.primaryUnitType} + ${dualUnitData.secondaryValue} ${dualUnitData.secondaryUnitType} of ${product?.name}`
+      );
+    }
+
+    return success;
+  };
+
+  // ✅ Updated: Handle export with dual unit option
+  const handleExportInventory = (useDualUnit: boolean = false) => {
     if (!employee) return false;
 
-    const success = exportInventory();
+    const success = useDualUnit
+      ? exportInventoryWithDualUnits()
+      : exportInventory();
+
     if (success) {
       // Generate filename with employee and branch info
       const now = new Date();
       const dateStr = now.toISOString().split("T")[0];
       const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-");
-      const fileName = `FN_Stock_${branchCode}_${dateStr}_${timeStr}.csv`;
+      const prefix = useDualUnit ? "FN_Stock_DualUnit" : "FN_Stock";
+      const fileName = `${prefix}_${branchCode}_${dateStr}_${timeStr}.csv`;
 
       setExportFileName(fileName);
       setShowExportSuccess(true);
 
-      console.log(`📤 ${employeeName} exported inventory for ${branchName}`);
+      console.log(
+        `📤 ${employeeName} exported ${
+          useDualUnit ? "dual unit " : ""
+        }inventory for ${branchName}`
+      );
     }
     return success;
   };
@@ -355,7 +387,6 @@ export default function BarcodeDetectionPage() {
             captureAndProcess={captureAndProcess}
             drawDetections={drawDetections}
             updateCanvasSize={updateCanvasSize}
-            // ⭐ เพิ่ม torch props
             torchOn={torchOn}
             onToggleTorch={toggleTorch}
             // Product props
@@ -364,13 +395,14 @@ export default function BarcodeDetectionPage() {
             isLoadingProduct={isLoadingProduct}
             productError={productError}
             lastDetectedCode={lastDetectedCode}
-            // Product actions
+            // ✅ Updated Product actions - Dual Unit Support
             onAddToInventory={handleAddToInventory}
+            onAddToInventoryDualUnit={handleAddToInventoryDualUnit} // NEW
             restartForNextScan={restartForNextScan}
             currentInventoryQuantity={currentInventoryQuantity}
             // Layout options
             fullScreen={true}
-            showHeader={false} // ใช้ floating controls แทน header
+            showHeader={false}
           />
         </div>
 
@@ -452,7 +484,6 @@ export default function BarcodeDetectionPage() {
                 captureAndProcess={captureAndProcess}
                 drawDetections={drawDetections}
                 updateCanvasSize={updateCanvasSize}
-                // ⭐ เพิ่ม torch props
                 torchOn={torchOn}
                 onToggleTorch={toggleTorch}
                 // Product props
@@ -461,8 +492,9 @@ export default function BarcodeDetectionPage() {
                 isLoadingProduct={isLoadingProduct}
                 productError={productError}
                 lastDetectedCode={lastDetectedCode}
-                // Product actions
+                // ✅ Updated Product actions - Dual Unit Support
                 onAddToInventory={handleAddToInventory}
+                onAddToInventoryDualUnit={handleAddToInventoryDualUnit} // NEW
                 restartForNextScan={restartForNextScan}
                 currentInventoryQuantity={currentInventoryQuantity}
                 // Layout options
@@ -470,7 +502,7 @@ export default function BarcodeDetectionPage() {
                 showHeader={true}
               />
             ) : (
-              /* Desktop Layout - Side by Side (คงเดิม) */
+              /* Desktop Layout - Side by Side */
               <div className="container mx-auto px-4 py-4 sm:py-6">
                 {/* Error Display - Desktop Only */}
                 {(errors || productError || inventoryError) && (
@@ -505,7 +537,6 @@ export default function BarcodeDetectionPage() {
                       updateCanvasSize={updateCanvasSize}
                       fullScreen={false}
                       showHeader={true}
-                      // ⭐ เพิ่ม torch props
                       torchOn={torchOn}
                       onToggleTorch={toggleTorch}
                     />
@@ -513,27 +544,31 @@ export default function BarcodeDetectionPage() {
 
                   {/* Product Info Sidebar */}
                   <div className="xl:col-span-2 space-y-4">
+                    {/* ✅ Updated ProductInfoSection with Dual Unit Support */}
                     <ProductInfoSection
                       product={product}
-                      barcode={lastDetectedCode}
-                      barcodeType={detectedBarcodeType || undefined}
-                      isLoading={isLoadingProduct}
-                      error={productError || undefined}
+                      detectedBarcodeType={detectedBarcodeType}
+                      isLoadingProduct={isLoadingProduct}
+                      productError={productError}
+                      lastDetectedCode={lastDetectedCode}
                       currentInventoryQuantity={currentInventoryQuantity}
-                      isMobile={false}
                       onAddToInventory={handleAddToInventory}
+                      onAddToInventoryDualUnit={handleAddToInventoryDualUnit} // NEW
+                      onClearError={clearError}
+                      onRestartScan={restartForNextScan}
                     />
                   </div>
                 </div>
 
-                {/* Quick Stats - Desktop Only */}
+                {/* ✅ Updated Quick Stats - Dual Unit Support */}
                 <div className="mt-6">
                   <QuickStats
-                    totalProducts={summary.totalProducts}
                     totalItems={summary.totalItems}
-                    categories={summary.categories}
-                    product={product}
-                    currentInventoryQuantity={currentInventoryQuantity}
+                    totalProducts={summary.totalProducts}
+                    totalCSUnits={summary.totalCSUnits} // NEW
+                    totalDSPUnits={summary.totalDSPUnits} // NEW
+                    totalPieces={summary.totalPieces} // NEW
+                    lastUpdate={summary.lastUpdate}
                   />
                 </div>
               </div>
@@ -560,15 +595,20 @@ export default function BarcodeDetectionPage() {
             )}
 
             <div className="space-y-6">
+              {/* ✅ Updated InventoryDisplay with Dual Unit Support */}
               <InventoryDisplay
                 inventory={inventory}
                 summary={summary}
                 isLoading={isLoadingInventory}
                 error={inventoryError}
                 onUpdateQuantity={updateItemQuantity}
+                onUpdateDualUnit={updateItemDualUnit} // NEW
                 onRemoveItem={removeItem}
                 onClearInventory={clearInventory}
-                onExportInventory={handleExportInventory}
+                onExportInventory={() => handleExportInventory(false)} // Legacy export
+                onExportInventoryWithDualUnits={() =>
+                  handleExportInventory(true)
+                } // NEW - Dual unit export
                 onClearError={clearInventoryError}
                 onSearch={searchItems}
               />

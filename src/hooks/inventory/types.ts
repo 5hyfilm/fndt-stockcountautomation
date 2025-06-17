@@ -1,4 +1,4 @@
-// src/hooks/inventory/types.ts - Updated with Dual Unit Support
+// src/hooks/inventory/types.ts - Complete Updated with Dual Unit Support
 import { Product } from "../../types/product";
 
 // Interface สำหรับข้อมูล inventory item (Updated)
@@ -83,7 +83,7 @@ export interface ExportConfig {
   includeConvertedQuantity: boolean; // รวม column quantity รวม
 }
 
-// ✅ Updated Hook return type
+// ✅ Updated Hook return type - COMPLETE
 export interface UseInventoryManagerReturn {
   // State
   inventory: InventoryItem[];

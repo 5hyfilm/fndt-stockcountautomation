@@ -16,6 +16,8 @@ const DEFAULT_EXPORT_CONFIG: ExportConfig = {
   includeStats: false, // เปลี่ยนเป็น false เพื่อให้ไฟล์สั้นลง
   csvDelimiter: ",",
   dateFormat: "th-TH",
+  separateUnitColumns: true,
+  includeConvertedQuantity: true,
 };
 
 export const useInventoryExport = ({
@@ -154,20 +156,125 @@ export const useInventoryExport = ({
     [inventory, employeeContext, escapeCsvField]
   );
 
+  // ✅ NEW: Generate Dual Unit CSV content with detailed breakdown
+  const generateDualUnitCSVContent = useCallback(
+    (config: ExportConfig = DEFAULT_EXPORT_CONFIG): string => {
+      const now = new Date();
+      const thaiDate = now.toLocaleDateString(config.dateFormat, {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+      const thaiTime = now.toLocaleTimeString(config.dateFormat, {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+
+      const branchCode = employeeContext?.branchCode || "XXX";
+      const branchName = employeeContext?.branchName || "ไม่ระบุสาขา";
+
+      const csvRows: string[] = [];
+
+      // Header section
+      if (config.includeTimestamp) {
+        csvRows.push(
+          escapeCsvField(
+            `สถานะคลังล่าสุด (Dual Unit) ${thaiDate} ${thaiTime} สำหรับ ${branchCode} - ${branchName}`
+          )
+        );
+      }
+
+      if (config.includeEmployeeInfo && employeeContext) {
+        csvRows.push(
+          `ตรวจนับโดย,${escapeCsvField(employeeContext.employeeName)}`
+        );
+      }
+
+      // เว้น 1 row
+      csvRows.push("");
+
+      // ✅ Detailed Dual Unit Column headers
+      const headers = [
+        "ลำดับ",
+        "บาร์โค้ด",
+        "ชื่อสินค้า",
+        "แบรนด์",
+        "หมวดหมู่",
+        "ขนาด",
+        "นับจริง (cs)",
+        "ประเภทหน่วย cs",
+        "นับจริง (ชิ้น)",
+        "ประเภทหน่วย ชิ้น",
+        ...(config.includeConvertedQuantity ? ["จำนวนรวม (EA)"] : []),
+        "ประเภทบาร์โค้ดที่สแกน",
+        "วันที่อัพเดต",
+        ...(config.includeEmployeeInfo ? ["ผู้เพิ่ม", "รหัสสาขา"] : []),
+      ];
+
+      csvRows.push(
+        headers
+          .map((header) => escapeCsvField(header))
+          .join(config.csvDelimiter)
+      );
+
+      // Data rows with detailed dual unit format (no grouping)
+      inventory.forEach((item, index) => {
+        const row = [
+          escapeCsvField(index + 1), // ลำดับ
+          escapeCsvField(item.barcode), // บาร์โค้ด
+          escapeCsvField(item.productName), // ชื่อสินค้า
+          escapeCsvField(item.brand), // แบรนด์
+          escapeCsvField(item.category), // หมวดหมู่
+          escapeCsvField(item.size || ""), // ขนาด
+          escapeCsvField(item.csCount || 0), // นับจริง (cs)
+          escapeCsvField(item.csUnitType || ""), // ประเภทหน่วย cs
+          escapeCsvField(item.pieceCount || 0), // นับจริง (ชิ้น)
+          escapeCsvField(item.pieceUnitType || ""), // ประเภทหน่วย ชิ้น
+          ...(config.includeConvertedQuantity
+            ? [escapeCsvField(item.quantity)]
+            : []), // จำนวนรวม (EA)
+          escapeCsvField(item.barcodeType || "ea"), // ประเภทบาร์โค้ดที่สแกน
+          escapeCsvField(
+            new Date(item.lastUpdated).toLocaleDateString(config.dateFormat)
+          ), // วันที่อัพเดต
+          ...(config.includeEmployeeInfo
+            ? [
+                escapeCsvField(item.addedBy || ""),
+                escapeCsvField(item.branchCode || ""),
+              ]
+            : []),
+        ];
+
+        csvRows.push(row.join(config.csvDelimiter));
+      });
+
+      return csvRows.join("\n");
+    },
+    [inventory, employeeContext, escapeCsvField]
+  );
+
   // Generate filename
-  const generateFileName = useCallback((): string => {
-    const now = new Date();
-    const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
-    const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-"); // HH-MM-SS
+  const generateFileName = useCallback(
+    (suffix?: string): string => {
+      const now = new Date();
+      const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
+      const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-"); // HH-MM-SS
 
-    let fileName = `inventory_${dateStr}_${timeStr}`;
+      let fileName = `inventory_${dateStr}_${timeStr}`;
 
-    if (employeeContext) {
-      fileName += `_${employeeContext.branchCode}`;
-    }
+      if (suffix) {
+        fileName += `_${suffix}`;
+      }
 
-    return `${fileName}.csv`;
-  }, [employeeContext]);
+      if (employeeContext) {
+        fileName += `_${employeeContext.branchCode}`;
+      }
+
+      return `${fileName}.csv`;
+    },
+    [employeeContext]
+  );
 
   // Download CSV file
   const downloadCSV = useCallback(
@@ -243,6 +350,48 @@ export const useInventoryExport = ({
     ]
   );
 
+  // ✅ NEW: Export inventory with dual unit format
+  const exportInventoryWithDualUnits = useCallback(
+    (config: ExportConfig = DEFAULT_EXPORT_CONFIG): boolean => {
+      try {
+        if (inventory.length === 0) {
+          setError("ไม่มีข้อมูลสินค้าให้ส่งออก");
+          return false;
+        }
+
+        setError(null);
+
+        const csvContent = generateDualUnitCSVContent(config);
+        const fileName = generateFileName("dual_unit");
+
+        const success = downloadCSV(csvContent, fileName);
+
+        if (success) {
+          console.log(
+            "📤 Exported dual unit inventory data as CSV:",
+            inventory.length,
+            "items by",
+            employeeContext?.employeeName
+          );
+        }
+
+        return success;
+      } catch (error: unknown) {
+        console.error("❌ Error exporting dual unit inventory:", error);
+        setError("เกิดข้อผิดพลาดในการส่งออกข้อมูลแบบ dual unit");
+        return false;
+      }
+    },
+    [
+      inventory,
+      employeeContext,
+      generateDualUnitCSVContent,
+      generateFileName,
+      downloadCSV,
+      setError,
+    ]
+  );
+
   // Export as JSON (for backup purposes)
   const exportAsJSON = useCallback((): boolean => {
     try {
@@ -304,10 +453,12 @@ export const useInventoryExport = ({
   return {
     // Main export functions
     exportInventory,
+    exportInventoryWithDualUnits, // ✅ NEW
     exportAsJSON,
 
     // Utility functions
     generateCSVContent,
+    generateDualUnitCSVContent, // ✅ NEW
     generateFileName,
     previewExportData,
 

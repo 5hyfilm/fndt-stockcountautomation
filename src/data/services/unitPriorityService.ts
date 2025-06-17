@@ -1,4 +1,4 @@
-// src/data/services/unitPriorityService.ts
+// src/data/services/unitPriorityService.ts - Complete Implementation
 import { ProductWithMultipleBarcodes } from "../types/csvTypes";
 
 // ประเภทหน่วยตามลำดับ priority
@@ -94,6 +94,14 @@ export const getNextAvailableUnit = (
 
 /**
  * สร้างข้อมูลสำหรับฟอร์มกรอกข้อมูล
+ *
+ * ตาม Logic ที่ต้องการ:
+ * - ถ้ามี CS + DSP → แสดงให้กรอก CS และ DSP
+ * - ถ้ามี CS + EA (ไม่มี DSP) → แสดงให้กรอก CS และ EA
+ * - ถ้ามีแค่ CS → แสดงให้กรอก CS และ "เศษ"
+ * - ถ้ามี DSP + EA → แสดงให้กรอก DSP และ EA
+ * - ถ้ามีแค่ DSP → แสดงให้กรอก DSP และ "เศษ"
+ * - ถ้ามีแค่ EA → แสดงให้กรอก EA อย่างเดียว
  */
 export const createDualUnitInput = (
   scannedUnit: UnitType,
@@ -110,11 +118,21 @@ export const createDualUnitInput = (
   if (nextUnit) {
     // มีหน่วยถัดไป → ใช้หน่วยนั้น
     secondaryUnit = UNIT_CONFIG[nextUnit];
+    console.log(`✅ Found next unit: ${scannedUnit} → ${nextUnit}`);
   } else {
     // ไม่มีหน่วยถัดไป → ให้กรอก "เศษ"
     secondaryUnit = FRACTIONAL_UNIT;
     allowFractional = true;
+    console.log(`⚠️ No next unit found for ${scannedUnit}, using fractional`);
   }
+
+  console.log(`📋 Dual Unit Config Created:`, {
+    scannedUnit,
+    availableUnits,
+    primaryUnit: primaryUnit.shortLabel,
+    secondaryUnit: secondaryUnit.shortLabel,
+    allowFractional,
+  });
 
   return {
     primaryUnit,
@@ -190,4 +208,68 @@ export const validateDualUnitInput = (
   }
 
   return { isValid: true };
+};
+
+/**
+ * ตรวจสอบว่าสินค้ามีหน่วยไหนบ้าง และควรแสดงฟอร์มแบบไหน
+ */
+export const analyzeProductUnits = (
+  product: ProductWithMultipleBarcodes
+): {
+  hasCS: boolean;
+  hasDSP: boolean;
+  hasEA: boolean;
+  availableUnits: UnitType[];
+  recommendedInputType: "single" | "dual";
+} => {
+  const hasCS = !!product.barcodes.cs;
+  const hasDSP = !!product.barcodes.dsp;
+  const hasEA = !!product.barcodes.ea;
+  const availableUnits = getAvailableUnits(product);
+
+  // ถ้ามีแค่ EA → single input
+  const recommendedInputType =
+    availableUnits.length === 1 && hasEA ? "single" : "dual";
+
+  return {
+    hasCS,
+    hasDSP,
+    hasEA,
+    availableUnits,
+    recommendedInputType,
+  };
+};
+
+/**
+ * สร้างข้อความอธิบายการทำงานของระบบ
+ */
+export const getInputModeDescription = (
+  scannedUnit: UnitType,
+  product: ProductWithMultipleBarcodes
+): string => {
+  const analysis = analyzeProductUnits(product);
+
+  if (scannedUnit === "ea") {
+    return "สแกน EA: กรอกจำนวนชิ้นที่ต้องการ";
+  }
+
+  if (scannedUnit === "cs") {
+    if (analysis.hasDSP) {
+      return "สแกน CS: กรอกจำนวนลัง + แพ็ค";
+    } else if (analysis.hasEA) {
+      return "สแกน CS: กรอกจำนวนลัง + ชิ้น";
+    } else {
+      return "สแกน CS: กรอกจำนวนลัง + เศษ";
+    }
+  }
+
+  if (scannedUnit === "dsp") {
+    if (analysis.hasEA) {
+      return "สแกน DSP: กรอกจำนวนแพ็ค + ชิ้น";
+    } else {
+      return "สแกน DSP: กรอกจำนวนแพ็ค + เศษ";
+    }
+  }
+
+  return "กรอกจำนวนตามหน่วยที่สแกน";
 };

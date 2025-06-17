@@ -1,4 +1,4 @@
-// src/components/product/InventoryAddSection.tsx - Updated with Dual Unit Support
+// src/components/product/InventoryAddSection.tsx - Complete Implementation with Dual Unit Support
 
 "use client";
 
@@ -11,6 +11,7 @@ import {
   Package2,
   Box,
   AlertCircle,
+  ShoppingCart,
 } from "lucide-react";
 import { Product } from "../../types/product";
 import { ProductWithMultipleBarcodes } from "../../data/types/csvTypes";
@@ -266,72 +267,56 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
 
   // ✅ Check if can add
   const canAdd = isSingleUnit
-    ? singleInput !== "" && parseInt(singleInput) >= 1
+    ? singleQuantity > 0
     : primaryValue > 0 || secondaryValue > 0;
 
   return (
-    <div className="space-y-4">
-      {/* Success Message */}
-      {addSuccess && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-          <div className="bg-green-100 rounded-full p-1">
-            <Check className="text-green-600" size={16} />
-          </div>
-          <div>
-            <p className="text-green-800 font-medium">
-              เพิ่มใน Inventory สำเร็จ!
-            </p>
-            <p className="text-green-600 text-sm">
-              {isSingleUnit
-                ? `เพิ่ม ${product.name} จำนวน ${singleQuantity} ${
-                    product.unit || "ชิ้น"
-                  }`
-                : `เพิ่ม ${product.name} จำนวน ${primaryValue} ${dualUnitConfig?.primaryUnit.shortLabel} + ${secondaryValue} ${dualUnitConfig?.secondaryUnit.shortLabel}`}
-            </p>
-          </div>
+    <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="bg-fn-green/10 p-2 rounded-lg">
+          <Archive className="text-fn-green" size={24} />
         </div>
-      )}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            เพิ่มใน Inventory
+          </h3>
+          <p className="text-sm text-gray-600">
+            {isSingleUnit
+              ? "กรอกจำนวนที่ต้องการเพิ่ม"
+              : dualUnitConfig
+              ? createInputDescription(dualUnitConfig)
+              : "กรอกจำนวนที่ต้องการเพิ่ม"}
+          </p>
+        </div>
+      </div>
 
-      {/* Validation Error */}
+      {/* Validation Error Display */}
       {validationError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
-          <AlertCircle className="text-red-500" size={16} />
-          <span className="text-red-700 text-sm">{validationError}</span>
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+          <AlertCircle className="text-red-500 mt-0.5" size={16} />
+          <div className="text-sm text-red-700">{validationError}</div>
         </div>
       )}
 
-      {/* Add to Inventory Section */}
-      <div className="bg-gradient-to-r from-fn-green/10 to-fn-red/10 border border-fn-green/30 rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="bg-fn-green/20 p-2 rounded-lg">
-            <Archive size={16} className="fn-green" />
-          </div>
-          <div>
-            <span className="text-lg font-semibold text-gray-800">
-              เพิ่มเข้า Inventory
-            </span>
-            {!isSingleUnit && dualUnitConfig && (
-              <p className="text-sm text-gray-600 mt-1">
-                {createInputDescription(dualUnitConfig)}
-              </p>
-            )}
-          </div>
-        </div>
-
+      {/* Input Section */}
+      <div className="mb-6">
         {isSingleUnit ? (
           // ✅ Single Unit Input (EA)
-          <div className="flex items-center gap-4">
+          <div className="space-y-4">
             <div className="flex items-center gap-4">
               {/* ✅ ส่วนชื่อหน่วย + barcode */}
               <div className="flex items-center gap-2 min-w-[240px]">
-                <Package2 className="text-blue-600" size={16} />
+                <ShoppingCart className="text-green-600" size={16} />
                 <div>
                   <div className="text-sm font-medium text-gray-700">
-                    จำนวน ({product.unit || "ชิ้น"}):
+                    จำนวน (ชิ้น):
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    หน่วยผลิตภัณฑ์ต่อชิ้น
                   </div>
                   {primaryBarcode && (
-                    <div className="text-xs text-blue-600 font-mono mt-1">
-                      {primaryBarcode}
+                    <div className="text-xs text-green-600 font-mono mt-1 bg-green-50 px-2 py-1 rounded">
+                      ✓ {primaryBarcode}
                     </div>
                   )}
                 </div>
@@ -354,7 +339,7 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
                   min="1"
                   disabled={isAdding}
                   className="w-20 text-center py-2 border-none outline-none bg-white text-gray-900 font-medium disabled:bg-gray-50"
-                  placeholder="จำนวน"
+                  placeholder="1"
                 />
                 <button
                   onClick={() => adjustSingleQuantity(1)}
@@ -366,10 +351,11 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
               </div>
             </div>
 
+            {/* Add Button for Single Unit */}
             <button
               onClick={handleAddToInventory}
-              disabled={isAdding || addSuccess || !canAdd}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 font-medium shadow-lg transform ml-auto border ${
+              disabled={isAdding || !canAdd}
+              className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
                 addSuccess
                   ? "bg-green-100 text-green-700 border-green-200 cursor-not-allowed"
                   : isAdding || !canAdd
@@ -456,11 +442,11 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
                           ○ {secondaryBarcode}
                         </div>
                       ) : dualUnitConfig.allowFractional ? (
-                        <div className="text-xs text-orange-500 mt-1 bg-orange-50 px-2 py-1 rounded">
-                          ※ เศษ (ไม่มี barcode)
+                        <div className="text-xs text-amber-600 font-mono mt-1 bg-amber-50 px-2 py-1 rounded">
+                          ⚠ ไม่มี barcode (เศษ)
                         </div>
                       ) : (
-                        <div className="text-xs text-gray-400 mt-1 bg-gray-50 px-2 py-1 rounded">
+                        <div className="text-xs text-gray-400 font-mono mt-1 bg-gray-50 px-2 py-1 rounded">
                           - ไม่มี barcode
                         </div>
                       )}
@@ -498,26 +484,38 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
                   </div>
                 </div>
 
-                {/* Add Button */}
-                <div className="flex justify-end pt-2">
-                  <button
-                    onClick={handleAddToInventory}
-                    disabled={isAdding || addSuccess || !canAdd}
-                    className={`px-6 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 font-medium shadow-lg transform border ${
-                      addSuccess
-                        ? "bg-green-100 text-green-700 border-green-200 cursor-not-allowed"
-                        : isAdding || !canAdd
-                        ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                        : "bg-fn-green text-white border-fn-green hover:bg-fn-green/90 hover:scale-105 active:scale-95"
-                    }`}
-                  >
-                    {isAdding
-                      ? "กำลังเพิ่ม..."
-                      : addSuccess
-                      ? "เพิ่มแล้ว ✓"
-                      : "เพิ่มใน Inventory"}
-                  </button>
-                </div>
+                {/* Summary Display */}
+                {(primaryValue > 0 || secondaryValue > 0) && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="text-sm text-blue-800">
+                      <strong>สรุป:</strong>{" "}
+                      {primaryValue > 0 &&
+                        `${primaryValue} ${dualUnitConfig.primaryUnit.shortLabel}`}
+                      {primaryValue > 0 && secondaryValue > 0 && " + "}
+                      {secondaryValue > 0 &&
+                        `${secondaryValue} ${dualUnitConfig.secondaryUnit.shortLabel}`}
+                    </div>
+                  </div>
+                )}
+
+                {/* Add Button for Dual Unit */}
+                <button
+                  onClick={handleAddToInventory}
+                  disabled={isAdding || !canAdd}
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+                    addSuccess
+                      ? "bg-green-100 text-green-700 border-green-200 cursor-not-allowed"
+                      : isAdding || !canAdd
+                      ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                      : "bg-fn-green text-white border-fn-green hover:bg-fn-green/90 hover:scale-105 active:scale-95"
+                  }`}
+                >
+                  {isAdding
+                    ? "กำลังเพิ่ม..."
+                    : addSuccess
+                    ? "เพิ่มแล้ว ✓"
+                    : "เพิ่มใน Inventory"}
+                </button>
               </>
             )}
           </div>

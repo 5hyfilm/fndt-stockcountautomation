@@ -1,4 +1,4 @@
-// ./src/hooks/inventory/useInventoryManager.tsx
+// src/hooks/inventory/useInventoryManager.tsx - Updated with Dual Unit Support
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -8,31 +8,38 @@ import { useInventorySummary } from "./useInventorySummary";
 import { useInventoryExport } from "./useInventoryExport";
 import {
   InventoryItem,
+  InventorySummary,
   EmployeeContext,
   UseInventoryManagerReturn,
+  DualUnitInputData,
 } from "./types";
+import { Product } from "../../types/product";
 
 export const useInventoryManager = (
   employeeContext?: EmployeeContext
 ): UseInventoryManagerReturn => {
   // State
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Sub-hooks
-  const storage = useInventoryStorage();
-  const { summary } = useInventorySummary({ inventory });
+  // Storage operations
+  const { loadInventory: loadFromStorage, saveInventory } = useInventoryStorage(
+    "inventory_v2",
+    employeeContext
+  );
 
-  // Destructure storage properties to avoid dependency array warnings
+  // Operations with dual unit support
   const {
-    loadInventory,
-    saveInventory,
-    isLoading,
-    clearError: clearStorageError,
-    clearStorage,
-  } = storage;
-
-  const operations = useInventoryOperations({
+    addOrUpdateItem,
+    addOrUpdateItemDualUnit, // ✅ NEW
+    updateItemQuantity,
+    updateItemDualUnit, // ✅ NEW
+    removeItem,
+    clearInventory,
+    findItemByBarcode,
+    searchItems,
+  } = useInventoryOperations({
     inventory,
     setInventory,
     saveInventory,
@@ -40,100 +47,100 @@ export const useInventoryManager = (
     setError,
   });
 
-  const exportHook = useInventoryExport({
+  // Summary calculations
+  const summary: InventorySummary = useInventorySummary(inventory);
+
+  // Export functionality
+  const { exportInventory, exportInventoryWithDualUnits } = useInventoryExport({
     inventory,
+    summary,
     employeeContext,
     setError,
   });
 
-  // Load inventory on mount
-  useEffect(() => {
-    const loadedInventory = loadInventory();
-    setInventory(loadedInventory);
-  }, [loadInventory]);
-
-  // Auto-save inventory when it changes (debounced)
-  useEffect(() => {
-    if (!isLoading && inventory.length > 0) {
-      const timeoutId = setTimeout(() => {
-        saveInventory(inventory);
-      }, 1000); // Auto-save after 1 second of no changes
-
-      return () => clearTimeout(timeoutId);
+  // Load initial inventory data
+  const loadInventory = useCallback(() => {
+    setIsLoading(true);
+    try {
+      const savedInventory = loadFromStorage();
+      console.log("📋 Loaded inventory items:", savedInventory.length);
+      setInventory(savedInventory);
+      setError(null);
+    } catch (error) {
+      console.error("❌ Failed to load inventory:", error);
+      setError("ไม่สามารถโหลดข้อมูล inventory ได้");
+      setInventory([]);
+    } finally {
+      setIsLoading(false);
     }
-  }, [inventory, isLoading, saveInventory]);
+  }, [loadFromStorage]);
 
-  // Clear error (combining all error sources)
-  const clearError = () => {
-    setError(null);
-    clearStorageError();
-  };
+  // Load inventory on mount and when employee context changes
+  useEffect(() => {
+    loadInventory();
+  }, [loadInventory, employeeContext?.branchCode]);
 
-  // Enhanced load inventory that merges storage and local state
-  const loadInventoryData = () => {
-    const loadedData = loadInventory();
-    setInventory(loadedData);
-  };
-
-  // Reset all inventory state (for logout)
+  // Reset inventory state
   const resetInventoryState = useCallback(() => {
     try {
-      console.log("🔄 Resetting inventory state...");
-
-      // Clear inventory state
       setInventory([]);
-
-      // Clear any errors
       setError(null);
-      clearStorageError();
-
-      // Clear storage
-      clearStorage();
-
-      console.log("✅ Inventory state reset successfully");
+      setIsLoading(false);
+      saveInventory([]);
+      console.log("🔄 Reset inventory state");
       return true;
     } catch (error) {
-      console.error("❌ Error resetting inventory state:", error);
-
-      // Force reset even if there's an error
-      setInventory([]);
-      setError(null);
-
+      console.error("❌ Failed to reset inventory state:", error);
+      setError("ไม่สามารถรีเซ็ตข้อมูลได้");
       return false;
     }
-  }, [clearStorageError, clearStorage]);
+  }, [saveInventory]);
+
+  // Clear error
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  // Debug logging
+  useEffect(() => {
+    if (inventory.length > 0) {
+      console.log("📊 Current inventory state:", {
+        itemCount: inventory.length,
+        totalQuantity: summary.totalPieces,
+        totalCSUnits: summary.totalCSUnits,
+        totalDSPUnits: summary.totalDSPUnits,
+        employee: employeeContext?.employeeName,
+        branch: employeeContext?.branchName,
+      });
+    }
+  }, [inventory.length, summary, employeeContext]);
 
   return {
     // State
     inventory,
     isLoading,
-    error: error || storage.error,
+    error,
     summary,
 
-    // CRUD Operations (from operations hook)
-    addOrUpdateItem: operations.addOrUpdateItem,
-    updateItemQuantity: operations.updateItemQuantity,
-    removeItem: operations.removeItem,
-    clearInventory: operations.clearInventory,
+    // ✅ CRUD Actions - Both legacy and dual unit
+    addOrUpdateItem,
+    addOrUpdateItemDualUnit, // NEW - Dual unit support
+    updateItemQuantity,
+    updateItemDualUnit, // NEW - Dual unit update
+    removeItem,
+    clearInventory,
 
-    // Search and utilities (from operations hook)
-    findItemByBarcode: operations.findItemByBarcode,
-    searchItems: operations.searchItems,
+    // Search & Utilities
+    findItemByBarcode,
+    searchItems,
 
-    // Export functionality (from export hook)
-    exportInventory: exportHook.exportInventory,
+    // Export functionality
+    exportInventory,
+    exportInventoryWithDualUnits, // NEW - Dual unit export
 
     // Error handling and utilities
     clearError,
-    loadInventory: loadInventoryData,
-    resetInventoryState, // เพิ่มฟังก์ชัน reset สำหรับ logout
+    loadInventory,
+    resetInventoryState,
   };
 };
-
-// Re-export types for convenience
-export type {
-  InventoryItem,
-  InventorySummary,
-  EmployeeContext,
-  UseInventoryManagerReturn,
-} from "./types";
