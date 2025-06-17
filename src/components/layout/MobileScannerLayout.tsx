@@ -74,8 +74,6 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
   product,
   detectedBarcodeType,
   isLoadingProduct,
-  productError,
-  lastDetectedCode,
 
   // Product actions
   onAddToInventory,
