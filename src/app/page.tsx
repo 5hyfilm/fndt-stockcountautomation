@@ -1,4 +1,4 @@
-// src/app/page.tsx
+// Path: src/app/page.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -102,6 +102,8 @@ export default function BarcodeDetectionPage() {
     updateCanvasSize,
     clearError,
     restartForNextScan,
+    torchOn,
+    toggleTorch,
   } = useBarcodeDetection();
 
   useEffect(() => {
@@ -353,6 +355,9 @@ export default function BarcodeDetectionPage() {
             captureAndProcess={captureAndProcess}
             drawDetections={drawDetections}
             updateCanvasSize={updateCanvasSize}
+            // ⭐ เพิ่ม torch props
+            torchOn={torchOn}
+            onToggleTorch={toggleTorch}
             // Product props
             product={product}
             detectedBarcodeType={detectedBarcodeType}
@@ -365,7 +370,7 @@ export default function BarcodeDetectionPage() {
             currentInventoryQuantity={currentInventoryQuantity}
             // Layout options
             fullScreen={true}
-            showHeader={false} // ไม่แสดง header ของกล้อง เพราะมี app header แล้ว
+            showHeader={false} // ใช้ floating controls แทน header
           />
         </div>
 
@@ -447,6 +452,9 @@ export default function BarcodeDetectionPage() {
                 captureAndProcess={captureAndProcess}
                 drawDetections={drawDetections}
                 updateCanvasSize={updateCanvasSize}
+                // ⭐ เพิ่ม torch props
+                torchOn={torchOn}
+                onToggleTorch={toggleTorch}
                 // Product props
                 product={product}
                 detectedBarcodeType={detectedBarcodeType}
@@ -497,6 +505,9 @@ export default function BarcodeDetectionPage() {
                       updateCanvasSize={updateCanvasSize}
                       fullScreen={false}
                       showHeader={true}
+                      // ⭐ เพิ่ม torch props
+                      torchOn={torchOn}
+                      onToggleTorch={toggleTorch}
                     />
                   </div>
 

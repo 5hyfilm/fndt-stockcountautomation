@@ -1,8 +1,8 @@
-// src/components/camera/CameraHeader.tsx
+// Path: src/components/camera/CameraHeader.tsx
 "use client";
 
 import React from "react";
-import { Camera, CameraOff, RotateCcw, Scan } from "lucide-react";
+import { Camera, CameraOff, RotateCcw, Scan, Flashlight } from "lucide-react";
 
 interface CameraHeaderProps {
   isStreaming: boolean;
@@ -13,6 +13,10 @@ interface CameraHeaderProps {
   onCaptureAndProcess: () => void;
   compact?: boolean; // New prop for compact mode
   transparent?: boolean; // New prop for transparent background
+
+  // ⭐ เพิ่ม torch props
+  torchOn?: boolean;
+  onToggleTorch?: () => void;
 }
 
 export const CameraStatusBadge: React.FC<{
@@ -67,6 +71,10 @@ export const CameraHeader: React.FC<CameraHeaderProps> = ({
   onCaptureAndProcess,
   compact = false,
   transparent = false,
+
+  // ⭐ รับ torch props
+  torchOn = false,
+  onToggleTorch,
 }) => {
   // Dynamic styles based on props
   const headerClasses = `
@@ -105,9 +113,9 @@ export const CameraHeader: React.FC<CameraHeaderProps> = ({
             onClick={onStopCamera}
             className={`${buttonSize} ${
               transparent
-                ? "bg-white/20 hover:bg-white/30 text-white"
-                : "bg-red-100 hover:bg-red-200 text-red-700"
-            } rounded-lg transition-colors`}
+                ? "bg-white/20 hover:bg-white/30 text-white border border-white/30"
+                : "bg-red-50 hover:bg-red-100 text-red-600 border border-red-200"
+            } rounded-lg transition-colors flex items-center justify-center`}
             title="หยุดกล้อง"
           >
             <CameraOff size={iconSize} />
@@ -117,41 +125,60 @@ export const CameraHeader: React.FC<CameraHeaderProps> = ({
             onClick={onStartCamera}
             className={`${buttonSize} ${
               transparent
-                ? "bg-white/20 hover:bg-white/30 text-white"
-                : "bg-green-100 hover:bg-green-200 text-green-700"
-            } rounded-lg transition-colors`}
+                ? "bg-white/20 hover:bg-white/30 text-white border border-white/30"
+                : "bg-green-50 hover:bg-green-100 text-green-600 border border-green-200"
+            } rounded-lg transition-colors flex items-center justify-center`}
             title="เปิดกล้อง"
           >
             <Camera size={iconSize} />
           </button>
         )}
 
-        {/* Switch Camera (only when streaming) */}
+        {/* Switch Camera - only show when streaming */}
         {isStreaming && (
           <button
             onClick={onSwitchCamera}
             className={`${buttonSize} ${
               transparent
-                ? "bg-white/20 hover:bg-white/30 text-white"
-                : "bg-blue-100 hover:bg-blue-200 text-blue-700"
-            } rounded-lg transition-colors`}
+                ? "bg-white/20 hover:bg-white/30 text-white border border-white/30"
+                : "bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200"
+            } rounded-lg transition-colors flex items-center justify-center`}
             title="สลับกล้อง"
           >
             <RotateCcw size={iconSize} />
           </button>
         )}
 
-        {/* Manual Capture (only when streaming) */}
+        {/* ⭐ Torch Button - only show when streaming and torch function available */}
+        {isStreaming && onToggleTorch && (
+          <button
+            onClick={onToggleTorch}
+            className={`${buttonSize} ${
+              torchOn
+                ? transparent
+                  ? "bg-yellow-500/80 hover:bg-yellow-500 text-white border border-yellow-400"
+                  : "bg-yellow-500 hover:bg-yellow-600 text-white border border-yellow-500"
+                : transparent
+                ? "bg-white/20 hover:bg-white/30 text-white border border-white/30"
+                : "bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200"
+            } rounded-lg transition-colors flex items-center justify-center`}
+            title={torchOn ? "ปิดไฟฉาย" : "เปิดไฟฉาย"}
+          >
+            <Flashlight size={iconSize} />
+          </button>
+        )}
+
+        {/* Capture Button - only show when streaming */}
         {isStreaming && (
           <button
             onClick={onCaptureAndProcess}
             disabled={processingQueue > 0}
             className={`${buttonSize} ${
               transparent
-                ? "bg-white/20 hover:bg-white/30 text-white disabled:bg-white/10"
-                : "bg-purple-100 hover:bg-purple-200 text-purple-700 disabled:bg-gray-100 disabled:text-gray-400"
-            } rounded-lg transition-colors`}
-            title="สแกนด้วยตนเอง"
+                ? "bg-green-500/80 hover:bg-green-500 text-white border border-green-400 disabled:bg-white/10 disabled:text-white/50"
+                : "bg-green-50 hover:bg-green-100 text-green-600 border border-green-200 disabled:bg-gray-50 disabled:text-gray-400"
+            } rounded-lg transition-colors flex items-center justify-center disabled:cursor-not-allowed`}
+            title="สแกนบาร์โค้ด"
           >
             <Scan size={iconSize} />
           </button>

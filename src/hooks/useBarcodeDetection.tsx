@@ -1,4 +1,4 @@
-// ./src/hooks/useBarcodeDetection.tsx
+// Path: ./src/hooks/useBarcodeDetection.tsx
 "use client";
 
 import { useCallback } from "react";
@@ -97,6 +97,10 @@ export const useBarcodeDetection = () => {
     startCamera: camera.startCamera,
     stopCamera,
     switchCamera: camera.switchCamera,
+
+    // ⭐ เพิ่ม torch functionality จาก camera hook
+    torchOn: camera.torchOn,
+    toggleTorch: camera.toggleTorch,
 
     // Detection state and actions
     detections: detection.detections,

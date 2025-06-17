@@ -1,4 +1,4 @@
-// ./src/hooks/camera/useCameraControl.tsx
+// Path: ./src/hooks/camera/useCameraControl.tsx
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
@@ -47,11 +47,32 @@ export const useCameraControl = () => {
   // State
   const [isStreaming, setIsStreaming] = useState(false);
   const [errors, setErrors] = useState<string | null>(null);
+  const [torchOn, setTorchOn] = useState(false); // ⭐ เพิ่ม torch state
   const [videoConstraints, setVideoConstraints] = useState<VideoConstraints>({
     width: { ideal: 1280 },
     height: { ideal: 720 },
     facingMode: "environment",
   });
+
+  // ⭐ Toggle torch function
+  const toggleTorch = useCallback(() => {
+    if (!streamRef.current) return;
+
+    try {
+      const track = streamRef.current.getVideoTracks()[0];
+      if (track) {
+        const newTorchState = !torchOn;
+        track.applyConstraints({
+          advanced: [{ torch: newTorchState }],
+        });
+        setTorchOn(newTorchState);
+      }
+    } catch (error) {
+      console.error("Error toggling torch:", error);
+      // Reset torch state if failed
+      setTorchOn(false);
+    }
+  }, [torchOn]);
 
   // Start camera
   const startCamera = useCallback(async () => {
@@ -103,6 +124,7 @@ export const useCameraControl = () => {
     }
 
     setIsStreaming(false);
+    setTorchOn(false); // ⭐ Reset torch when stopping camera
   }, []);
 
   // Switch camera
@@ -142,11 +164,13 @@ export const useCameraControl = () => {
     isStreaming,
     errors,
     videoConstraints,
+    torchOn, // ⭐ เพิ่ม torch state
 
     // Actions
     startCamera,
     stopCamera,
     switchCamera,
+    toggleTorch, // ⭐ เพิ่ม torch function
     setVideoConstraints,
   };
 };

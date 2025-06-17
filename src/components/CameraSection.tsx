@@ -1,4 +1,4 @@
-// src/components/CameraSection.tsx
+// Path: src/components/CameraSection.tsx
 "use client";
 
 import React, { useEffect } from "react";
@@ -22,6 +22,10 @@ interface CameraSectionProps {
   fullScreen?: boolean; // New prop for full screen mode
   showHeader?: boolean; // New prop to control header visibility
   showGuideFrame?: boolean; // New prop to control guide frame visibility
+
+  // ⭐ เพิ่ม torch props
+  torchOn?: boolean;
+  onToggleTorch?: () => void;
 }
 
 export const CameraSection: React.FC<CameraSectionProps> = ({
@@ -40,6 +44,10 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
   fullScreen = false,
   showHeader = true,
   showGuideFrame = true, // Show guide frame by default
+
+  // ⭐ รับ torch props
+  torchOn = false,
+  onToggleTorch,
 }) => {
   // Draw detections when detections change
   useEffect(() => {
@@ -75,6 +83,9 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
                 onCaptureAndProcess={captureAndProcess}
                 compact={true} // Use compact mode for overlay
                 transparent={true} // Make header transparent
+                // ⭐ ส่ง torch props
+                torchOn={torchOn}
+                onToggleTorch={onToggleTorch}
               />
             </div>
           </div>
@@ -107,6 +118,9 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
           onStopCamera={stopCamera}
           onSwitchCamera={switchCamera}
           onCaptureAndProcess={captureAndProcess}
+          // ⭐ ส่ง torch props
+          torchOn={torchOn}
+          onToggleTorch={onToggleTorch}
         />
       )}
 

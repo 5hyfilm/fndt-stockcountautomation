@@ -1,4 +1,4 @@
-// src/components/layout/MobileScannerLayout.tsx
+// Path: src/components/layout/MobileScannerLayout.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -23,6 +23,10 @@ interface MobileScannerLayoutProps {
   captureAndProcess: () => void;
   drawDetections: () => void;
   updateCanvasSize: () => void;
+
+  // ⭐ เพิ่ม torch props
+  torchOn?: boolean;
+  onToggleTorch?: () => void;
 
   // Product props
   product: Product | null;
@@ -61,6 +65,10 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
   captureAndProcess,
   drawDetections,
   updateCanvasSize,
+
+  // ⭐ รับ torch props
+  torchOn = false,
+  onToggleTorch,
 
   // Product props
   product,
@@ -129,12 +137,38 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
           updateCanvasSize={updateCanvasSize}
           fullScreen={fullScreen}
           showHeader={showHeader}
+          // ⭐ ส่ง torch props
+          torchOn={torchOn}
+          onToggleTorch={onToggleTorch}
         />
       </div>
 
-      {/* ปุ่มปิดกล้อง มุมบนขวา - เฉพาะเมื่อกล้องเปิดและไม่แสดง header */}
+      {/* ปุ่มควบคุมมุมบนขวา - เฉพาะเมื่อกล้องเปิดและไม่แสดง header */}
       {!showHeader && isStreaming && (
-        <div className="absolute top-4 right-4 z-30">
+        <div className="absolute top-4 right-4 z-30 flex gap-2">
+          {/* ปุ่มไฟฉาย */}
+          {onToggleTorch && (
+            <button
+              onClick={onToggleTorch}
+              className={`p-3 rounded-full shadow-lg transition-colors ${
+                torchOn
+                  ? "bg-yellow-500 hover:bg-yellow-600 text-white"
+                  : "bg-gray-800/70 hover:bg-gray-700 text-white"
+              }`}
+              title={torchOn ? "ปิดไฟฉาย" : "เปิดไฟฉาย"}
+            >
+              <svg
+                width="24"
+                height="24"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path d="M6 14l3 3v5h6v-5l3-3V9H6v5zm5-12h2v3h-2V2zM3.5 6L2 4.5 3.5 3l1.5 1.5L3.5 6zm13 0L18 4.5 16.5 3 18 4.5 19.5 6zm-13 6L2 10.5 3.5 12 2 13.5 3.5 15zm13 0L18 10.5 16.5 12 18 13.5 16.5 15z" />
+              </svg>
+            </button>
+          )}
+
+          {/* ปุ่มปิดกล้อง */}
           <button
             onClick={stopCamera}
             className="bg-red-500 hover:bg-red-600 text-white p-3 rounded-full shadow-lg transition-colors"
@@ -157,96 +191,30 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
             >
               <div className="flex items-center gap-3">
                 <svg
-                  width="28"
-                  height="28"
+                  width="32"
+                  height="32"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path d="M9.5 6.5v3h5v-3h2.5l-5-5-5 5h2.5zM11 4H9l3-3 3 3h-2v5.5h-2V4z" />
-                  <path d="M4 6h5v2H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2h-5V6h5c2.21 0 4 1.79 4 4v8c0 2.21-1.79 4-4 4H4c-2.21 0-4-1.79-4-4v-8c0-2.21 1.79-4 4-4z" />
-                  <circle cx="12" cy="14" r="2.5" />
+                  <path d="M9 2h6v6h4v2h2v8c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2v-8h2V8h4V2zm2 2v4h2V4h-2z" />
                 </svg>
                 เปิดกล้อง
               </div>
             </button>
-            {/* <p className="text-white/80 text-sm">แตะเพื่อเริ่มสแกนบาร์โค้ด</p> */}
+            <p className="text-white/70 text-sm">แตะเพื่อเริ่มสแกนบาร์โค้ด</p>
           </div>
         </div>
       )}
 
-      {/* ปุ่มสแกน ข้างล่าง - เมื่อกล้องเปิด */}
-      {/* {!showHeader && isStreaming && (
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30">
-          <button
-            onClick={captureAndProcess}
-            disabled={processingQueue > 0}
-            className="bg-white hover:bg-gray-100 text-black p-4 rounded-full shadow-xl transition-colors disabled:opacity-50"
-            title="สแกนด้วยตนเอง"
-          >
-            <svg width="32" height="32" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M9.5 2A1.5 1.5 0 0 0 8 3.5v1A1.5 1.5 0 0 0 9.5 6h5A1.5 1.5 0 0 0 16 4.5v-1A1.5 1.5 0 0 0 14.5 2h-5zM6 7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H6z" />
-            </svg>
-          </button>
-        </div>
-      )} */}
-
-      {/* Loading Overlay */}
-      {isLoadingProduct && (
-        <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-40">
-          <div className="bg-white rounded-lg p-4 flex items-center space-x-3 mx-4">
-            <div className="animate-spin w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full"></div>
-            <span className="text-gray-900 font-medium">
-              กำลังค้นหาสินค้า...
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Error Overlay */}
-      {productError && (
-        <div className="absolute top-4 left-4 right-4 z-40">
-          <div className="bg-red-100 border border-red-300 rounded-lg p-4">
-            <div className="text-red-800 text-sm font-medium">
-              {productError}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Success Detection Feedback */}
-      {lastDetectedCode && !productError && (
-        <div className="absolute top-4 left-4 right-4 z-40">
-          <div className="bg-green-100 border border-green-300 rounded-lg p-3">
-            <div className="text-green-800 text-sm">
-              ✅ ตรวจพบ: {lastDetectedCode}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Product Slide Panel */}
+      {/* Product Slide Overlay */}
       <MobileProductSlide
         isVisible={showProductSlide}
         product={product}
-        detectedBarcodeType={detectedBarcodeType || undefined}
+        detectedBarcodeType={detectedBarcodeType}
         currentInventoryQuantity={currentInventoryQuantity}
         onClose={handleCloseProductSlide}
         onAddToInventory={onAddToInventory}
       />
-
-      {/* Scan Instructions */}
-      {/* {isStreaming && !product && !isLoadingProduct && (
-        <div className="absolute bottom-20 left-4 right-4 z-30">
-          <div className="bg-black/70 backdrop-blur-sm rounded-lg p-4">
-            <div className="text-white text-center">
-              <div className="text-lg font-medium mb-1">วางบาร์โค้ดในกรอบ</div>
-              <div className="text-sm opacity-90">
-                เครื่องจะสแกนโดยอัตโนมัติ
-              </div>
-            </div>
-          </div>
-        </div>
-      )} */}
     </div>
   );
 };
