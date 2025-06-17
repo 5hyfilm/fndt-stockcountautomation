@@ -69,6 +69,16 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
     ? null
     : createDualUnitInput(scannedUnit, product);
 
+  // ✅ DEBUG: Log configuration
+  console.log("🔍 InventoryAddSection Debug:", {
+    barcodeType,
+    scannedUnit,
+    isSingleUnit,
+    hasDualUnitConfig: !!dualUnitConfig,
+    hasOnAddToInventoryDualUnit: !!onAddToInventoryDualUnit,
+    productBarcodes: product.barcodes,
+  });
+
   // ✅ ดึง barcode ของแต่ละหน่วย
   const getBarcodeForUnit = (unitType: UnitType): string | null => {
     switch (unitType) {
@@ -193,10 +203,20 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
     setIsAdding(true);
     setValidationError(null);
 
+    console.log("🚀 handleAddToInventory START:", {
+      isSingleUnit,
+      dualUnitConfig: !!dualUnitConfig,
+      primaryValue,
+      secondaryValue,
+      singleQuantity,
+      hasOnAddToInventoryDualUnit: !!onAddToInventoryDualUnit,
+    });
+
     try {
       let success = false;
 
       if (isSingleUnit) {
+        console.log("📱 Using SINGLE unit path (EA)");
         // Single unit (EA) - ใช้ method เดิม
         const finalQuantity =
           singleInput === "" || parseInt(singleInput) < 1 ? 1 : singleQuantity;
@@ -207,6 +227,7 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
           setSingleInput("1");
         }
       } else {
+        console.log("📦 Using DUAL unit path (CS/DSP)");
         // Dual unit - ใช้ method ใหม่
         if (!dualUnitConfig) {
           throw new Error("ไม่สามารถกำหนด configuration ของหน่วยได้");
@@ -220,6 +241,7 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
         );
         if (!validation.isValid) {
           setValidationError(validation.error!);
+          console.log("❌ Validation failed:", validation.error);
           return;
         }
 
@@ -235,9 +257,15 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
           scannedBarcodeType: barcodeType,
         };
 
+        console.log("🔄 Created dualUnitData:", dualUnitData);
+
         if (onAddToInventoryDualUnit) {
+          console.log("✅ Calling onAddToInventoryDualUnit");
           success = onAddToInventoryDualUnit(product, dualUnitData);
         } else {
+          console.log(
+            "⚠️ onAddToInventoryDualUnit not available, using fallback"
+          );
           // Fallback: convert to single unit
           const totalQuantity = primaryValue + secondaryValue; // Simple conversion
           success = onAddToInventory(product, totalQuantity, barcodeType);
@@ -250,6 +278,8 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
           setSecondaryInput("0");
         }
       }
+
+      console.log("🎯 Add to inventory result:", success);
 
       if (success) {
         setAddSuccess(true);

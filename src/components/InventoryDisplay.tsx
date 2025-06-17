@@ -1,4 +1,4 @@
-// src/components/InventoryDisplay.tsx
+// src/components/InventoryDisplay.tsx - Updated with Dual Unit Support
 "use client";
 
 import React, { useState } from "react";
@@ -18,9 +18,15 @@ interface InventoryDisplayProps {
   isLoading: boolean;
   error: string | null;
   onUpdateQuantity: (itemId: string, newQuantity: number) => boolean;
+  onUpdateDualUnit?: (
+    itemId: string,
+    newCSCount: number,
+    newPieceCount: number
+  ) => boolean; // ✅ NEW
   onRemoveItem: (itemId: string) => boolean;
   onClearInventory: () => boolean;
-  onExportInventory: () => boolean;
+  onExportInventory?: () => boolean; // Legacy
+  onExportInventoryWithDualUnits?: () => boolean; // ✅ NEW - Dual Unit Export
   onClearError: () => void;
   onSearch: (searchTerm: string) => InventoryItem[];
 }
@@ -31,9 +37,11 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   isLoading,
   error,
   onUpdateQuantity,
+  onUpdateDualUnit, // ✅ NEW
   onRemoveItem,
   onClearInventory,
-  onExportInventory,
+  onExportInventory, // Legacy
+  onExportInventoryWithDualUnits, // ✅ NEW
   onClearError,
   onSearch,
 }) => {
@@ -44,7 +52,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   const [showConfirmClear, setShowConfirmClear] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
-  const [showSummary, setShowSummary] = useState(false); // เปลี่ยนจาก true เป็น false
+  const [showSummary, setShowSummary] = useState(false);
   const [sortBy, setSortBy] = useState<"name" | "quantity" | "date">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [isExporting, setIsExporting] = useState(false);
@@ -127,6 +135,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
     onUpdateQuantity(itemId, newQuantity);
   };
 
+  // ✅ Updated: Use Dual Unit Export by default
   const handleExport = async () => {
     if (inventory.length === 0) {
       return;
@@ -134,7 +143,17 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
 
     setIsExporting(true);
     try {
-      const success = onExportInventory();
+      // ✅ Prioritize dual unit export if available
+      const exportFunction =
+        onExportInventoryWithDualUnits || onExportInventory;
+
+      if (!exportFunction) {
+        console.error("No export function available");
+        setIsExporting(false);
+        return;
+      }
+
+      const success = exportFunction();
       if (success) {
         // Show success message briefly
         setTimeout(() => {
@@ -175,14 +194,14 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
       {/* Error Display */}
       <ErrorAlert error={error} onDismiss={onClearError} />
 
-      {/* Summary Header - แสดงเป็น dropdown ที่ปิดเป็นค่าเริ่มต้น */}
+      {/* ✅ Updated Summary Header - Dual Unit Support */}
       <InventoryHeader
         summary={summary}
         showSummary={showSummary}
         onToggleSummary={setShowSummary}
       />
 
-      {/* Controls */}
+      {/* ✅ Updated Controls - Dual Unit Support */}
       <InventoryControls
         inventory={inventory}
         summary={summary}
@@ -202,7 +221,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         filteredCount={filteredAndSortedInventory.length}
       />
 
-      {/* Inventory List */}
+      {/* ✅ Updated Inventory List - Dual Unit Support */}
       <InventoryList
         items={filteredAndSortedInventory}
         totalCount={inventory.length}
@@ -214,6 +233,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         onEditQuantityChange={setEditQuantity}
         onQuickAdjust={handleQuickAdjust}
         onRemoveItem={onRemoveItem}
+        onUpdateDualUnit={onUpdateDualUnit} // ✅ Pass dual unit handler
       />
 
       {/* Confirm Clear Dialog */}

@@ -1,4 +1,4 @@
-// ./src/components/inventory/InventoryListItem.tsx
+// src/components/inventory/InventoryListItem.tsx - Updated with Dual Unit Display
 "use client";
 
 import React from "react";
@@ -10,6 +10,9 @@ import {
   Minus,
   CheckCircle,
   X,
+  Package2,
+  Box,
+  ShoppingCart,
 } from "lucide-react";
 import { InventoryItem } from "../../hooks/useInventoryManager";
 
@@ -23,6 +26,7 @@ interface InventoryListItemProps {
   onEditQuantityChange: (quantity: number) => void;
   onQuickAdjust: (delta: number) => void;
   onRemove: () => void;
+  onUpdateDualUnit?: (csCount: number, pieceCount: number) => void; // ✅ NEW
 }
 
 // Extended types for pack size information
@@ -52,6 +56,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
   onEditQuantityChange,
   onQuickAdjust,
   onRemove,
+  onUpdateDualUnit, // ✅ NEW
 }) => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("th-TH", {
@@ -103,6 +108,22 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     return null;
   };
 
+  // ✅ NEW: Get unit type display
+  const getUnitTypeDisplay = (unitType: string | null | undefined): string => {
+    switch (unitType) {
+      case "cs":
+        return "ลัง";
+      case "dsp":
+        return "แพ็ค";
+      case "ea":
+        return "ชิ้น";
+      case "fractional":
+        return "เศษ";
+      default:
+        return "หน่วย";
+    }
+  };
+
   const sizeDisplay = getSizeDisplay();
 
   return (
@@ -126,6 +147,12 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
                 <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-md text-xs font-medium">
                   {item.category}
                 </span>
+                {/* ✅ NEW: Barcode Type Badge */}
+                {item.barcodeType && (
+                  <span className="bg-green-100 text-green-700 px-2 py-1 rounded-md text-xs font-medium">
+                    {item.barcodeType.toUpperCase()}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -150,8 +177,8 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
           </div>
         </div>
 
-        {/* Quantity Controls */}
-        <div className="flex items-center gap-3 ml-4">
+        {/* ✅ Updated: Dual Unit Display & Controls */}
+        <div className="flex items-center gap-4 ml-4">
           {isEditing ? (
             <div className="flex items-center gap-2">
               <button
@@ -169,14 +196,12 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
                   onEditQuantityChange(parseInt(e.target.value) || 0)
                 }
                 className="w-20 text-center border border-gray-300 rounded-lg py-1 text-sm focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-fn-green"
-                // ✅ เอา max limit ออก - ให้แก้ไขได้ไม่จำกัด
                 min="0"
                 placeholder="จำนวน"
               />
               <button
                 onClick={() => onEditQuantityChange(editQuantity + 1)}
                 className="p-1 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-600"
-                // ✅ ไม่มีการจำกัดการเพิ่ม
               >
                 <Plus size={14} />
               </button>
@@ -196,44 +221,83 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-3">
-              {/* Quantity Display */}
-              <div className="text-right">
-                <div className="text-lg font-semibold text-gray-900">
-                  {item.quantity.toLocaleString()}
+            <div className="flex items-center gap-4">
+              {/* ✅ NEW: Enhanced Dual Unit Display */}
+              <div className="grid grid-cols-1 gap-1 text-right min-w-[140px]">
+                {/* Debug Info - แสดงข้อมูลที่มีจริง */}
+                <div className="text-xs text-gray-400 mb-1">
+                  CS:{item.csCount || 0} | PC:{item.pieceCount || 0} | Total:
+                  {item.quantity}
                 </div>
-                <div className="text-xs text-gray-500">{item.unit}</div>
+
+                {/* CS Count - แสดงเสมอถ้ามีข้อมูล */}
+                <div className="flex items-center gap-1 justify-end">
+                  <Package2 className="text-blue-600" size={12} />
+                  <span className="text-sm font-medium text-gray-900">
+                    {item.csCount || 0}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {getUnitTypeDisplay(item.csUnitType) || "ลัง"}
+                  </span>
+                </div>
+
+                {/* Piece Count - แสดงเสมอ */}
+                <div className="flex items-center gap-1 justify-end">
+                  <Box className="text-green-600" size={12} />
+                  <span className="text-sm font-medium text-gray-900">
+                    {item.pieceCount || 0}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {getUnitTypeDisplay(item.pieceUnitType) || "ชิ้น"}
+                  </span>
+                </div>
+
+                {/* Total (Legacy) */}
+                <div className="flex items-center gap-1 justify-end border-t border-gray-200 pt-1">
+                  <ShoppingCart className="text-gray-400" size={12} />
+                  <span className="text-xs font-medium text-gray-600">
+                    รวม: {item.quantity}
+                  </span>
+                </div>
+
+                {/* Barcode Type Info */}
+                {item.barcodeType && (
+                  <div className="text-xs text-orange-600 mt-1">
+                    สแกน: {item.barcodeType.toUpperCase()}
+                  </div>
+                )}
               </div>
 
               {/* Quick Adjust Buttons */}
               <div className="flex flex-col gap-1">
                 <button
                   onClick={() => onQuickAdjust(1)}
-                  className="p-1 rounded-md bg-green-100 hover:bg-green-200 text-green-600 text-xs"
-                  // ✅ ไม่มีการจำกัดการเพิ่ม
+                  className="p-1 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-600"
                 >
                   <Plus size={12} />
                 </button>
                 <button
                   onClick={() => onQuickAdjust(-1)}
-                  className="p-1 rounded-md bg-red-100 hover:bg-red-200 text-red-600 text-xs"
                   disabled={item.quantity <= 0}
+                  className="p-1 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-600 disabled:text-gray-300 disabled:cursor-not-allowed"
                 >
                   <Minus size={12} />
                 </button>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-1">
                 <button
                   onClick={onEditStart}
-                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-600"
+                  className="p-1.5 rounded-lg border border-gray-300 hover:bg-blue-50 text-gray-600 hover:text-blue-600 transition-colors"
+                  title="แก้ไขจำนวน"
                 >
                   <Edit3 size={14} />
                 </button>
                 <button
                   onClick={onRemove}
-                  className="p-2 rounded-lg border border-red-300 hover:bg-red-50 text-red-600"
+                  className="p-1.5 rounded-lg border border-gray-300 hover:bg-red-50 text-gray-600 hover:text-red-600 transition-colors"
+                  title="ลบรายการ"
                 >
                   <Trash2 size={14} />
                 </button>

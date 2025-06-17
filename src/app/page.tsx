@@ -605,10 +605,9 @@ export default function BarcodeDetectionPage() {
                 onUpdateDualUnit={updateItemDualUnit} // NEW
                 onRemoveItem={removeItem}
                 onClearInventory={clearInventory}
-                onExportInventory={() => handleExportInventory(false)} // Legacy export
                 onExportInventoryWithDualUnits={() =>
                   handleExportInventory(true)
-                } // NEW - Dual unit export
+                } // ✅ Use Dual Unit Export Only
                 onClearError={clearInventoryError}
                 onSearch={searchItems}
               />
