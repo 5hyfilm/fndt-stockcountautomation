@@ -37,10 +37,32 @@ declare global {
 
   interface MediaStreamTrack {
     stop(): void;
+    getCapabilities(): MediaTrackCapabilities;
+    applyConstraints(constraints: MediaTrackConstraints): Promise<void>;
   }
 
   interface MediaStream {
     getTracks(): MediaStreamTrack[];
+    getVideoTracks(): MediaStreamTrack[];
+  }
+
+  // ⭐ เพิ่ม Torch API Types
+  interface MediaTrackCapabilities {
+    torch?: boolean;
+    focusMode?: string[];
+    exposureMode?: string[];
+    whiteBalanceMode?: string[];
+  }
+
+  interface MediaTrackConstraintSet {
+    torch?: boolean;
+    focusMode?: string;
+    exposureMode?: string;
+    whiteBalanceMode?: string;
+  }
+
+  interface MediaTrackConstraints extends MediaTrackConstraintSet {
+    advanced?: MediaTrackConstraintSet[];
   }
 }
 

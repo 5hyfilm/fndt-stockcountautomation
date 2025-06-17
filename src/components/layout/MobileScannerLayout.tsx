@@ -210,7 +210,7 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
       <MobileProductSlide
         isVisible={showProductSlide}
         product={product}
-        detectedBarcodeType={detectedBarcodeType}
+        detectedBarcodeType={detectedBarcodeType || undefined}
         currentInventoryQuantity={currentInventoryQuantity}
         onClose={handleCloseProductSlide}
         onAddToInventory={onAddToInventory}
