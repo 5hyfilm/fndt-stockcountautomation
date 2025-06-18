@@ -1,5 +1,3 @@
-# Path: /README.md
-
 # Webcam Barcode Scanner & Inventory Management
 
 AI-powered barcode scanning system with Next.js frontend and Python Flask backend using YOLO v5 and OpenCV.
