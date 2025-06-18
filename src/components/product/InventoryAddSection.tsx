@@ -1,130 +1,243 @@
-// Path: src/components/product/InventoryAddSection.tsx - Complete Updated Version
-
+// src/components/product/InventoryAddSection.tsx - Phase 1: Enhanced with Dual Quantity Support
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Archive, Plus, Minus, Check } from "lucide-react";
+import { Archive, Plus, Minus, Check, Package2, Hash } from "lucide-react";
 import { Product } from "../../types/product";
+import { QuantityInput, QuantityDetail } from "../../hooks/inventory/types";
 
 interface InventoryAddSectionProps {
   product: Product;
   currentInventoryQuantity: number;
   onAddToInventory: (
     product: Product,
-    quantity: number,
+    quantityInput: QuantityInput,
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
   isVisible: boolean;
   barcodeType?: "ea" | "dsp" | "cs";
 }
 
+// ✅ Unit configuration for different barcode types
+const UNIT_CONFIG = {
+  ea: { label: "ชิ้น", shortLabel: "EA", icon: Package2 },
+  dsp: { label: "แพ็ค", shortLabel: "DSP", icon: Package2 },
+  cs: { label: "ลัง", shortLabel: "CS", icon: Archive },
+};
+
 export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
   product,
   onAddToInventory,
   isVisible,
-  barcodeType,
+  barcodeType = "ea",
 }) => {
-  const [quantity, setQuantity] = useState(1);
-  const [inputValue, setInputValue] = useState("1");
+  // ✅ State for both simple and detailed quantity input
+  const [simpleQuantity, setSimpleQuantity] = useState(1);
+  const [simpleInputValue, setSimpleInputValue] = useState("1");
+
+  // ✅ State for dual quantity input (DSP/CS + EA remainder)
+  const [majorQuantity, setMajorQuantity] = useState(1);
+  const [majorInputValue, setMajorInputValue] = useState("1");
+  const [remainderQuantity, setRemainderQuantity] = useState(0);
+  const [remainderInputValue, setRemainderInputValue] = useState("0");
+
   const [isAdding, setIsAdding] = useState(false);
   const [addSuccess, setAddSuccess] = useState(false);
 
-  // Reset states when visibility changes
+  // ✅ Determine if we need dual quantity input
+  const needsDualQuantity = barcodeType === "dsp" || barcodeType === "cs";
+  const unitConfig = UNIT_CONFIG[barcodeType];
+
+  // Reset states when visibility or barcode type changes
   useEffect(() => {
     if (isVisible) {
-      setQuantity(1);
-      setInputValue("1");
+      setSimpleQuantity(1);
+      setSimpleInputValue("1");
+      setMajorQuantity(1);
+      setMajorInputValue("1");
+      setRemainderQuantity(0);
+      setRemainderInputValue("0");
       setAddSuccess(false);
     }
-  }, [isVisible]);
+  }, [isVisible, barcodeType]);
 
-  // ✅ Updated - Remove maximum limit validation
-  const handleQuantityChange = (value: string) => {
-    setInputValue(value); // อัพเดท input value ทันที
-
-    if (value === "" || value === "0") {
-      // อนุญาตให้เป็นว่างหรือ 0 ชั่วคราว
-      return;
-    }
+  // ✅ Handlers for simple quantity (EA only)
+  const handleSimpleQuantityChange = (value: string) => {
+    setSimpleInputValue(value);
+    if (value === "" || value === "0") return;
 
     const numValue = parseInt(value);
-    // ✅ เอาการเช็ค upper limit ออก - ให้กรอกได้ไม่จำกัด
     if (!isNaN(numValue) && numValue >= 1) {
-      setQuantity(numValue);
+      setSimpleQuantity(numValue);
     }
   };
 
-  // ✅ Updated - Remove maximum limit validation
-  const handleInputBlur = () => {
-    // เมื่อผู้ใช้คลิกออกจาก input
-    if (inputValue === "" || parseInt(inputValue) < 1) {
-      setInputValue("1");
-      setQuantity(1);
+  const handleSimpleInputBlur = () => {
+    if (simpleInputValue === "" || parseInt(simpleInputValue) < 1) {
+      setSimpleInputValue("1");
+      setSimpleQuantity(1);
     } else {
-      const numValue = parseInt(inputValue);
-      // ✅ เอาการเช็ค upper limit ออก - ให้กรอกได้ไม่จำกัด
+      const numValue = parseInt(simpleInputValue);
       if (!isNaN(numValue) && numValue >= 1) {
-        const validValue = Math.max(1, numValue); // เอา Math.min(999, numValue) ออก
-        setQuantity(validValue);
-        setInputValue(validValue.toString());
+        const validValue = Math.max(1, numValue);
+        setSimpleQuantity(validValue);
+        setSimpleInputValue(validValue.toString());
       } else {
-        setInputValue("1");
-        setQuantity(1);
+        setSimpleInputValue("1");
+        setSimpleQuantity(1);
       }
     }
   };
 
-  const handleInputKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleInputBlur();
+  const increaseSimpleQuantity = () => {
+    const newQuantity = simpleQuantity + 1;
+    setSimpleQuantity(newQuantity);
+    setSimpleInputValue(newQuantity.toString());
+  };
+
+  const decreaseSimpleQuantity = () => {
+    if (simpleQuantity > 1) {
+      const newQuantity = simpleQuantity - 1;
+      setSimpleQuantity(newQuantity);
+      setSimpleInputValue(newQuantity.toString());
     }
   };
 
-  // ✅ Updated - Remove maximum limit
-  const increaseQuantity = () => {
-    // ✅ เอาการเช็ค quantity < 999 ออก - ให้เพิ่มได้ไม่จำกัด
-    const newQuantity = quantity + 1;
-    setQuantity(newQuantity);
-    setInputValue(newQuantity.toString());
-  };
+  // ✅ Handlers for major quantity (DSP/CS)
+  const handleMajorQuantityChange = (value: string) => {
+    setMajorInputValue(value);
+    if (value === "" || value === "0") return;
 
-  const decreaseQuantity = () => {
-    if (quantity > 1) {
-      const newQuantity = quantity - 1;
-      setQuantity(newQuantity);
-      setInputValue(newQuantity.toString());
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue >= 0) {
+      setMajorQuantity(numValue);
     }
   };
 
+  const handleMajorInputBlur = () => {
+    if (majorInputValue === "" || parseInt(majorInputValue) < 0) {
+      setMajorInputValue("1");
+      setMajorQuantity(1);
+    } else {
+      const numValue = parseInt(majorInputValue);
+      if (!isNaN(numValue) && numValue >= 0) {
+        const validValue = Math.max(0, numValue);
+        setMajorQuantity(validValue);
+        setMajorInputValue(validValue.toString());
+      } else {
+        setMajorInputValue("1");
+        setMajorQuantity(1);
+      }
+    }
+  };
+
+  const increaseMajorQuantity = () => {
+    const newQuantity = majorQuantity + 1;
+    setMajorQuantity(newQuantity);
+    setMajorInputValue(newQuantity.toString());
+  };
+
+  const decreaseMajorQuantity = () => {
+    if (majorQuantity > 0) {
+      const newQuantity = majorQuantity - 1;
+      setMajorQuantity(newQuantity);
+      setMajorInputValue(newQuantity.toString());
+    }
+  };
+
+  // ✅ Handlers for remainder quantity (EA)
+  const handleRemainderQuantityChange = (value: string) => {
+    setRemainderInputValue(value);
+    if (value === "") return;
+
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue >= 0) {
+      setRemainderQuantity(numValue);
+    }
+  };
+
+  const handleRemainderInputBlur = () => {
+    if (remainderInputValue === "" || parseInt(remainderInputValue) < 0) {
+      setRemainderInputValue("0");
+      setRemainderQuantity(0);
+    } else {
+      const numValue = parseInt(remainderInputValue);
+      if (!isNaN(numValue) && numValue >= 0) {
+        const validValue = Math.max(0, numValue);
+        setRemainderQuantity(validValue);
+        setRemainderInputValue(validValue.toString());
+      } else {
+        setRemainderInputValue("0");
+        setRemainderQuantity(0);
+      }
+    }
+  };
+
+  const increaseRemainderQuantity = () => {
+    const newQuantity = remainderQuantity + 1;
+    setRemainderQuantity(newQuantity);
+    setRemainderInputValue(newQuantity.toString());
+  };
+
+  const decreaseRemainderQuantity = () => {
+    if (remainderQuantity > 0) {
+      const newQuantity = remainderQuantity - 1;
+      setRemainderQuantity(newQuantity);
+      setRemainderInputValue(newQuantity.toString());
+    }
+  };
+
+  // ✅ Handle adding to inventory with appropriate quantity format
   const handleAddToInventory = async () => {
-    // ตรวจสอบค่า quantity ก่อนเพิ่ม
-    const finalQuantity =
-      inputValue === "" || parseInt(inputValue) < 1 ? 1 : quantity;
-
-    console.log("🔘 InventoryAddSection calling onAddToInventory:");
-    console.log("  📦 Product:", product.name);
-    console.log("  🔢 Quantity:", finalQuantity);
-    console.log("  🏷️ BarcodeType:", barcodeType);
-
     setIsAdding(true);
     try {
-      const success = onAddToInventory(product, finalQuantity, barcodeType);
+      let quantityInput: QuantityInput;
+
+      if (needsDualQuantity) {
+        // ✅ Create QuantityDetail for DSP/CS
+        const quantityDetail: QuantityDetail = {
+          major: majorQuantity,
+          remainder: remainderQuantity,
+          scannedType: barcodeType,
+        };
+        quantityInput = quantityDetail;
+
+        console.log("🔘 Adding with quantity detail:", {
+          product: product.name,
+          major: majorQuantity,
+          remainder: remainderQuantity,
+          scannedType: barcodeType,
+        });
+      } else {
+        // ✅ Use simple quantity for EA
+        quantityInput = simpleQuantity;
+
+        console.log("🔘 Adding with simple quantity:", {
+          product: product.name,
+          quantity: simpleQuantity,
+          barcodeType,
+        });
+      }
+
+      const success = onAddToInventory(product, quantityInput, barcodeType);
 
       if (success) {
         setAddSuccess(true);
-        setQuantity(1);
-        setInputValue("1");
+
+        // Reset inputs
+        if (needsDualQuantity) {
+          setMajorQuantity(1);
+          setMajorInputValue("1");
+          setRemainderQuantity(0);
+          setRemainderInputValue("0");
+        } else {
+          setSimpleQuantity(1);
+          setSimpleInputValue("1");
+        }
 
         setTimeout(() => {
           setAddSuccess(false);
         }, 3000);
-
-        const unitText = barcodeType === "cs" ? "ลัง" : "ชิ้น";
-        console.log(
-          `✅ Added ${finalQuantity} ${unitText} (${barcodeType || "ea"}) of ${
-            product.name
-          } to inventory`
-        );
       }
     } catch (error) {
       console.error("❌ Failed to add to inventory:", error);
@@ -133,10 +246,12 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
     }
   };
 
-  if (!isVisible) return null;
+  // ✅ Determine if can add
+  const canAdd = needsDualQuantity
+    ? majorQuantity > 0 || remainderQuantity > 0
+    : simpleInputValue !== "" && parseInt(simpleInputValue) >= 1;
 
-  // ตรวจสอบว่าสามารถเพิ่มได้หรือไม่
-  const canAdd = inputValue !== "" && parseInt(inputValue) >= 1;
+  if (!isVisible) return null;
 
   return (
     <div className="space-y-4">
@@ -150,94 +265,181 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
             <p className="text-green-800 font-medium">
               เพิ่มใน Inventory สำเร็จ!
             </p>
-            <p className="text-green-600 text-sm">
-              เพิ่ม {product.name} จำนวน {quantity} {product.unit || "ชิ้น"}{" "}
-              แล้ว
-            </p>
           </div>
         </div>
       )}
 
-      {/* Add to Inventory Section */}
-      <div className="bg-gradient-to-r from-fn-green/10 to-fn-red/10 border border-fn-green/30 rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="bg-fn-green/20 p-2 rounded-lg">
-            <Archive size={16} className="fn-green" />
-          </div>
-          <span className="text-lg font-semibold text-gray-800">
-            เพิ่มเข้า Inventory
+      {/* Quantity Input Section */}
+      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+        <div className="flex items-center gap-2 mb-4">
+          <Archive className="text-fn-green" size={20} />
+          <span className="font-medium text-gray-900">เพิ่มใน Inventory</span>
+          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+            {unitConfig.shortLabel}
           </span>
         </div>
 
-        <div className="flex items-center gap-4">
-          {/* Quantity Controls */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600 min-w-[60px]">จำนวน:</span>
-            <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+        {needsDualQuantity ? (
+          // ✅ Dual quantity input for DSP/CS
+          <div className="space-y-4">
+            {/* Major Unit Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                <unitConfig.icon size={16} />
+                {unitConfig.label}
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={decreaseMajorQuantity}
+                  disabled={majorQuantity <= 0}
+                  className="w-10 h-10 rounded-lg border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Minus size={16} />
+                </button>
+
+                <input
+                  type="number"
+                  value={majorInputValue}
+                  onChange={(e) => handleMajorQuantityChange(e.target.value)}
+                  onBlur={handleMajorInputBlur}
+                  onKeyPress={(e) =>
+                    e.key === "Enter" && handleMajorInputBlur()
+                  }
+                  className="w-20 h-10 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent"
+                  min="0"
+                />
+
+                <button
+                  onClick={increaseMajorQuantity}
+                  className="w-10 h-10 rounded-lg border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  <Plus size={16} />
+                </button>
+
+                <span className="text-sm text-gray-600 ml-1">
+                  {unitConfig.label}
+                </span>
+              </div>
+            </div>
+
+            {/* Remainder Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                <Hash size={16} />
+                เศษ (ชิ้น)
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={decreaseRemainderQuantity}
+                  disabled={remainderQuantity <= 0}
+                  className="w-10 h-10 rounded-lg border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Minus size={16} />
+                </button>
+
+                <input
+                  type="number"
+                  value={remainderInputValue}
+                  onChange={(e) =>
+                    handleRemainderQuantityChange(e.target.value)
+                  }
+                  onBlur={handleRemainderInputBlur}
+                  onKeyPress={(e) =>
+                    e.key === "Enter" && handleRemainderInputBlur()
+                  }
+                  className="w-20 h-10 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent"
+                  min="0"
+                />
+
+                <button
+                  onClick={increaseRemainderQuantity}
+                  className="w-10 h-10 rounded-lg border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  <Plus size={16} />
+                </button>
+
+                <span className="text-sm text-gray-600 ml-1">ชิ้น</span>
+              </div>
+            </div>
+
+            {/* Summary Display */}
+            {(majorQuantity > 0 || remainderQuantity > 0) && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  <span className="font-medium">จะเพิ่ม: </span>
+                  {majorQuantity > 0 && (
+                    <span>
+                      {majorQuantity} {unitConfig.label}
+                    </span>
+                  )}
+                  {majorQuantity > 0 && remainderQuantity > 0 && (
+                    <span> + </span>
+                  )}
+                  {remainderQuantity > 0 && (
+                    <span>{remainderQuantity} ชิ้น</span>
+                  )}
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          // ✅ Simple quantity input for EA
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+              <unitConfig.icon size={16} />
+              จำนวน ({unitConfig.label})
+            </label>
+            <div className="flex items-center gap-2">
               <button
-                onClick={decreaseQuantity}
-                disabled={quantity <= 1 || isAdding}
-                className="bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 px-3 py-2 transition-colors"
+                onClick={decreaseSimpleQuantity}
+                disabled={simpleQuantity <= 1}
+                className="w-10 h-10 rounded-lg border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Minus size={16} />
               </button>
+
               <input
                 type="number"
-                value={inputValue}
-                onChange={(e) => handleQuantityChange(e.target.value)}
-                onBlur={handleInputBlur}
-                onKeyPress={handleInputKeyPress}
+                value={simpleInputValue}
+                onChange={(e) => handleSimpleQuantityChange(e.target.value)}
+                onBlur={handleSimpleInputBlur}
+                onKeyPress={(e) => e.key === "Enter" && handleSimpleInputBlur()}
+                className="w-20 h-10 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent"
                 min="1"
-                // ✅ เอา max="999" ออก - ให้กรอกได้ไม่จำกัด
-                disabled={isAdding}
-                className="w-20 text-center py-2 border-none outline-none bg-white text-gray-900 font-medium disabled:bg-gray-50"
-                // ✅ เพิ่ม width เป็น w-20 เพื่อรองรับตัวเลขที่มากขึ้น
-                placeholder="จำนวน"
               />
+
               <button
-                onClick={increaseQuantity}
-                // ✅ เอา disabled={quantity >= 999 || isAdding} ออก - ให้เพิ่มได้ไม่จำกัด
-                disabled={isAdding}
-                className="bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 px-3 py-2 transition-colors"
+                onClick={increaseSimpleQuantity}
+                className="w-10 h-10 rounded-lg border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors"
               >
                 <Plus size={16} />
               </button>
-            </div>
-            <span className="text-sm text-gray-600">
-              {product.unit || "ชิ้น"}
-            </span>
-          </div>
 
-          {/* Add to Inventory Button */}
-          <button
-            onClick={handleAddToInventory}
-            disabled={isAdding || addSuccess || !canAdd}
-            className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 font-medium shadow-lg transform ml-auto border ${
-              addSuccess
-                ? "bg-green-100 text-green-700 border-green-200 cursor-not-allowed"
-                : isAdding || !canAdd
-                ? "bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed"
-                : "bg-fn-green hover:bg-fn-green/90 text-white border-fn-green hover:shadow-xl hover:scale-105"
-            }`}
-          >
-            {isAdding ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>กำลังเพิ่ม...</span>
-              </>
-            ) : addSuccess ? (
-              <>
-                <Check size={16} />
-                <span>เพิ่มแล้ว</span>
-              </>
-            ) : (
-              <>
-                <Plus size={16} />
-                <span>เพิ่มเข้า Inventory</span>
-              </>
-            )}
-          </button>
-        </div>
+              <span className="text-sm text-gray-600 ml-1">
+                {unitConfig.label}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Add Button */}
+        <button
+          onClick={handleAddToInventory}
+          disabled={!canAdd || isAdding}
+          className="w-full mt-4 bg-fn-green text-white py-3 px-4 rounded-lg font-medium hover:bg-fn-green/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+        >
+          {isAdding ? (
+            <>
+              <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+              กำลังเพิ่ม...
+            </>
+          ) : (
+            <>
+              <Plus size={16} />
+              เพิ่มใน Inventory
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

@@ -1,7 +1,18 @@
-// src/hooks/inventory/types.ts
+// src/hooks/inventory/types.ts - Phase 2: Updated Types with Quantity Details
 import { Product } from "../../types/product";
 
-// Interface สำหรับข้อมูล inventory item
+// ✅ New quantity detail interface for DSP/CS scanning
+export interface QuantityDetail {
+  major: number; // DSP/CS amount (แพ็ค/ลัง)
+  remainder: number; // EA remainder (เศษ)
+  scannedType: "ea" | "dsp" | "cs"; // Type that was scanned
+  totalEA?: number; // Optional calculated total (for future use)
+}
+
+// ✅ Union type for quantity input - supports both old and new formats
+export type QuantityInput = number | QuantityDetail;
+
+// ✅ Updated InventoryItem interface - maintaining backward compatibility
 export interface InventoryItem {
   id: string;
   barcode: string;
@@ -10,26 +21,39 @@ export interface InventoryItem {
   category: string;
   size: string;
   unit: string;
+
+  // ✅ Keep old quantity field for backward compatibility
   quantity: number;
+
+  // ✅ Add new quantityDetail for enhanced scanning
+  quantityDetail?: QuantityDetail;
+
   lastUpdated: string;
   productData?: Product;
   addedBy?: string;
   branchCode?: string;
   branchName?: string;
-  // เพิ่มข้อมูลประเภทบาร์โค้ด
   barcodeType?: "ea" | "dsp" | "cs";
-  materialCode?: string; // F/FG code
-  productGroup?: string; // Prod. Gr.
-  thaiDescription?: string; // รายละเอียด
+  materialCode?: string;
+  productGroup?: string;
+  thaiDescription?: string;
 }
 
-// Interface สำหรับ summary ข้อมูล
+// ✅ Enhanced Interface สำหรับ summary ข้อมูล
 export interface InventorySummary {
   totalItems: number;
   totalProducts: number;
   lastUpdate: string;
   categories: Record<string, number>;
   brands: Record<string, number>;
+  // ✅ Add new summary fields for quantity details
+  quantityBreakdown?: {
+    totalEA: number;
+    totalDSP: number;
+    totalCS: number;
+    itemsWithDetail: number;
+    totalRemainderItems?: number;
+  };
 }
 
 // Interface สำหรับข้อมูลพนักงาน
@@ -46,16 +70,19 @@ export interface StorageConfig {
   currentVersion: string;
 }
 
-// Export configuration
+// ✅ Enhanced Export configuration
 export interface ExportConfig {
   includeEmployeeInfo: boolean;
   includeTimestamp: boolean;
   includeStats: boolean;
   csvDelimiter: string;
   dateFormat: string;
+  // ✅ Add new export options
+  includeQuantityDetail?: boolean;
+  separateQuantityColumns?: boolean;
 }
 
-// Hook return type
+// ✅ Updated Hook return type with enhanced quantity support
 export interface UseInventoryManagerReturn {
   // State
   inventory: InventoryItem[];
@@ -63,13 +90,21 @@ export interface UseInventoryManagerReturn {
   error: string | null;
   summary: InventorySummary;
 
-  // CRUD Actions
+  // ✅ Updated CRUD Actions - supporting both old and new quantity formats
   addOrUpdateItem: (
     product: Product,
-    quantity: number,
+    quantityInput: QuantityInput,
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
+
   updateItemQuantity: (itemId: string, newQuantity: number) => boolean;
+
+  // ✅ New method for updating quantity details
+  updateItemQuantityDetail?: (
+    itemId: string,
+    quantityDetail: QuantityDetail
+  ) => boolean;
+
   removeItem: (itemId: string) => boolean;
   clearInventory: () => boolean;
 
@@ -83,59 +118,88 @@ export interface UseInventoryManagerReturn {
   // Error handling and utilities
   clearError: () => void;
   loadInventory: () => void;
-  resetInventoryState: () => boolean; // เพิ่มฟังก์ชัน reset สำหรับ logout
+  resetInventoryState: () => boolean;
 }
+
+// ✅ Utility type guards and helpers
+export const isQuantityDetail = (
+  input: QuantityInput
+): input is QuantityDetail => {
+  return typeof input === "object" && "major" in input && "remainder" in input;
+};
+
+export const isSimpleQuantity = (input: QuantityInput): input is number => {
+  return typeof input === "number";
+};
+
+// ✅ Helper function to get effective quantity for compatibility
+export const getEffectiveQuantity = (item: InventoryItem): number => {
+  // If has quantityDetail, use the major quantity as primary
+  if (item.quantityDetail) {
+    return item.quantityDetail.major;
+  }
+  // Fallback to old quantity field
+  return item.quantity;
+};
+
+// ✅ Helper function to get display text for quantity
+export const getQuantityDisplayText = (item: InventoryItem): string => {
+  if (item.quantityDetail) {
+    const { major, remainder, scannedType } = item.quantityDetail;
+    const unitMap = {
+      ea: "ชิ้น",
+      dsp: "แพ็ค",
+      cs: "ลัง",
+    };
+
+    const majorText = `${major} ${unitMap[scannedType]}`;
+    const remainderText = remainder > 0 ? ` + ${remainder} ชิ้น` : "";
+
+    return majorText + remainderText;
+  }
+
+  // Fallback to simple quantity display
+  return `${item.quantity} ชิ้น`;
+};
+
+// ✅ Helper function to convert old format to new format
+export const migrateQuantityToDetail = (
+  quantity: number,
+  barcodeType: "ea" | "dsp" | "cs" = "ea"
+): QuantityDetail => {
+  if (barcodeType === "ea") {
+    return {
+      major: quantity,
+      remainder: 0,
+      scannedType: "ea",
+    };
+  }
+
+  // For DSP/CS, assume all quantity is in major unit
+  return {
+    major: quantity,
+    remainder: 0,
+    scannedType: barcodeType,
+  };
+};
 
 // Error types
 export interface InventoryError extends Error {
-  code?: "STORAGE_ERROR" | "VALIDATION_ERROR" | "EXPORT_ERROR";
+  code?:
+    | "STORAGE_ERROR"
+    | "VALIDATION_ERROR"
+    | "EXPORT_ERROR"
+    | "QUANTITY_ERROR";
   context?: string;
 }
 
-// Validation rules
+// ✅ Enhanced validation rules
 export interface InventoryValidationRules {
   minQuantity: number;
-  maxQuantity?: number; // ✅ เปลี่ยนเป็น optional - ไม่จำกัดจำนวนสูงสุด
-  requiredFields: (keyof InventoryItem)[];
-  uniqueFields: (keyof InventoryItem)[];
+  maxQuantity?: number;
+  minMajorQuantity?: number;
+  maxMajorQuantity?: number;
+  minRemainder?: number;
+  maxRemainder?: number;
+  allowZeroRemainder?: boolean;
 }
-
-// ✅ Default validation rules - ไม่มี max limit
-export const DEFAULT_VALIDATION_RULES: InventoryValidationRules = {
-  minQuantity: 1,
-  // maxQuantity ไม่ได้กำหนด = ไม่จำกัด
-  requiredFields: ["id", "barcode", "productName", "quantity"],
-  uniqueFields: ["id", "barcode"],
-};
-
-// ✅ Updated validation function
-export const validateInventoryItem = (
-  item: Partial<InventoryItem>,
-  rules: InventoryValidationRules = DEFAULT_VALIDATION_RULES
-): { isValid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-
-  // Check required fields
-  rules.requiredFields.forEach((field) => {
-    if (!item[field]) {
-      errors.push(`${field} is required`);
-    }
-  });
-
-  // Check quantity constraints
-  if (item.quantity !== undefined) {
-    if (item.quantity < rules.minQuantity) {
-      errors.push(`Quantity must be at least ${rules.minQuantity}`);
-    }
-
-    // ✅ เช็ค maxQuantity เฉพาะเมื่อมีการกำหนดไว้
-    if (rules.maxQuantity !== undefined && item.quantity > rules.maxQuantity) {
-      errors.push(`Quantity must not exceed ${rules.maxQuantity}`);
-    }
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-  };
-};

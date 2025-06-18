@@ -1,9 +1,17 @@
-// ./src/hooks/inventory/useInventoryOperations.tsx
+// src/hooks/inventory/useInventoryOperations.tsx - Fix: QuantityInput Support
 "use client";
 
 import { useCallback } from "react";
 import { Product } from "../../types/product";
-import { InventoryItem, EmployeeContext } from "./types";
+import {
+  InventoryItem,
+  EmployeeContext,
+  QuantityInput,
+  QuantityDetail,
+  isQuantityDetail,
+  isSimpleQuantity,
+  migrateQuantityToDetail,
+} from "./types";
 
 interface UseInventoryOperationsProps {
   inventory: InventoryItem[];
@@ -28,207 +36,337 @@ export const useInventoryOperations = ({
       confectionery: "Gummy",
       snacks: "SNACK",
       canned_food: "EVAP",
-      // เพิ่มการ mapping ตามความต้องการ
     };
 
     return categoryMapping[category.toLowerCase()] || "OTHER";
   }, []);
 
-  // Add or update inventory item with employee info
-  const addOrUpdateItem = useCallback(
-    (product: Product, quantity: number, barcodeType?: "ea" | "dsp" | "cs") => {
-      console.log("💾 useInventoryOperations addOrUpdateItem:");
-      console.log("  📦 Product:", product.name);
-      console.log("  🔢 Quantity:", quantity);
-      console.log("  🏷️ BarcodeType:", barcodeType);
+  // ✅ Helper function to normalize quantity input
+  const normalizeQuantityInput = useCallback(
+    (
+      quantityInput: QuantityInput,
+      barcodeType?: "ea" | "dsp" | "cs"
+    ): { quantity: number; quantityDetail?: QuantityDetail } => {
+      if (isSimpleQuantity(quantityInput)) {
+        // Handle old format (number)
+        const effectiveBarcodeType = barcodeType || "ea";
 
-      if (!product || quantity <= 0) {
-        setError("ข้อมูลสินค้าหรือจำนวนไม่ถูกต้อง");
+        if (effectiveBarcodeType === "ea") {
+          // For EA, keep simple quantity
+          return {
+            quantity: quantityInput,
+          };
+        } else {
+          // For DSP/CS, create quantityDetail
+          const quantityDetail = migrateQuantityToDetail(
+            quantityInput,
+            effectiveBarcodeType
+          );
+          return {
+            quantity: quantityInput, // Keep for backward compatibility
+            quantityDetail,
+          };
+        }
+      }
+
+      if (isQuantityDetail(quantityInput)) {
+        // Handle new format (QuantityDetail)
+        return {
+          quantity: quantityInput.major, // Use major as primary quantity for compatibility
+          quantityDetail: quantityInput,
+        };
+      }
+
+      // Fallback
+      setError("รูปแบบข้อมูลจำนวนสินค้าไม่ถูกต้อง");
+      return { quantity: 1 };
+    },
+    [setError]
+  );
+
+  // ✅ Validate quantity detail
+  const validateQuantityDetail = useCallback(
+    (detail: QuantityDetail): boolean => {
+      if (detail.major < 0 || detail.remainder < 0) {
+        setError("จำนวนสินค้าต้องไม่เป็นค่าลบ");
         return false;
       }
 
+      if (detail.major === 0 && detail.remainder === 0) {
+        setError("จำนวนสินค้าต้องมากกว่า 0");
+        return false;
+      }
+
+      // Additional validation based on scanned type
+      if (detail.scannedType !== "ea" && detail.major === 0) {
+        setError(`จำนวน ${detail.scannedType.toUpperCase()} ต้องมากกว่า 0`);
+        return false;
+      }
+
+      return true;
+    },
+    [setError]
+  );
+
+  // ✅ Enhanced add or update inventory item with QuantityInput support
+  const addOrUpdateItem = useCallback(
+    (
+      product: Product,
+      quantityInput: QuantityInput, // ✅ Changed from number to QuantityInput
+      barcodeType?: "ea" | "dsp" | "cs"
+    ): boolean => {
       try {
         setError(null);
 
-        const newItem: InventoryItem = {
-          id: `${product.barcode}_${barcodeType || "ea"}_${Date.now()}`,
-          barcode: product.barcode,
-          productName: product.name,
-          brand: product.brand,
-          category: product.category,
-          size: product.size || "",
-          unit: product.unit || "",
-          quantity: quantity,
-          lastUpdated: new Date().toISOString(),
-          productData: product,
-          addedBy: employeeContext?.employeeName,
-          branchCode: employeeContext?.branchCode,
-          branchName: employeeContext?.branchName,
-          // เพิ่มข้อมูลใหม่
-          barcodeType: barcodeType || "ea",
-          materialCode: product.sku || product.id,
-          productGroup: mapCategoryToProductGroup(product.category),
-          thaiDescription: product.description || product.name,
-        };
-
-        console.log(
-          "💾 Created InventoryItem with barcodeType:",
-          newItem.barcodeType
+        // ✅ Normalize quantity input to handle both formats
+        const { quantity, quantityDetail } = normalizeQuantityInput(
+          quantityInput,
+          barcodeType
         );
 
-        setInventory((prevInventory) => {
-          // ค้นหา item ที่มี barcode และ type เดียวกัน
-          const existingIndex = prevInventory.findIndex(
-            (item) =>
-              item.barcode === product.barcode &&
-              item.barcodeType === (barcodeType || "ea")
-          );
+        // ✅ Validate quantity detail if present
+        if (quantityDetail && !validateQuantityDetail(quantityDetail)) {
+          return false;
+        }
 
-          let updatedInventory: InventoryItem[];
+        const timestamp = new Date().toISOString();
+        const itemId = `${product.barcode}_${
+          barcodeType || "ea"
+        }_${Date.now()}`;
 
-          if (existingIndex !== -1) {
-            updatedInventory = prevInventory.map((item, index) =>
-              index === existingIndex
-                ? {
-                    ...item,
-                    quantity: item.quantity + quantity,
-                    lastUpdated: new Date().toISOString(),
-                    productData: product,
-                    addedBy: employeeContext?.employeeName || item.addedBy,
-                    branchCode: employeeContext?.branchCode || item.branchCode,
-                    branchName: employeeContext?.branchName || item.branchName,
-                  }
-                : item
+        // Check if item already exists (by barcode and type)
+        const existingItemIndex = inventory.findIndex(
+          (item) =>
+            item.barcode === product.barcode &&
+            item.barcodeType === (barcodeType || "ea")
+        );
+
+        const newItem: InventoryItem = {
+          id: itemId,
+          barcode: product.barcode || "",
+          productName: product.name || "",
+          brand: product.brand || "",
+          category: product.category || "",
+          size: product.size?.toString() || "",
+          unit: product.unit || "",
+
+          // ✅ Maintain backward compatibility
+          quantity,
+          quantityDetail,
+
+          lastUpdated: timestamp,
+          productData: product,
+          addedBy: employeeContext?.employeeName || "",
+          branchCode: employeeContext?.branchCode || "",
+          branchName: employeeContext?.branchName || "",
+          barcodeType: barcodeType || "ea",
+          materialCode: product.sku || "",
+          productGroup: mapCategoryToProductGroup(product.category || ""),
+          thaiDescription: product.description || "",
+        };
+
+        let updatedInventory: InventoryItem[];
+
+        if (existingItemIndex >= 0) {
+          // ✅ Update existing item - merge quantities appropriately
+          const existingItem = inventory[existingItemIndex];
+
+          if (quantityDetail && existingItem.quantityDetail) {
+            // Both have quantityDetail - add them
+            const mergedDetail: QuantityDetail = {
+              major: existingItem.quantityDetail.major + quantityDetail.major,
+              remainder:
+                existingItem.quantityDetail.remainder +
+                quantityDetail.remainder,
+              scannedType: quantityDetail.scannedType, // Use new scanned type
+            };
+
+            newItem.quantity = mergedDetail.major;
+            newItem.quantityDetail = mergedDetail;
+          } else if (quantityDetail) {
+            // New has detail, existing doesn't - use new format
+            newItem.quantity = quantity;
+            newItem.quantityDetail = quantityDetail;
+          } else if (existingItem.quantityDetail) {
+            // Existing has detail, new doesn't - convert and add
+            const convertedDetail = migrateQuantityToDetail(
+              quantity,
+              barcodeType || "ea"
             );
-            console.log(
-              `📦 Updated existing item: ${product.name} (+${quantity}) ${
-                barcodeType || "ea"
-              } by ${employeeContext?.employeeName}`
-            );
+            const mergedDetail: QuantityDetail = {
+              major: existingItem.quantityDetail.major + convertedDetail.major,
+              remainder:
+                existingItem.quantityDetail.remainder +
+                convertedDetail.remainder,
+              scannedType: existingItem.quantityDetail.scannedType,
+            };
+
+            newItem.quantity = mergedDetail.major;
+            newItem.quantityDetail = mergedDetail;
           } else {
-            updatedInventory = [...prevInventory, newItem];
-            console.log(
-              `📦 Added new item: ${product.name} (${quantity}) ${
-                barcodeType || "ea"
-              } by ${employeeContext?.employeeName}`
-            );
+            // Both simple quantities - add normally
+            newItem.quantity = existingItem.quantity + quantity;
           }
 
-          saveInventory(updatedInventory);
-          return updatedInventory;
-        });
+          updatedInventory = [...inventory];
+          updatedInventory[existingItemIndex] = newItem;
+        } else {
+          // Add new item
+          updatedInventory = [...inventory, newItem];
+        }
 
-        return true;
-      } catch (error: unknown) {
-        console.error("❌ Error adding/updating item:", error);
-        setError("เกิดข้อผิดพลาดในการเพิ่มสินค้า");
+        setInventory(updatedInventory);
+        const saved = saveInventory(updatedInventory);
+
+        if (saved) {
+          console.log("✅ Successfully added/updated inventory item:", {
+            product: product.name,
+            quantity: quantity,
+            quantityDetail: quantityDetail,
+            barcodeType: barcodeType || "ea",
+          });
+          return true;
+        } else {
+          setError("ไม่สามารถบันทึกข้อมูลได้");
+          return false;
+        }
+      } catch (error) {
+        console.error("❌ Error adding/updating inventory:", error);
+        setError("เกิดข้อผิดพลาดในการเพิ่มข้อมูล");
         return false;
       }
     },
     [
+      inventory,
+      setInventory,
       saveInventory,
       employeeContext,
       setError,
-      setInventory,
       mapCategoryToProductGroup,
+      normalizeQuantityInput,
+      validateQuantityDetail,
     ]
   );
 
-  // Update specific item quantity
+  // Update item quantity (backward compatibility)
   const updateItemQuantity = useCallback(
-    (itemId: string, newQuantity: number) => {
-      if (newQuantity < 0) {
-        setError("จำนวนต้องไม่น้อยกว่า 0");
-        return false;
-      }
-
+    (itemId: string, newQuantity: number): boolean => {
       try {
         setError(null);
 
-        setInventory((prevInventory) => {
-          const updatedInventory = prevInventory
-            .map((item) =>
-              item.id === itemId
-                ? {
-                    ...item,
-                    quantity: newQuantity,
-                    lastUpdated: new Date().toISOString(),
-                    // อัพเดตข้อมูลพนักงานที่แก้ไข
-                    addedBy: employeeContext?.employeeName || item.addedBy,
-                  }
-                : item
-            )
-            .filter((item) => item.quantity > 0); // Remove items with 0 quantity
+        if (newQuantity < 0) {
+          setError("จำนวนสินค้าต้องไม่เป็นค่าลบ");
+          return false;
+        }
 
-          saveInventory(updatedInventory);
-          return updatedInventory;
+        const updatedInventory = inventory.map((item) => {
+          if (item.id === itemId) {
+            const updatedItem = {
+              ...item,
+              quantity: newQuantity,
+              lastUpdated: new Date().toISOString(),
+            };
+
+            // ✅ If item has quantityDetail, update major but keep structure
+            if (item.quantityDetail) {
+              updatedItem.quantityDetail = {
+                ...item.quantityDetail,
+                major: newQuantity,
+              };
+            }
+
+            return updatedItem;
+          }
+          return item;
         });
 
-        return true;
-      } catch (error: unknown) {
-        console.error("❌ Error updating item quantity:", error);
-        setError("เกิดข้อผิดพลาดในการอัพเดตจำนวน");
+        setInventory(updatedInventory);
+        return saveInventory(updatedInventory);
+      } catch (error) {
+        console.error("❌ Error updating quantity:", error);
+        setError("เกิดข้อผิดพลาดในการอัพเดทจำนวน");
         return false;
       }
     },
-    [saveInventory, employeeContext, setError, setInventory]
+    [inventory, setInventory, saveInventory, setError]
   );
 
-  // Remove specific item
-  const removeItem = useCallback(
-    (itemId: string) => {
+  // ✅ New method for updating quantity details
+  const updateItemQuantityDetail = useCallback(
+    (itemId: string, quantityDetail: QuantityDetail): boolean => {
       try {
         setError(null);
 
-        setInventory((prevInventory) => {
-          const updatedInventory = prevInventory.filter(
-            (item) => item.id !== itemId
-          );
-          saveInventory(updatedInventory);
-          console.log(
-            "🗑️ Removed item:",
-            itemId,
-            "by",
-            employeeContext?.employeeName
-          );
-          return updatedInventory;
+        if (!validateQuantityDetail(quantityDetail)) {
+          return false;
+        }
+
+        const updatedInventory = inventory.map((item) => {
+          if (item.id === itemId) {
+            return {
+              ...item,
+              quantity: quantityDetail.major, // Update main quantity for compatibility
+              quantityDetail,
+              lastUpdated: new Date().toISOString(),
+            };
+          }
+          return item;
         });
 
-        return true;
-      } catch (error: unknown) {
-        console.error("❌ Error removing item:", error);
-        setError("เกิดข้อผิดพลาดในการลบสินค้า");
+        setInventory(updatedInventory);
+        return saveInventory(updatedInventory);
+      } catch (error) {
+        console.error("❌ Error updating quantity detail:", error);
+        setError("เกิดข้อผิดพลาดในการอัพเดทรายละเอียดจำนวน");
         return false;
       }
     },
-    [saveInventory, employeeContext, setError, setInventory]
+    [inventory, setInventory, saveInventory, setError, validateQuantityDetail]
+  );
+
+  // Remove item
+  const removeItem = useCallback(
+    (itemId: string): boolean => {
+      try {
+        setError(null);
+        const updatedInventory = inventory.filter((item) => item.id !== itemId);
+        setInventory(updatedInventory);
+        return saveInventory(updatedInventory);
+      } catch (error) {
+        console.error("❌ Error removing item:", error);
+        setError("เกิดข้อผิดพลาดในการลบข้อมูล");
+        return false;
+      }
+    },
+    [inventory, setInventory, saveInventory, setError]
   );
 
   // Clear all inventory
-  const clearInventory = useCallback(() => {
+  const clearInventory = useCallback((): boolean => {
     try {
       setError(null);
       setInventory([]);
-      saveInventory([]);
-      console.log("🗑️ Cleared all inventory by", employeeContext?.employeeName);
-      return true;
-    } catch (error: unknown) {
+      return saveInventory([]);
+    } catch (error) {
       console.error("❌ Error clearing inventory:", error);
-      setError("เกิดข้อผิดพลาดในการลบข้อมูลทั้งหมด");
+      setError("เกิดข้อผิดพลาดในการล้างข้อมูล");
       return false;
     }
-  }, [saveInventory, employeeContext, setError, setInventory]);
+  }, [setInventory, saveInventory, setError]);
 
-  // Search and utility functions
+  // Find item by barcode
   const findItemByBarcode = useCallback(
-    (barcode: string) => {
+    (barcode: string): InventoryItem | undefined => {
       return inventory.find((item) => item.barcode === barcode);
     },
     [inventory]
   );
 
+  // Search items
   const searchItems = useCallback(
-    (searchTerm: string) => {
+    (searchTerm: string): InventoryItem[] => {
+      if (!searchTerm.trim()) return inventory;
+
       const term = searchTerm.toLowerCase();
       return inventory.filter(
         (item) =>
@@ -242,13 +380,11 @@ export const useInventoryOperations = ({
   );
 
   return {
-    // CRUD Operations
     addOrUpdateItem,
     updateItemQuantity,
+    updateItemQuantityDetail, // ✅ New method
     removeItem,
     clearInventory,
-
-    // Search & Utilities
     findItemByBarcode,
     searchItems,
   };

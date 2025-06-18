@@ -101,6 +101,10 @@ export const useInventoryExport = ({
           thaiDescription: string;
           csCount: number;
           pieceCount: number;
+          // ✅ เก็บ materialCode ของแต่ละประเภทตามลำดับความสำคัญ
+          csMaterialCode?: string; // รหัสของ CS (ลัง)
+          dspMaterialCode?: string; // รหัสของ DSP (แพ็ค)
+          eaMaterialCode?: string; // รหัสของ EA (ชิ้น)
         }
       >();
 
@@ -109,45 +113,104 @@ export const useInventoryExport = ({
           name: item.productName,
           barcodeType: item.barcodeType,
           quantity: item.quantity,
+          quantityDetail: item.quantityDetail,
+          materialCode: item.materialCode,
         });
 
         const key = `${item.materialCode}_${item.productGroup}`;
         const existing = groupedData.get(key);
 
-        if (existing) {
-          // 🔄 ปรับลอจิกการแยกประเภท:
-          // - dsp และ cs ใส่ในคอลัมน์ "นับจริง (cs)"
-          // - ea ใส่ในคอลัมน์ "นับจริง (ชิ้น)"
+        // ✅ Enhanced logic สำหรับ quantityDetail (Phase 2)
+        let csToAdd = 0;
+        let piecesToAdd = 0;
+        let itemType: "cs" | "dsp" | "ea" = "ea";
+
+        if (item.quantityDetail) {
+          // ใช้ quantityDetail จาก Phase 2
+          const { major, remainder, scannedType } = item.quantityDetail;
+          itemType = scannedType;
+
+          if (scannedType === "dsp" || scannedType === "cs") {
+            csToAdd = major; // major ไปใน CS column
+            piecesToAdd = remainder; // ✅ เศษไปใน ชิ้น column
+            console.log(
+              `  📦 Adding to CS count (${scannedType}): ${major}, remainder pieces: ${remainder}`
+            );
+          } else if (scannedType === "ea") {
+            csToAdd = 0;
+            piecesToAdd = major + remainder; // EA รวมทั้งหมดไปใน ชิ้น column
+            console.log(
+              `  🔢 Adding to piece count (ea): ${major + remainder}`
+            );
+          }
+        } else {
+          // Fallback สำหรับข้อมูลเก่าที่ไม่มี quantityDetail
+          itemType = (item.barcodeType as "cs" | "dsp" | "ea") || "ea";
+
           if (item.barcodeType === "dsp" || item.barcodeType === "cs") {
+            csToAdd = item.quantity;
+            piecesToAdd = 0;
             console.log(
               `  📦 Adding to CS count (${item.barcodeType}): ${item.quantity}`
             );
-            existing.csCount += item.quantity;
           } else if (item.barcodeType === "ea") {
+            csToAdd = 0;
+            piecesToAdd = item.quantity;
             console.log(`  🔢 Adding to piece count (ea): ${item.quantity}`);
-            existing.pieceCount += item.quantity;
+          }
+        }
+
+        if (existing) {
+          existing.csCount += csToAdd;
+          existing.pieceCount += piecesToAdd;
+
+          // ✅ อัปเดต materialCode ตามประเภทที่เพิ่มเข้ามา
+          if (itemType === "cs" && csToAdd > 0) {
+            existing.csMaterialCode = item.materialCode;
+          } else if (itemType === "dsp" && csToAdd > 0) {
+            existing.dspMaterialCode = item.materialCode;
+          } else if (itemType === "ea" && piecesToAdd > 0) {
+            existing.eaMaterialCode = item.materialCode;
           }
         } else {
           groupedData.set(key, {
             materialCode: item.materialCode || "",
             productGroup: item.productGroup || "",
             thaiDescription: item.thaiDescription || item.productName,
-            // 🔄 ปรับลอจิกเริ่มต้น:
-            // - dsp และ cs ใส่ในคอลัมน์ "นับจริง (cs)"
-            // - ea ใส่ในคอลัมน์ "นับจริง (ชิ้น)"
-            csCount:
-              item.barcodeType === "dsp" || item.barcodeType === "cs"
-                ? item.quantity
-                : 0,
-            pieceCount: item.barcodeType === "ea" ? item.quantity : 0,
+            csCount: csToAdd,
+            pieceCount: piecesToAdd,
+            // ✅ เก็บ materialCode ตามประเภท
+            csMaterialCode:
+              itemType === "cs" && csToAdd > 0 ? item.materialCode : undefined,
+            dspMaterialCode:
+              itemType === "dsp" && csToAdd > 0 ? item.materialCode : undefined,
+            eaMaterialCode:
+              itemType === "ea" && piecesToAdd > 0
+                ? item.materialCode
+                : undefined,
           });
         }
       });
 
       // เพิ่มข้อมูลแต่ละ row
       Array.from(groupedData.values()).forEach((group) => {
+        // ✅ เลือก materialCode ของหน่วยใหญ่สุดที่มีจำนวน
+        let displayMaterialCode = group.materialCode; // fallback
+
+        if (group.csCount > 0 && group.csMaterialCode) {
+          displayMaterialCode = group.csMaterialCode; // CS มีความสำคัญสูงสุด
+        } else if (group.csCount > 0 && group.dspMaterialCode) {
+          displayMaterialCode = group.dspMaterialCode; // DSP รองลงมา (ในกรณี DSP ไปใน CS column)
+        } else if (group.pieceCount > 0 && group.eaMaterialCode) {
+          displayMaterialCode = group.eaMaterialCode; // EA สำหรับชิ้น
+        }
+
+        console.log(
+          `📝 Exporting row: ${displayMaterialCode} - CS:${group.csCount}, Pieces:${group.pieceCount}`
+        );
+
         const row = [
-          escapeCsvField(group.materialCode),
+          escapeCsvField(displayMaterialCode), // ✅ ใช้ materialCode ของหน่วยใหญ่สุด
           escapeCsvField(group.productGroup),
           escapeCsvField(group.thaiDescription),
           group.csCount > 0 ? group.csCount.toString() : "",
@@ -309,6 +372,7 @@ export const useInventoryExport = ({
     [generateCSVContent, generateFileName]
   );
 
+  // ✅ **CRITICAL FIX: Return the export functions (ที่หายไป)**
   return {
     // Main export functions
     exportInventory,

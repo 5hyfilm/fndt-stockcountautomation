@@ -1,4 +1,4 @@
-// ./src/hooks/inventory/useInventoryManager.tsx
+// src/hooks/inventory/useInventoryManager.tsx - Fix: Proper Export Integration
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -40,6 +40,7 @@ export const useInventoryManager = (
     setError,
   });
 
+  // ✅ Fix: Properly use the export hook
   const exportHook = useInventoryExport({
     inventory,
     employeeContext,
@@ -103,6 +104,12 @@ export const useInventoryManager = (
     }
   }, [clearStorageError, clearStorage]);
 
+  // ✅ Debug logging for export hook
+  console.log("🔍 Export hook result:", {
+    hasExportInventory: !!exportHook?.exportInventory,
+    hookKeys: exportHook ? Object.keys(exportHook) : "hook is undefined",
+  });
+
   return {
     // State
     inventory,
@@ -113,6 +120,7 @@ export const useInventoryManager = (
     // CRUD Operations (from operations hook)
     addOrUpdateItem: operations.addOrUpdateItem,
     updateItemQuantity: operations.updateItemQuantity,
+    updateItemQuantityDetail: operations.updateItemQuantityDetail, // ✅ Add new method
     removeItem: operations.removeItem,
     clearInventory: operations.clearInventory,
 
@@ -120,13 +128,19 @@ export const useInventoryManager = (
     findItemByBarcode: operations.findItemByBarcode,
     searchItems: operations.searchItems,
 
-    // Export functionality (from export hook)
-    exportInventory: exportHook.exportInventory,
+    // ✅ Fix: Ensure export function is properly available
+    exportInventory:
+      exportHook?.exportInventory ||
+      (() => {
+        console.error("❌ exportInventory function is not available");
+        setError("ฟังก์ชันส่งออกข้อมูลไม่พร้อมใช้งาน");
+        return false;
+      }),
 
     // Error handling and utilities
     clearError,
     loadInventory: loadInventoryData,
-    resetInventoryState, // เพิ่มฟังก์ชัน reset สำหรับ logout
+    resetInventoryState,
   };
 };
 

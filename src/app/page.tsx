@@ -1,4 +1,4 @@
-// Path: src/app/page.tsx
+// Path: src/app/page.tsx - Phase 2: Updated with Enhanced Quantity Support
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -16,6 +16,9 @@ import { ExportSuccessToast } from "../components/ExportSuccessToast";
 
 // Import Product type
 import { Product } from "../types/product";
+
+// ✅ Import new quantity types from Phase 2
+import { QuantityInput, QuantityDetail } from "../hooks/inventory/types";
 
 // Import new sub-components
 import { MobileAppHeader } from "../components/headers/MobileAppHeader";
@@ -121,20 +124,21 @@ export default function BarcodeDetectionPage() {
     console.log("---");
   }, [detectedBarcodeType, product, lastDetectedCode]);
 
-  // Inventory Management with Employee Context
+  // ✅ Enhanced Inventory Management with Phase 2 support
   const {
     inventory,
     isLoading: isLoadingInventory,
     error: inventoryError,
     addOrUpdateItem,
     updateItemQuantity,
+    updateItemQuantityDetail, // ✅ New method from Phase 2
     removeItem,
     clearInventory,
     findItemByBarcode,
     searchItems,
     exportInventory,
     clearError: clearInventoryError,
-    resetInventoryState, // เพิ่มฟังก์ชัน reset
+    resetInventoryState,
     summary,
   } = useInventoryManager(
     employee
@@ -243,33 +247,72 @@ export default function BarcodeDetectionPage() {
     return item?.quantity || 0;
   }, [lastDetectedCode, findItemByBarcode]);
 
-  // Handle add to inventory with employee info - FIXED: Replace 'any' with 'Product'
+  // ✅ Enhanced add to inventory with Phase 2 QuantityInput support
   const handleAddToInventory = (
     product: Product,
-    quantity: number,
+    quantityInput: QuantityInput, // ✅ Changed from 'quantity: number' to 'quantityInput: QuantityInput'
     barcodeType?: "ea" | "dsp" | "cs"
   ): boolean => {
     const finalBarcodeType = barcodeType || detectedBarcodeType || "ea";
 
     console.log("🔄 handleAddToInventory called with:");
     console.log("  📦 Product:", product?.name);
-    console.log("  🔢 Quantity:", quantity);
+    console.log("  🔢 QuantityInput:", quantityInput); // ✅ Updated log
     console.log("  🏷️ BarcodeType received:", barcodeType);
     console.log("  🏷️ DetectedBarcodeType:", detectedBarcodeType);
     console.log("  🏷️ Final BarcodeType:", finalBarcodeType);
 
-    const success = addOrUpdateItem(product, quantity, finalBarcodeType);
+    // ✅ Use new signature with QuantityInput
+    const success = addOrUpdateItem(product, quantityInput, finalBarcodeType);
 
     if (success && employee) {
-      const unitType = finalBarcodeType === "cs" ? "ลัง" : "ชิ้น";
+      // ✅ Enhanced logging for different quantity types
+      let logMessage = "";
+      if (typeof quantityInput === "number") {
+        const unitType =
+          finalBarcodeType === "cs"
+            ? "ลัง"
+            : finalBarcodeType === "dsp"
+            ? "แพ็ค"
+            : "ชิ้น";
+        logMessage = `${quantityInput} ${unitType}`;
+      } else {
+        const { major, remainder, scannedType } = quantityInput;
+        const unitMap = { ea: "ชิ้น", dsp: "แพ็ค", cs: "ลัง" };
+        logMessage = `${major} ${unitMap[scannedType]}`;
+        if (remainder > 0) {
+          logMessage += ` + ${remainder} ชิ้น`;
+        }
+      }
+
       console.log(
-        `✅ Added ${quantity} ${unitType} of ${
+        `✅ Added ${logMessage} of ${
           product?.name
         } (${finalBarcodeType.toUpperCase()})`
       );
     }
 
     return success;
+  };
+
+  // ✅ Enhanced update quantity handler for Phase 2
+  const handleUpdateItemQuantity = (
+    itemId: string,
+    newQuantity: number
+  ): boolean => {
+    return updateItemQuantity(itemId, newQuantity);
+  };
+
+  // ✅ New handler for updating quantity details (Phase 2)
+  const handleUpdateItemQuantityDetail = (
+    itemId: string,
+    quantityDetail: QuantityDetail
+  ): boolean => {
+    if (updateItemQuantityDetail) {
+      return updateItemQuantityDetail(itemId, quantityDetail);
+    }
+    // Fallback to simple quantity update for backward compatibility
+    return updateItemQuantity(itemId, quantityDetail.major);
   };
 
   // Handle export with employee info
@@ -355,7 +398,7 @@ export default function BarcodeDetectionPage() {
             captureAndProcess={captureAndProcess}
             drawDetections={drawDetections}
             updateCanvasSize={updateCanvasSize}
-            // ⭐ เพิ่ม torch props
+            // Torch props
             torchOn={torchOn}
             onToggleTorch={toggleTorch}
             // Product props
@@ -365,12 +408,12 @@ export default function BarcodeDetectionPage() {
             productError={productError}
             lastDetectedCode={lastDetectedCode}
             // Product actions
-            onAddToInventory={handleAddToInventory}
+            onAddToInventory={handleAddToInventory} // ✅ Updated signature
             restartForNextScan={restartForNextScan}
             currentInventoryQuantity={currentInventoryQuantity}
             // Layout options
             fullScreen={true}
-            showHeader={false} // ใช้ floating controls แทน header
+            showHeader={false}
           />
         </div>
 
@@ -452,7 +495,7 @@ export default function BarcodeDetectionPage() {
                 captureAndProcess={captureAndProcess}
                 drawDetections={drawDetections}
                 updateCanvasSize={updateCanvasSize}
-                // ⭐ เพิ่ม torch props
+                // Torch props
                 torchOn={torchOn}
                 onToggleTorch={toggleTorch}
                 // Product props
@@ -462,7 +505,7 @@ export default function BarcodeDetectionPage() {
                 productError={productError}
                 lastDetectedCode={lastDetectedCode}
                 // Product actions
-                onAddToInventory={handleAddToInventory}
+                onAddToInventory={handleAddToInventory} // ✅ Updated signature
                 restartForNextScan={restartForNextScan}
                 currentInventoryQuantity={currentInventoryQuantity}
                 // Layout options
@@ -505,7 +548,7 @@ export default function BarcodeDetectionPage() {
                       updateCanvasSize={updateCanvasSize}
                       fullScreen={false}
                       showHeader={true}
-                      // ⭐ เพิ่ม torch props
+                      // Torch props
                       torchOn={torchOn}
                       onToggleTorch={toggleTorch}
                     />
@@ -521,7 +564,7 @@ export default function BarcodeDetectionPage() {
                       error={productError || undefined}
                       currentInventoryQuantity={currentInventoryQuantity}
                       isMobile={false}
-                      onAddToInventory={handleAddToInventory}
+                      onAddToInventory={handleAddToInventory} // ✅ Updated signature
                     />
                   </div>
                 </div>
@@ -565,7 +608,8 @@ export default function BarcodeDetectionPage() {
                 summary={summary}
                 isLoading={isLoadingInventory}
                 error={inventoryError}
-                onUpdateQuantity={updateItemQuantity}
+                onUpdateQuantity={handleUpdateItemQuantity} // ✅ Updated handler
+                onUpdateQuantityDetail={handleUpdateItemQuantityDetail} // ✅ New handler for Phase 2
                 onRemoveItem={removeItem}
                 onClearInventory={clearInventory}
                 onExportInventory={handleExportInventory}
