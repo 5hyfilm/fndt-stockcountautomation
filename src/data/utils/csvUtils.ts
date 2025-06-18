@@ -177,6 +177,7 @@ export const csvRowToProduct = (
       packSize,
       packSizeInfo, // เพิ่ม field ใหม่
       status: ProductStatus.ACTIVE,
+      sku: row.Material,
       barcodes: {
         ea: eaBarcode || undefined,
         dsp: dspBarcode || undefined,
