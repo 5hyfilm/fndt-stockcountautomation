@@ -42,59 +42,69 @@ export const useInventoryOperations = ({
       secondaryUnitType: "dsp" | "ea" | "fractional",
       packSize: number = 12
     ) => {
-      // เก็บข้อมูลแยกหน่วยตาม database schema
+      console.log("🔄 processDualUnitData INPUT:", {
+        primaryValue,
+        secondaryValue,
+        primaryUnitType,
+        secondaryUnitType,
+        packSize,
+      });
+
+      // ✅ FIXED: เก็บข้อมูลแยกหน่วยโดยไม่แปลงหน่วยอัตโนมัติ
       let csCount = 0;
       let pieceCount = 0;
       let csUnitType: "cs" | "dsp" | null = null;
       let pieceUnitType: "dsp" | "ea" | "fractional" = "ea";
 
-      // Primary unit mapping
+      // ✅ FIXED: Primary unit mapping - เก็บตามที่กรอกจริง
       if (primaryUnitType === "cs") {
         csCount = primaryValue;
         csUnitType = "cs";
       } else if (primaryUnitType === "dsp") {
-        csCount = primaryValue; // DSP ใช้ cs column
+        csCount = primaryValue; // DSP จะใช้ cs column แต่จำ type เป็น dsp
         csUnitType = "dsp";
       }
 
-      // Secondary unit mapping
+      // ✅ FIXED: Secondary unit mapping - เก็บตามที่กรอกจริง
       pieceCount = secondaryValue;
       pieceUnitType = secondaryUnitType;
 
-      // ✅ Calculate total EA for compatibility ONLY
+      // ✅ FIXED: คำนวณ totalEA สำหรับ compatibility เท่านั้น (ไม่ใช้แปลงหน่วย)
       let totalEA = 0;
 
-      // Convert cs count to EA
+      // คำนวณจาก csCount
       if (csUnitType === "cs") {
-        // 1 CS = 12 แพ็ค (default), 1 แพ็ค = packSize ชิ้น
+        // 1 CS = 12 DSP * packSize EA
         totalEA += csCount * 12 * packSize;
       } else if (csUnitType === "dsp") {
-        // 1 DSP = packSize ชิ้น ✅ ใช้ packSize ที่ถูกต้อง
+        // 1 DSP = packSize EA
         totalEA += csCount * packSize;
       }
 
-      // Convert piece count to EA
+      // คำนวณจาก pieceCount
       if (pieceUnitType === "dsp") {
-        totalEA += pieceCount * packSize;
+        totalEA += pieceCount * packSize; // DSP = packSize EA
       } else {
-        totalEA += pieceCount; // EA or fractional
+        totalEA += pieceCount; // EA or fractional = 1:1
       }
 
-      return {
+      const result = {
         csCount,
         pieceCount,
         csUnitType,
         pieceUnitType,
         totalEA,
       };
+
+      console.log("✅ processDualUnitData OUTPUT:", result);
+      return result;
     },
     []
   );
 
-  // ✅ FIXED: Single addOrUpdateItemDualUnit function (ลบ duplicate)
   const addOrUpdateItemDualUnit = useCallback(
     (product: Product, dualUnitData: DualUnitInputData) => {
-      console.log("💾 useInventoryOperations addOrUpdateItemDualUnit:");
+      console.log("💾 addOrUpdateItemDualUnit START:");
       console.log("  📦 Product:", product.name);
       console.log("  🔢 DualUnitData:", dualUnitData);
 
@@ -109,7 +119,7 @@ export const useInventoryOperations = ({
       try {
         setError(null);
 
-        // ✅ FIXED: Use proper processing function
+        // ✅ FIXED: Process dual unit data correctly
         const processedData = processDualUnitData(
           dualUnitData.primaryValue,
           dualUnitData.secondaryValue,
@@ -118,9 +128,9 @@ export const useInventoryOperations = ({
           (product as any).packSize || 12
         );
 
-        console.log("✅ FIXED Processing Result:", processedData);
+        console.log("✅ Processed Data:", processedData);
 
-        // Create new item
+        // Create new item with proper dual unit structure
         const newItem: InventoryItem = {
           id: `${product.barcode}_${
             dualUnitData.scannedBarcodeType
@@ -130,47 +140,48 @@ export const useInventoryOperations = ({
           brand: product.brand || "F&N",
           category: product.category,
           size: product.name,
-          unit: "mixed", // แสดงว่าเป็น dual unit
+          unit: product.unit || "",
 
-          // ✅ FIXED: เก็บแยกหน่วยตาม schema ที่ถูกต้อง
+          // ✅ FIXED: Store dual unit data as entered by user
           csCount: processedData.csCount,
           pieceCount: processedData.pieceCount,
           csUnitType: processedData.csUnitType,
           pieceUnitType: processedData.pieceUnitType,
 
-          // เก็บข้อมูลเดิมไว้เพื่อ compatibility
+          // ✅ Keep totalEA for compatibility but don't use for unit conversion
           quantity: processedData.totalEA,
-          barcodeType: dualUnitData.scannedBarcodeType,
 
+          productGroup: mapCategoryToProductGroup(product.category),
+          addedAt: new Date().toISOString(),
           lastUpdated: new Date().toISOString(),
           productData: product,
-          addedBy: employeeContext?.employeeName,
-          branchCode: employeeContext?.branchCode,
-          branchName: employeeContext?.branchName,
-          materialCode: product.id,
-          productGroup: mapCategoryToProductGroup(product.category),
-          thaiDescription: product.name,
+          addedBy: employeeContext?.employeeName || "Unknown",
+          branchCode: employeeContext?.branchCode || "MAIN",
+          branchName: employeeContext?.branchName || "Main Branch",
         };
 
-        // Update inventory
         setInventory((prevInventory) => {
           const existingIndex = prevInventory.findIndex(
             (item) =>
               item.barcode === product.barcode &&
-              item.barcodeType === dualUnitData.scannedBarcodeType
+              item.csUnitType === processedData.csUnitType &&
+              item.pieceUnitType === processedData.pieceUnitType
           );
 
           let updatedInventory: InventoryItem[];
 
           if (existingIndex !== -1) {
-            // ✅ FIXED: Update existing item - รวม dual unit values อย่างถูกต้อง
+            // ✅ FIXED: Update existing item by adding values (not converting)
+            const existingItem = prevInventory[existingIndex];
+
             updatedInventory = prevInventory.map((item, index) =>
               index === existingIndex
                 ? {
                     ...item,
-                    csCount: item.csCount + processedData.csCount,
-                    pieceCount: item.pieceCount + processedData.pieceCount,
-                    quantity: item.quantity + processedData.totalEA,
+                    csCount: (item.csCount || 0) + processedData.csCount,
+                    pieceCount:
+                      (item.pieceCount || 0) + processedData.pieceCount,
+                    quantity: (item.quantity || 0) + processedData.totalEA,
                     lastUpdated: new Date().toISOString(),
                     productData: product,
                     addedBy: employeeContext?.employeeName || item.addedBy,
@@ -179,14 +190,21 @@ export const useInventoryOperations = ({
                   }
                 : item
             );
+
+            console.log(`📦 Updated existing item: ${product.name}`);
             console.log(
-              `📦 Updated existing dual unit item: ${product.name} (+${processedData.csCount} ${processedData.csUnitType}, +${processedData.pieceCount} ${processedData.pieceUnitType})`
+              `   Old: ${existingItem.csCount || 0} ${
+                existingItem.csUnitType
+              }, ${existingItem.pieceCount || 0} ${existingItem.pieceUnitType}`
+            );
+            console.log(
+              `   Added: +${processedData.csCount} ${processedData.csUnitType}, +${processedData.pieceCount} ${processedData.pieceUnitType}`
             );
           } else {
             // Add new item
             updatedInventory = [...prevInventory, newItem];
             console.log(
-              `📦 Added new dual unit item: ${product.name} (${processedData.csCount} ${processedData.csUnitType}, ${processedData.pieceCount} ${processedData.pieceUnitType})`
+              `📦 Added new item: ${product.name} (${processedData.csCount} ${processedData.csUnitType}, ${processedData.pieceCount} ${processedData.pieceUnitType})`
             );
           }
 
@@ -359,7 +377,6 @@ export const useInventoryOperations = ({
     [saveInventory, employeeContext, setError, setInventory]
   );
 
-  // ✅ Update item with dual unit values
   const updateItemDualUnit = useCallback(
     (itemId: string, newCSCount: number, newPieceCount: number) => {
       if (newCSCount < 0 || newPieceCount < 0) {
@@ -374,7 +391,7 @@ export const useInventoryOperations = ({
           const updatedInventory = prevInventory
             .map((item) => {
               if (item.id === itemId) {
-                // ✅ FIXED: คำนวณ totalEA ใหม่โดยใช้ข้อมูล cs/piece โดยตรง
+                // ✅ FIXED: คำนวณ totalEA ใหม่แต่ไม่แปลงหน่วย
                 let totalEA = 0;
                 const packSize = (item.productData as any)?.packSize || 12;
 
@@ -407,16 +424,18 @@ export const useInventoryOperations = ({
 
                 return {
                   ...item,
-                  csCount: newCSCount,
-                  pieceCount: newPieceCount,
-                  quantity: totalEA, // ✅ ใช้การคำนวณที่ถูกต้อง
+                  csCount: newCSCount, // ✅ เก็บตามที่กรอกจริง
+                  pieceCount: newPieceCount, // ✅ เก็บตามที่กรอกจริง
+                  quantity: totalEA, // ใช้สำหรับ compatibility เท่านั้น
                   lastUpdated: new Date().toISOString(),
                   addedBy: employeeContext?.employeeName || item.addedBy,
                 };
               }
               return item;
             })
-            .filter((item) => item.csCount > 0 || item.pieceCount > 0);
+            .filter(
+              (item) => (item.csCount || 0) > 0 || (item.pieceCount || 0) > 0
+            );
 
           saveInventory(updatedInventory);
           return updatedInventory;
@@ -496,6 +515,7 @@ export const useInventoryOperations = ({
 
   return {
     // ✅ CRUD Operations - Both legacy and dual unit
+
     addOrUpdateItem,
     addOrUpdateItemDualUnit,
     updateItemQuantity,

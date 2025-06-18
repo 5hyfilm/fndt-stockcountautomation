@@ -29,23 +29,6 @@ interface InventoryListItemProps {
   onUpdateDualUnit?: (csCount: number, pieceCount: number) => void;
 }
 
-// Extended types for pack size information
-interface PackSizeInfo {
-  displayText: string;
-  count?: number;
-  unit?: string;
-}
-
-interface ExtendedInventoryItem extends InventoryItem {
-  packSizeInfo?: PackSizeInfo;
-  packSize?: number;
-}
-
-interface ExtendedProductData {
-  packSizeInfo?: PackSizeInfo;
-  packSize?: number;
-}
-
 export const InventoryListItem: React.FC<InventoryListItemProps> = ({
   item,
   isEditing,
@@ -68,40 +51,6 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     });
   };
 
-  // ฟังก์ชันสำหรับแสดงขนาดสินค้า
-  const getSizeDisplay = (): string | null => {
-    const extendedItem = item as ExtendedInventoryItem;
-    const extendedProductData = item.productData as
-      | ExtendedProductData
-      | undefined;
-
-    if (extendedItem.packSizeInfo) {
-      return extendedItem.packSizeInfo.displayText;
-    }
-
-    if (extendedItem.packSize && extendedItem.packSize > 1) {
-      return `${extendedItem.packSize} ชิ้น/แพ็ค`;
-    }
-
-    if (extendedProductData?.packSizeInfo) {
-      return extendedProductData.packSizeInfo.displayText;
-    }
-
-    if (extendedProductData?.packSize && extendedProductData.packSize > 1) {
-      return `${extendedProductData.packSize} ชิ้น/แพ็ค`;
-    }
-
-    if (item.size && item.unit) {
-      return `${item.size} ${item.unit}`;
-    }
-
-    if (item.size) {
-      return `${item.size}`;
-    }
-
-    return null;
-  };
-
   // ✅ FIXED: Get unit type display
   const getUnitTypeDisplay = (unitType: string | null | undefined): string => {
     switch (unitType) {
@@ -118,16 +67,26 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     }
   };
 
-  // ✅ FIXED: Format dual unit display properly
+  // ✅ FIXED: Format dual unit display properly - แสดงตามที่กรอกจริงไม่แปลงหน่วย
   const formatDualUnitDisplay = (): string => {
     const csCount = item.csCount || 0;
     const pieceCount = item.pieceCount || 0;
     const csUnitType = item.csUnitType;
     const pieceUnitType = item.pieceUnitType;
 
+    console.log("🎯 formatDualUnitDisplay DEBUG:", {
+      productName: item.productName,
+      csCount,
+      pieceCount,
+      csUnitType,
+      pieceUnitType,
+      shouldShowBoth: csCount > 0 && pieceCount > 0,
+    });
+
     const csLabel = getUnitTypeDisplay(csUnitType);
     const pieceLabel = getUnitTypeDisplay(pieceUnitType);
 
+    // ✅ FIXED: แสดงผลตามที่กรอกจริง ไม่แปลงหน่วยอัตโนมัติ
     if (csCount > 0 && pieceCount > 0) {
       return `${csCount} ${csLabel} + ${pieceCount} ${pieceLabel}`;
     } else if (csCount > 0) {
@@ -148,8 +107,13 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     );
   };
 
-  // ✅ Debug: Log item data
-  console.log("🔍 InventoryListItem Debug:", {
+  // ✅ FIXED: Check if item has any dual unit values
+  const hasDualUnitValues = (): boolean => {
+    return (item.csCount || 0) > 0 || (item.pieceCount || 0) > 0;
+  };
+
+  // ✅ Debug: Log item data for troubleshooting
+  console.log("🔍 InventoryListItem Render:", {
     productName: item.productName,
     csCount: item.csCount,
     pieceCount: item.pieceCount,
@@ -157,8 +121,20 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     pieceUnitType: item.pieceUnitType,
     quantity: item.quantity,
     isDualUnit: isDualUnit(),
+    hasDualUnitValues: hasDualUnitValues(),
     formatDualUnitDisplay: formatDualUnitDisplay(),
   });
+
+  // ✅ Get size display
+  const getSizeDisplay = (): string | null => {
+    if (item.size && item.unit) {
+      return `${item.size} ${item.unit}`;
+    }
+    if (item.size) {
+      return `${item.size}`;
+    }
+    return null;
+  };
 
   const sizeDisplay = getSizeDisplay();
 
@@ -172,50 +148,28 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
               <Package className="text-fn-green" size={16} />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-gray-900 truncate">
+              <h3 className="text-sm font-medium text-gray-900 truncate">
                 {item.productName}
               </h3>
-              {/* Brand & Category */}
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-xs font-medium">
-                  {item.brand}
+              <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                <span className="font-mono bg-gray-100 px-2 py-0.5 rounded">
+                  {item.barcode}
                 </span>
-                <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-md text-xs font-medium">
-                  {item.category}
-                </span>
-                {item.barcodeType && (
-                  <span className="bg-green-100 text-green-700 px-2 py-1 rounded-md text-xs font-medium">
-                    {item.barcodeType.toUpperCase()}
+                {item.brand && (
+                  <span className="text-fn-green font-medium">
+                    {item.brand}
                   </span>
                 )}
+                {sizeDisplay && <span>{sizeDisplay}</span>}
               </div>
-            </div>
-          </div>
-
-          {/* Size & Barcode */}
-          <div className="ml-11 space-y-1">
-            {sizeDisplay && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span className="text-gray-500">ขนาด:</span>
-                <span className="font-medium">{sizeDisplay}</span>
-              </div>
-            )}
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <span>บาร์โค้ด:</span>
-              <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-                {item.barcode}
-              </span>
-            </div>
-            <div className="text-xs text-gray-400">
-              อัปเดตล่าสุด: {formatDate(item.lastUpdated)}
             </div>
           </div>
         </div>
 
-        {/* ✅ FIXED: Quantity Display & Controls */}
-        <div className="flex items-center gap-4 ml-4">
+        {/* Quantity Display/Edit Section */}
+        <div className="flex items-center gap-3">
           {isEditing ? (
-            /* Edit Mode */
+            /* Edit Mode - Standard quantity editing */
             <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg p-2">
               <button
                 onClick={() =>
@@ -256,11 +210,11 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
             /* ✅ FIXED: Display Mode */
             <div className="flex items-center gap-4">
               {/* Quantity Display */}
-              <div className="text-right min-w-[160px]">
-                {isDualUnit() ? (
-                  /* ✅ Dual Unit Display */
+              <div className="text-right min-w-[180px]">
+                {isDualUnit() && hasDualUnitValues() ? (
+                  /* ✅ FIXED: Dual Unit Display - แสดงตามที่กรอกจริง */
                   <div className="space-y-2">
-                    {/* ✅ Main Display: แสดงตามที่กรอกจริง */}
+                    {/* ✅ Main Display: แสดงสรุปตามที่กรอกจริง */}
                     <div className="text-lg font-bold text-blue-900 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
                       {formatDualUnitDisplay()}
                     </div>
@@ -285,51 +239,67 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
                           </span>
                         </div>
                       )}
+                    </div>
 
-                      {/* Legacy compatibility info */}
-                      <div className="flex items-center gap-2 justify-end text-gray-500 text-xs border-t border-gray-200 pt-1 mt-2">
-                        <ShoppingCart size={12} />
-                        <span>รวม: {item.quantity} ชิ้น</span>
-                      </div>
+                    {/* ✅ เพิ่ม note เล็กๆ สำหรับการแสดงข้อมูล */}
+                    <div className="text-xs text-gray-400 text-center">
+                      แสดงตามที่กรอกจริง
                     </div>
                   </div>
                 ) : (
-                  /* Legacy Single Unit Display */
+                  /* ✅ Single Unit Display */
                   <div className="text-lg font-bold text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
-                    {item.quantity} {item.unit || "ชิ้น"}
+                    <div className="flex items-center gap-2 justify-end">
+                      <ShoppingCart size={16} className="text-gray-600" />
+                      <span>{item.quantity || 0}</span>
+                      <span className="text-sm text-gray-600">ชิ้น</span>
+                    </div>
                   </div>
                 )}
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <button
                   onClick={() => onQuickAdjust(-1)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  disabled={item.quantity <= 0}
+                  className="p-1 hover:bg-gray-100 rounded text-gray-600 hover:text-gray-800"
+                  disabled={item.quantity <= 1}
                 >
-                  <Minus size={16} className="text-gray-600" />
+                  <Minus size={14} />
                 </button>
                 <button
                   onClick={() => onQuickAdjust(1)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-1 hover:bg-gray-100 rounded text-gray-600 hover:text-gray-800"
                 >
-                  <Plus size={16} className="text-gray-600" />
+                  <Plus size={14} />
                 </button>
                 <button
                   onClick={onEditStart}
-                  className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
+                  className="p-1 hover:bg-blue-100 rounded text-blue-600 hover:text-blue-800 ml-1"
                 >
-                  <Edit3 size={16} className="text-blue-600" />
+                  <Edit3 size={14} />
                 </button>
                 <button
                   onClick={onRemove}
-                  className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                  className="p-1 hover:bg-red-100 rounded text-red-600 hover:text-red-800"
                 >
-                  <Trash2 size={16} className="text-red-600" />
+                  <Trash2 size={14} />
                 </button>
               </div>
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* Additional Info */}
+      <div className="mt-3 pt-3 border-t border-gray-100">
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <div className="flex items-center gap-3">
+            <span>เพิ่มเมื่อ: {formatDate(item.addedAt)}</span>
+            {item.addedBy && <span>โดย: {item.addedBy}</span>}
+          </div>
+          {item.lastUpdated && item.lastUpdated !== item.addedAt && (
+            <span>แก้ไขล่าสุด: {formatDate(item.lastUpdated)}</span>
           )}
         </div>
       </div>
