@@ -1,8 +1,12 @@
-// src/components/InventoryDisplay.tsx
+// src/components/InventoryDisplay.tsx - Updated with QuantityDetail Support
 "use client";
 
 import React, { useState } from "react";
-import { InventoryItem, InventorySummary } from "../hooks/useInventoryManager";
+import {
+  InventoryItem,
+  InventorySummary,
+  QuantityDetail,
+} from "../hooks/inventory/types"; // ✅ Updated import
 import {
   InventoryHeader,
   InventoryControls,
@@ -18,6 +22,10 @@ interface InventoryDisplayProps {
   isLoading: boolean;
   error: string | null;
   onUpdateQuantity: (itemId: string, newQuantity: number) => boolean;
+  onUpdateQuantityDetail?: (
+    itemId: string,
+    quantityDetail: QuantityDetail
+  ) => boolean; // ✅ New prop
   onRemoveItem: (itemId: string) => boolean;
   onClearInventory: () => boolean;
   onExportInventory: () => boolean;
@@ -31,6 +39,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   isLoading,
   error,
   onUpdateQuantity,
+  onUpdateQuantityDetail, // ✅ Receive new prop
   onRemoveItem,
   onClearInventory,
   onExportInventory,
@@ -44,7 +53,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   const [showConfirmClear, setShowConfirmClear] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
-  const [showSummary, setShowSummary] = useState(false); // เปลี่ยนจาก true เป็น false
+  const [showSummary, setShowSummary] = useState(false);
   const [sortBy, setSortBy] = useState<"name" | "quantity" | "date">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [isExporting, setIsExporting] = useState(false);
@@ -111,6 +120,21 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
     if (success) {
       setEditingItem(null);
     }
+  };
+
+  // ✅ New handler for quantity detail updates
+  const handleEditQuantityDetailSave = (
+    itemId: string,
+    quantityDetail: QuantityDetail
+  ) => {
+    if (onUpdateQuantityDetail) {
+      const success = onUpdateQuantityDetail(itemId, quantityDetail);
+      if (success) {
+        setEditingItem(null);
+      }
+      return success;
+    }
+    return false;
   };
 
   const handleEditCancel = () => {
@@ -210,6 +234,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         editQuantity={editQuantity}
         onEditStart={handleEditStart}
         onEditSave={handleEditSave}
+        onEditQuantityDetailSave={handleEditQuantityDetailSave} // ✅ Pass new handler
         onEditCancel={handleEditCancel}
         onEditQuantityChange={setEditQuantity}
         onQuickAdjust={handleQuickAdjust}

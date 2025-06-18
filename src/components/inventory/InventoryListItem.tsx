@@ -11,14 +11,9 @@ import {
   CheckCircle,
   X,
   Archive,
-  Hash,
   Package2,
 } from "lucide-react";
-import {
-  InventoryItem,
-  QuantityDetail,
-  getQuantityDisplayText,
-} from "../../hooks/inventory/types";
+import { InventoryItem, QuantityDetail } from "../../hooks/inventory/types";
 
 interface InventoryListItemProps {
   item: InventoryItem;
@@ -26,6 +21,10 @@ interface InventoryListItemProps {
   editQuantity: number;
   onEditStart: () => void;
   onEditSave: () => void;
+  onEditQuantityDetailSave?: (
+    itemId: string,
+    quantityDetail: QuantityDetail
+  ) => boolean; // ✅ New prop
   onEditCancel: () => void;
   onEditQuantityChange: (quantity: number) => void;
   onEditQuantityDetailChange?: (quantityDetail: QuantityDetail) => void; // ✅ New prop
@@ -69,9 +68,9 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
   editQuantity,
   onEditStart,
   onEditSave,
+  onEditQuantityDetailSave, // ✅ New prop
   onEditCancel,
   onEditQuantityChange,
-  onEditQuantityDetailChange,
   onQuickAdjust,
   onRemove,
 }) => {
@@ -120,13 +119,14 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
 
   // ✅ Handle save with appropriate format
   const handleSave = () => {
-    if (editState.mode === "detailed" && onEditQuantityDetailChange) {
+    if (editState.mode === "detailed" && onEditQuantityDetailSave) {
       const quantityDetail: QuantityDetail = {
         major: editState.majorQuantity,
         remainder: editState.remainderQuantity,
         scannedType: barcodeType,
       };
-      onEditQuantityDetailChange(quantityDetail);
+      // Use the new prop to save quantity detail directly
+      onEditQuantityDetailSave(item.id, quantityDetail);
     } else {
       onEditQuantityChange(editState.simpleQuantity);
     }

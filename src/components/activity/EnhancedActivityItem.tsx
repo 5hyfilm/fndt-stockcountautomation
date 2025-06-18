@@ -14,7 +14,6 @@ import {
   TrendingDown,
 } from "lucide-react";
 import { ActivityItem } from "./types";
-import { getQuantityDisplayText } from "../../hooks/inventory/types";
 
 interface EnhancedActivityItemProps {
   activity: ActivityItem;

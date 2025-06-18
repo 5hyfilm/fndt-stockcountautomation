@@ -1,8 +1,9 @@
-// src/components/ProductInfo.tsx - Refactored Main Component
+// src/components/ProductInfo.tsx - Updated with QuantityInput Support
 "use client";
 
 import React, { useState } from "react";
 import { Product } from "../types/product";
+import { QuantityInput } from "../hooks/inventory/types"; // ✅ Import QuantityInput
 
 // Import sub-components
 import { ProductHeader } from "./product/ProductHeader";
@@ -27,7 +28,7 @@ interface ProductInfoProps {
   error?: string;
   onAddToInventory?: (
     product: Product,
-    quantity: number,
+    quantityInput: QuantityInput, // ✅ Changed from quantity: number to quantityInput: QuantityInput
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
   currentInventoryQuantity?: number;
@@ -102,7 +103,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
           <InventoryAddSection
             product={product!}
             currentInventoryQuantity={currentInventoryQuantity}
-            onAddToInventory={onAddToInventory!}
+            onAddToInventory={onAddToInventory!} // ✅ Passes through with new signature
             isVisible={true}
             barcodeType={barcodeType}
           />
