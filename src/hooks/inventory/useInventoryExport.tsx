@@ -13,7 +13,7 @@ interface UseInventoryExportProps {
 const DEFAULT_EXPORT_CONFIG: ExportConfig = {
   includeEmployeeInfo: true,
   includeTimestamp: true,
-  includeStats: false, // เปลี่ยนเป็น false เพื่อให้ไฟล์สั้นลง
+  includeStats: false,
   csvDelimiter: ",",
   dateFormat: "th-TH",
 };
@@ -28,10 +28,8 @@ export const useInventoryExport = ({
     if (typeof field === "number") return field.toString();
     if (!field) return "";
 
-    // Convert to string and handle special characters
     const str = field.toString();
 
-    // If field contains comma, double quote, or newline, wrap in quotes and escape internal quotes
     if (
       str.includes(",") ||
       str.includes('"') ||
@@ -92,16 +90,17 @@ export const useInventoryExport = ({
       ];
       csvRows.push(headers.map((header) => escapeCsvField(header)).join(","));
 
-      // จัดกลุ่มข้อมูลตาม material code และ product group
+      // ✅ FIX: จัดกลุ่มข้อมูลแยกตามทั้ง materialCode และ barcodeType
       const groupedData = new Map<
         string,
         {
           materialCode: string;
           productGroup: string;
           thaiDescription: string;
+          barcodeType: string; // ✅ เพิ่ม barcodeType
           csCount: number;
           pieceCount: number;
-          // ✅ เก็บ materialCode ของแต่ละประเภทตามลำดับความสำคัญ
+          // ✅ เก็บ materialCode ของแต่ละประเภทตามลำดับความสำคัญ (ใช้ logic เดิม)
           csMaterialCode?: string; // รหัสของ CS (ลัง)
           dspMaterialCode?: string; // รหัสของ DSP (แพ็ค)
           eaMaterialCode?: string; // รหัสของ EA (ชิ้น)
@@ -109,18 +108,19 @@ export const useInventoryExport = ({
       >();
 
       inventory.forEach((item) => {
-        console.log("📤 Exporting item:", {
+        console.log("📤 Processing item:", {
           name: item.productName,
+          materialCode: item.materialCode,
           barcodeType: item.barcodeType,
           quantity: item.quantity,
           quantityDetail: item.quantityDetail,
-          materialCode: item.materialCode,
         });
 
-        const key = `${item.materialCode}_${item.productGroup}`;
+        // ✅ FIX: ใช้ key ที่แยกตาม materialCode และ barcodeType
+        const key = `${item.materialCode}_${item.productGroup}_${item.barcodeType}`;
         const existing = groupedData.get(key);
 
-        // ✅ Enhanced logic สำหรับ quantityDetail (Phase 2)
+        // Enhanced logic สำหรับ quantityDetail (Phase 2)
         let csToAdd = 0;
         let piecesToAdd = 0;
         let itemType: "cs" | "dsp" | "ea" = "ea";
@@ -132,7 +132,7 @@ export const useInventoryExport = ({
 
           if (scannedType === "dsp" || scannedType === "cs") {
             csToAdd = major; // major ไปใน CS column
-            piecesToAdd = remainder; // ✅ เศษไปใน ชิ้น column
+            piecesToAdd = remainder; // เศษไปใน ชิ้น column
             console.log(
               `  📦 Adding to CS count (${scannedType}): ${major}, remainder pieces: ${remainder}`
             );
@@ -161,10 +161,11 @@ export const useInventoryExport = ({
         }
 
         if (existing) {
+          // ✅ FIX: เนื่องจากแยก key แล้ว ไม่ควรรวมข้อมูลจาก barcodeType ต่างกัน
           existing.csCount += csToAdd;
           existing.pieceCount += piecesToAdd;
 
-          // ✅ อัปเดต materialCode ตามประเภทที่เพิ่มเข้ามา
+          // ✅ อัปเดต materialCode ตามประเภทที่เพิ่มเข้ามา (ใช้ logic เดิม)
           if (itemType === "cs" && csToAdd > 0) {
             existing.csMaterialCode = item.materialCode;
           } else if (itemType === "dsp" && csToAdd > 0) {
@@ -172,14 +173,20 @@ export const useInventoryExport = ({
           } else if (itemType === "ea" && piecesToAdd > 0) {
             existing.eaMaterialCode = item.materialCode;
           }
+
+          console.log(
+            `  ↗️ Updated existing group: CS=${existing.csCount}, Pieces=${existing.pieceCount}`
+          );
         } else {
+          // ✅ FIX: สร้าง entry ใหม่แยกตาม barcodeType พร้อม materialCode logic เดิม
           groupedData.set(key, {
             materialCode: item.materialCode || "",
             productGroup: item.productGroup || "",
             thaiDescription: item.thaiDescription || item.productName,
+            barcodeType: item.barcodeType || "ea",
             csCount: csToAdd,
             pieceCount: piecesToAdd,
-            // ✅ เก็บ materialCode ตามประเภท
+            // ✅ เก็บ materialCode ตามประเภท (ใช้ logic เดิม)
             csMaterialCode:
               itemType === "cs" && csToAdd > 0 ? item.materialCode : undefined,
             dspMaterialCode:
@@ -189,12 +196,15 @@ export const useInventoryExport = ({
                 ? item.materialCode
                 : undefined,
           });
+          console.log(
+            `  ✅ Created new group: ${key} - CS=${csToAdd}, Pieces=${piecesToAdd}`
+          );
         }
       });
 
-      // เพิ่มข้อมูลแต่ละ row
+      // ✅ FIX: เพิ่มข้อมูลแต่ละ row (แยกตาม barcodeType แล้ว) + ใช้ logic เดิมเลือก materialCode
       Array.from(groupedData.values()).forEach((group) => {
-        // ✅ เลือก materialCode ของหน่วยใหญ่สุดที่มีจำนวน
+        // ✅ เลือก materialCode ของหน่วยใหญ่สุดที่มีจำนวน (ใช้ logic เดิม)
         let displayMaterialCode = group.materialCode; // fallback
 
         if (group.csCount > 0 && group.csMaterialCode) {
@@ -205,14 +215,17 @@ export const useInventoryExport = ({
           displayMaterialCode = group.eaMaterialCode; // EA สำหรับชิ้น
         }
 
+        // แสดง Material Code และข้อมูลที่ถูกต้อง
         console.log(
-          `📝 Exporting row: ${displayMaterialCode} - CS:${group.csCount}, Pieces:${group.pieceCount}`
+          `📝 Exporting row: ${displayMaterialCode} (${group.barcodeType}) - CS:${group.csCount}, Pieces:${group.pieceCount}`
         );
 
         const row = [
-          escapeCsvField(displayMaterialCode), // ✅ ใช้ materialCode ของหน่วยใหญ่สุด
+          escapeCsvField(displayMaterialCode), // ✅ ใช้ materialCode ของหน่วยใหญ่สุด (logic เดิม)
           escapeCsvField(group.productGroup),
-          escapeCsvField(group.thaiDescription),
+          escapeCsvField(
+            `${group.thaiDescription} (${group.barcodeType.toUpperCase()})`
+          ), // ✅ เพิ่ม barcodeType ในรายละเอียด
           group.csCount > 0 ? group.csCount.toString() : "",
           group.pieceCount > 0 ? group.pieceCount.toString() : "",
         ];
@@ -220,6 +233,7 @@ export const useInventoryExport = ({
         csvRows.push(row.join(","));
       });
 
+      console.log(`📊 Total export rows: ${groupedData.size}`);
       return csvRows.join("\n");
     },
     [inventory, employeeContext, escapeCsvField]
@@ -372,7 +386,7 @@ export const useInventoryExport = ({
     [generateCSVContent, generateFileName]
   );
 
-  // ✅ **CRITICAL FIX: Return the export functions (ที่หายไป)**
+  // ✅ Return all export functions
   return {
     // Main export functions
     exportInventory,
