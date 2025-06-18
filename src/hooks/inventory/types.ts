@@ -1,7 +1,7 @@
-// src/hooks/inventory/types.ts - Updated with Dual Unit Support
+// src/hooks/inventory/types.ts
 import { Product } from "../../types/product";
 
-// Interface สำหรับข้อมูล inventory item (Updated)
+// Interface สำหรับข้อมูล inventory item
 export interface InventoryItem {
   id: string;
   barcode: string;
@@ -10,36 +10,17 @@ export interface InventoryItem {
   category: string;
   size: string;
   unit: string;
-
-  // ✅ เปลี่ยนจาก quantity เดียว → 2 หน่วย
-  csCount: number; // "นับจริง (cs)" - หน่วยใหญ่ (CS หรือ DSP)
-  pieceCount: number; // "นับจริง (ชิ้น)" - หน่วยเล็ก (DSP, EA, หรือ เศษ)
-
-  // ✅ เพิ่มข้อมูลรายละเอียดหน่วย
-  csUnitType: "cs" | "dsp" | null; // ประเภทของหน่วยใหญ่
-  pieceUnitType: "dsp" | "ea" | "fractional"; // ประเภทของหน่วยเล็ก
-
+  quantity: number;
   lastUpdated: string;
   productData?: Product;
   addedBy?: string;
   branchCode?: string;
   branchName?: string;
-
-  // ✅ เก็บข้อมูลเดิมไว้ compatibility
-  quantity: number; // รวมจำนวนทั้งหมดแปลงเป็น EA
-  barcodeType?: "ea" | "dsp" | "cs"; // ประเภทบาร์โค้ดที่สแกน
-  materialCode?: string;
-  productGroup?: string;
-  thaiDescription?: string;
-}
-
-// ✅ เพิ่ม interface สำหรับ dual unit input
-export interface DualUnitInputData {
-  primaryValue: number; // ค่าหน่วยหลัก (CS หรือ DSP)
-  secondaryValue: number; // ค่าหน่วยรอง (DSP, EA, หรือ เศษ)
-  primaryUnitType: "cs" | "dsp";
-  secondaryUnitType: "dsp" | "ea" | "fractional";
-  scannedBarcodeType: "ea" | "dsp" | "cs";
+  // เพิ่มข้อมูลประเภทบาร์โค้ด
+  barcodeType?: "ea" | "dsp" | "cs";
+  materialCode?: string; // F/FG code
+  productGroup?: string; // Prod. Gr.
+  thaiDescription?: string; // รายละเอียด
 }
 
 // Interface สำหรับ summary ข้อมูล
@@ -49,11 +30,6 @@ export interface InventorySummary {
   lastUpdate: string;
   categories: Record<string, number>;
   brands: Record<string, number>;
-
-  // ✅ เพิ่มสรุปตามหน่วย
-  totalCSUnits: number; // รวม CS ทั้งหมด
-  totalDSPUnits: number; // รวม DSP ทั้งหมด
-  totalPieces: number; // รวมชิ้นทั้งหมด
 }
 
 // Interface สำหรับข้อมูลพนักงาน
@@ -70,20 +46,16 @@ export interface StorageConfig {
   currentVersion: string;
 }
 
-// Export configuration (Updated)
+// Export configuration
 export interface ExportConfig {
   includeEmployeeInfo: boolean;
   includeTimestamp: boolean;
   includeStats: boolean;
   csvDelimiter: string;
   dateFormat: string;
-
-  // ✅ เพิ่มการตั้งค่า export แยกหน่วย
-  separateUnitColumns: boolean; // แยก column cs และ piece
-  includeConvertedQuantity: boolean; // รวม column quantity รวม
 }
 
-// ✅ Updated Hook return type
+// Hook return type
 export interface UseInventoryManagerReturn {
   // State
   inventory: InventoryItem[];
@@ -91,28 +63,13 @@ export interface UseInventoryManagerReturn {
   error: string | null;
   summary: InventorySummary;
 
-  // ✅ Updated CRUD Actions - รองรับ dual unit
-  addOrUpdateItemDualUnit: (
-    product: Product,
-    dualUnitData: DualUnitInputData
-  ) => boolean;
-
-  // ✅ เก็บ method เดิมไว้ compatibility
+  // CRUD Actions
   addOrUpdateItem: (
     product: Product,
     quantity: number,
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
-
   updateItemQuantity: (itemId: string, newQuantity: number) => boolean;
-
-  // ✅ เพิ่ม method อัพเดทแยกหน่วย
-  updateItemDualUnit: (
-    itemId: string,
-    newCSCount: number,
-    newPieceCount: number
-  ) => boolean;
-
   removeItem: (itemId: string) => boolean;
   clearInventory: () => boolean;
 
@@ -123,45 +80,62 @@ export interface UseInventoryManagerReturn {
   // Export functionality
   exportInventory: () => boolean;
 
-  // ✅ เพิ่ม export แยกหน่วย
-  exportInventoryWithDualUnits: () => boolean;
-
   // Error handling and utilities
   clearError: () => void;
   loadInventory: () => void;
-  resetInventoryState: () => boolean;
+  resetInventoryState: () => boolean; // เพิ่มฟังก์ชัน reset สำหรับ logout
 }
 
 // Error types
 export interface InventoryError extends Error {
-  code?:
-    | "STORAGE_ERROR"
-    | "VALIDATION_ERROR"
-    | "EXPORT_ERROR"
-    | "UNIT_CONVERSION_ERROR";
+  code?: "STORAGE_ERROR" | "VALIDATION_ERROR" | "EXPORT_ERROR";
   context?: string;
 }
 
-// ✅ เพิ่ม Validation rules สำหรับ dual unit
+// Validation rules
 export interface InventoryValidationRules {
   minQuantity: number;
-  maxQuantity?: number;
-
-  // ✅ Rules สำหรับ dual unit
-  minCSCount: number;
-  maxCSCount?: number;
-  minPieceCount: number;
-  maxPieceCount?: number;
-
-  allowZeroValues: boolean; // อนุญาตให้มีค่า 0 ได้หรือไม่
+  maxQuantity?: number; // ✅ เปลี่ยนเป็น optional - ไม่จำกัดจำนวนสูงสุด
+  requiredFields: (keyof InventoryItem)[];
+  uniqueFields: (keyof InventoryItem)[];
 }
 
-// ✅ เพิ่ม utility types
-export type UnitColumnType = "cs" | "piece";
+// ✅ Default validation rules - ไม่มี max limit
+export const DEFAULT_VALIDATION_RULES: InventoryValidationRules = {
+  minQuantity: 1,
+  // maxQuantity ไม่ได้กำหนด = ไม่จำกัด
+  requiredFields: ["id", "barcode", "productName", "quantity"],
+  uniqueFields: ["id", "barcode"],
+};
 
-export interface UnitConversionResult {
-  csCount: number;
-  pieceCount: number;
-  totalQuantityInEA: number;
-  conversionNotes?: string;
-}
+// ✅ Updated validation function
+export const validateInventoryItem = (
+  item: Partial<InventoryItem>,
+  rules: InventoryValidationRules = DEFAULT_VALIDATION_RULES
+): { isValid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+
+  // Check required fields
+  rules.requiredFields.forEach((field) => {
+    if (!item[field]) {
+      errors.push(`${field} is required`);
+    }
+  });
+
+  // Check quantity constraints
+  if (item.quantity !== undefined) {
+    if (item.quantity < rules.minQuantity) {
+      errors.push(`Quantity must be at least ${rules.minQuantity}`);
+    }
+
+    // ✅ เช็ค maxQuantity เฉพาะเมื่อมีการกำหนดไว้
+    if (rules.maxQuantity !== undefined && item.quantity > rules.maxQuantity) {
+      errors.push(`Quantity must not exceed ${rules.maxQuantity}`);
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+};
