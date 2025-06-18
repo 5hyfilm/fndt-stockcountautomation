@@ -1,4 +1,4 @@
-// src/components/inventory/InventoryList.tsx - Updated with Dual Unit Support
+// src/components/inventory/InventoryList.tsx
 "use client";
 
 import React from "react";
@@ -21,11 +21,6 @@ interface InventoryListProps {
     delta: number
   ) => void;
   onRemoveItem: (itemId: string) => void;
-  onUpdateDualUnit?: (
-    itemId: string,
-    csCount: number,
-    pieceCount: number
-  ) => void; // ✅ NEW
 }
 
 export const InventoryList: React.FC<InventoryListProps> = ({
@@ -39,7 +34,6 @@ export const InventoryList: React.FC<InventoryListProps> = ({
   onEditQuantityChange,
   onQuickAdjust,
   onRemoveItem,
-  onUpdateDualUnit, // ✅ NEW
 }) => {
   if (items.length === 0) {
     return (
@@ -78,12 +72,6 @@ export const InventoryList: React.FC<InventoryListProps> = ({
               onQuickAdjust(item.id, item.quantity, delta)
             }
             onRemove={() => onRemoveItem(item.id)}
-            onUpdateDualUnit={
-              onUpdateDualUnit
-                ? (csCount, pieceCount) =>
-                    onUpdateDualUnit(item.id, csCount, pieceCount)
-                : undefined
-            } // ✅ Pass dual unit handler
           />
         ))}
       </div>
