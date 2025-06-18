@@ -115,11 +115,16 @@ export const useInventoryExport = ({
         const existing = groupedData.get(key);
 
         if (existing) {
-          if (item.barcodeType === "cs") {
-            console.log(`  📦 Adding to CS count: ${item.quantity}`);
+          // 🔄 ปรับลอจิกการแยกประเภท:
+          // - dsp และ cs ใส่ในคอลัมน์ "นับจริง (cs)"
+          // - ea ใส่ในคอลัมน์ "นับจริง (ชิ้น)"
+          if (item.barcodeType === "dsp" || item.barcodeType === "cs") {
+            console.log(
+              `  📦 Adding to CS count (${item.barcodeType}): ${item.quantity}`
+            );
             existing.csCount += item.quantity;
-          } else if (item.barcodeType === "ea" || item.barcodeType === "dsp") {
-            console.log(`  🔢 Adding to piece count: ${item.quantity}`);
+          } else if (item.barcodeType === "ea") {
+            console.log(`  🔢 Adding to piece count (ea): ${item.quantity}`);
             existing.pieceCount += item.quantity;
           }
         } else {
@@ -127,11 +132,14 @@ export const useInventoryExport = ({
             materialCode: item.materialCode || "",
             productGroup: item.productGroup || "",
             thaiDescription: item.thaiDescription || item.productName,
-            csCount: item.barcodeType === "cs" ? item.quantity : 0,
-            pieceCount:
-              item.barcodeType === "ea" || item.barcodeType === "dsp"
+            // 🔄 ปรับลอจิกเริ่มต้น:
+            // - dsp และ cs ใส่ในคอลัมน์ "นับจริง (cs)"
+            // - ea ใส่ในคอลัมน์ "นับจริง (ชิ้น)"
+            csCount:
+              item.barcodeType === "dsp" || item.barcodeType === "cs"
                 ? item.quantity
                 : 0,
+            pieceCount: item.barcodeType === "ea" ? item.quantity : 0,
           });
         }
       });
