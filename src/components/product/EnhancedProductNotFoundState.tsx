@@ -1,4 +1,4 @@
-// ./src/components/product/EnhancedProductNotFoundState.tsx
+// src/components/product/EnhancedProductNotFoundState.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -25,7 +25,6 @@ interface EnhancedProductNotFoundStateProps {
   onProductAdded?: (product: any) => void;
 }
 
-// ✅ เพิ่ม export เพื่อแก้ปัญหา "is not a module"
 export const EnhancedProductNotFoundState: React.FC<
   EnhancedProductNotFoundStateProps
 > = ({
@@ -84,11 +83,11 @@ export const EnhancedProductNotFoundState: React.FC<
 
   return (
     <>
-      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 max-w-md mx-auto">
+      <div className="fn-product-not-found">
         <div className="text-center">
-          {/* Icon */}
-          <div className="bg-red-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-            <AlertTriangle className="text-red-500" size={40} />
+          {/* Error Icon */}
+          <div className="error-icon">
+            <AlertTriangle size={40} />
           </div>
 
           {/* Title */}
@@ -100,26 +99,20 @@ export const EnhancedProductNotFoundState: React.FC<
           <p className="text-gray-600 text-sm mb-4">{error}</p>
 
           {/* Barcode Display */}
-          <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+          <div className="fn-barcode-display">
             <p className="text-xs text-gray-500 mb-1">Barcode ที่สแกน:</p>
             <div className="flex items-center justify-between">
-              <code className="text-sm font-mono text-gray-800 flex-1">
-                {barcode}
-              </code>
+              <code className="flex-1 text-left">{barcode}</code>
               <button
                 onClick={handleCopyBarcode}
-                className="ml-2 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                className={`fn-copy-btn ml-2 ${copied ? "copied" : ""}`}
                 title="คัดลอกบาร์โค้ด"
               >
-                {copied ? (
-                  <CheckCircle size={16} className="text-green-500" />
-                ) : (
-                  <Copy size={16} />
-                )}
+                {copied ? <CheckCircle size={16} /> : <Copy size={16} />}
               </button>
             </div>
             {copied && (
-              <p className="text-xs text-green-600 mt-1">คัดลอกแล้ว!</p>
+              <p className="text-xs text-fn-green mt-1">คัดลอกแล้ว!</p>
             )}
           </div>
 
@@ -128,7 +121,7 @@ export const EnhancedProductNotFoundState: React.FC<
             {/* Primary Action: Add Product */}
             <button
               onClick={() => setIsAddProductModalOpen(true)}
-              className="w-full bg-fn-green hover:bg-fn-green/90 text-white font-medium py-3 px-4 rounded-xl transition-colors duration-200 flex items-center justify-center gap-2"
+              className="fn-add-product-btn w-full"
             >
               <Plus size={18} />
               เพิ่มสินค้าใหม่
@@ -136,18 +129,12 @@ export const EnhancedProductNotFoundState: React.FC<
 
             {/* Secondary Actions */}
             <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={handleRescan}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-4 rounded-xl transition-colors duration-200 flex items-center justify-center gap-2 text-sm"
-              >
+              <button onClick={handleRescan} className="fn-secondary-btn">
                 <RefreshCw size={16} />
                 สแกนใหม่
               </button>
 
-              <button
-                onClick={handleManualSearch}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-4 rounded-xl transition-colors duration-200 flex items-center justify-center gap-2 text-sm"
-              >
+              <button onClick={handleManualSearch} className="fn-secondary-btn">
                 <Search size={16} />
                 ค้นหาด้วยตนเอง
               </button>
@@ -155,8 +142,8 @@ export const EnhancedProductNotFoundState: React.FC<
           </div>
 
           {/* Help Text */}
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-xs text-blue-700">
+          <div className="fn-help-text mt-4">
+            <p>
               💡 <strong>เคล็ดลับ:</strong> ตรวจสอบว่าบาร์โค้ดถูกต้องและชัดเจน
               หรือลองสแกนในแสงที่เพียงพอ
             </p>
@@ -175,40 +162,4 @@ export const EnhancedProductNotFoundState: React.FC<
   );
 };
 
-// ✅ เพิ่ม default export
 export default EnhancedProductNotFoundState;
-
-// Hook สำหรับใช้ร่วมกับ ProductInfo component
-export const useEnhancedProductNotFound = (
-  barcode: string,
-  onProductAdded?: (product: any) => void
-) => {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopyBarcode = async () => {
-    try {
-      await navigator.clipboard.writeText(barcode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error("Failed to copy:", error);
-    }
-  };
-
-  const handleRescan = () => {
-    window.location.reload();
-  };
-
-  const handleManualSearch = () => {
-    // Navigate to search page or open search modal
-    console.log("Manual search for:", barcode);
-  };
-
-  return {
-    copied,
-    handleCopyBarcode,
-    handleRescan,
-    handleManualSearch,
-    onProductAdded,
-  };
-};

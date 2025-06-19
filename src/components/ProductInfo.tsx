@@ -1,4 +1,4 @@
-// ./src/components/ProductInfo.tsx - Fixed with Enhanced ProductNotFound
+// src/components/ProductInfo.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -17,10 +17,9 @@ import {
   LoadingState,
   ErrorState,
   WaitingScanState,
-  // ProductNotFoundState, // ❌ ลบบรรทัดนี้ออก
 } from "./product/EmptyStates";
 
-// ✅ เพิ่ม import EnhancedProductNotFoundState
+// ✅ ใช้ EnhancedProductNotFoundState แทน ProductNotFoundState เก่า
 import { EnhancedProductNotFoundState } from "./product/EnhancedProductNotFoundState";
 
 interface ProductInfoProps {
@@ -84,7 +83,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
     return <LoadingState />;
   }
 
-  // ✅ ใช้ Enhanced state สำหรับ error ที่มี barcode
+  // ✅ เปลี่ยนให้ใช้ EnhancedProductNotFoundState ทุกกรณีที่ไม่เจอสินค้า
   if (error && barcode) {
     return (
       <EnhancedProductNotFoundState
@@ -99,7 +98,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
     );
   }
 
-  // ใช้ ErrorState เดิมสำหรับ error ทั่วไป
+  // ใช้ Enhanced state สำหรับ error ทั่วไป
   if (error) {
     return <ErrorState error={error} barcode={barcode} />;
   }
@@ -108,7 +107,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
     return <WaitingScanState />;
   }
 
-  // ✅ ใช้ Enhanced state สำหรับกรณีไม่เจอสินค้า
+  // ✅ กรณีไม่เจอสินค้า - ใช้ Enhanced Component เสมอ
   if (!product && barcode) {
     return (
       <EnhancedProductNotFoundState
