@@ -1,11 +1,11 @@
-// ./src/components/sections/ProductInfoSection.tsx - Updated with QuantityInput Support
+// ./src/components/sections/ProductInfoSection.tsx - Fixed with Enhanced Support
 "use client";
 
 import React from "react";
 import { Package } from "lucide-react";
 import { ProductInfo } from "../ProductInfo";
 import { Product } from "../../types/product";
-import { QuantityInput } from "../../hooks/inventory/types"; // ✅ Import QuantityInput
+import { QuantityInput } from "../../hooks/inventory/types";
 
 interface ProductInfoSectionProps {
   product: Product | null;
@@ -17,9 +17,14 @@ interface ProductInfoSectionProps {
   isMobile: boolean;
   onAddToInventory: (
     product: Product,
-    quantityInput: QuantityInput, // ✅ Changed from quantity: number to quantityInput: QuantityInput
+    quantityInput: QuantityInput,
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
+
+  // ✅ Enhanced ProductNotFound props
+  onProductAdded?: (product: Product) => void;
+  onRescan?: () => void;
+  onManualSearch?: () => void;
 }
 
 export const ProductInfoSection: React.FC<ProductInfoSectionProps> = ({
@@ -31,6 +36,10 @@ export const ProductInfoSection: React.FC<ProductInfoSectionProps> = ({
   currentInventoryQuantity,
   isMobile,
   onAddToInventory,
+  // ✅ Enhanced props
+  onProductAdded,
+  onRescan,
+  onManualSearch,
 }) => {
   return (
     <div>
@@ -50,12 +59,16 @@ export const ProductInfoSection: React.FC<ProductInfoSectionProps> = ({
 
       <ProductInfo
         product={product}
-        barcode={barcode}
+        barcode={barcode} // ✅ ส่ง barcode ผ่านไป
         barcodeType={barcodeType}
         isLoading={isLoading}
         error={error}
-        onAddToInventory={onAddToInventory} // ✅ Passes through with new signature
+        onAddToInventory={onAddToInventory}
         currentInventoryQuantity={currentInventoryQuantity}
+        // ✅ ส่ง Enhanced props ผ่านไป
+        onProductAdded={onProductAdded}
+        onRescan={onRescan}
+        onManualSearch={onManualSearch}
       />
     </div>
   );

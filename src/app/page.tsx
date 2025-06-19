@@ -1,7 +1,7 @@
-// Path: src/app/page.tsx - Phase 2: Updated with Enhanced Quantity Support
+// Path: src/app/page.tsx - Phase 2: Updated with Enhanced Quantity Support + Enhanced ProductNotFound
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react"; // ✅ เพิ่ม useCallback
 import { useBarcodeDetection } from "../hooks/useBarcodeDetection";
 import { useInventoryManager } from "../hooks/useInventoryManager";
 import { useEmployeeAuth } from "../hooks/useEmployeeAuth";
@@ -149,6 +149,65 @@ export default function BarcodeDetectionPage() {
         }
       : undefined
   );
+
+  // ✅ Enhanced ProductNotFound Features - เพิ่มส่วนนี้
+  // Handle when new product is added via modal
+  const handleProductAdded = useCallback(
+    (newProduct: Product) => {
+      console.log("🎉 New product added successfully:", newProduct);
+
+      // Log new product details
+      console.log("New product details:", {
+        name: newProduct.name,
+        barcode: newProduct.barcode,
+        brand: newProduct.brand,
+        category: newProduct.category,
+      });
+
+      // Optionally restart scanner to scan again
+      setTimeout(() => {
+        restartForNextScan();
+        if (!isStreaming) {
+          startCamera();
+        }
+      }, 2000);
+    },
+    [restartForNextScan, startCamera, isStreaming]
+  );
+
+  // Handle rescan request
+  const handleRescan = useCallback(() => {
+    console.log("🔄 Rescanning requested...");
+
+    // Clear current state and restart
+    restartForNextScan();
+
+    // Start camera if not already streaming
+    setTimeout(() => {
+      if (!isStreaming) {
+        startCamera();
+      }
+    }, 300);
+  }, [restartForNextScan, startCamera, isStreaming]);
+
+  // Handle manual search request
+  const handleManualSearch = useCallback(() => {
+    console.log("🔍 Manual search requested for barcode:", lastDetectedCode);
+
+    // For now, we'll just show an alert
+    // In a real implementation, you might:
+    // 1. Open a search modal
+    // 2. Navigate to a search page
+    // 3. Show a product lookup form
+
+    const searchTerm =
+      lastDetectedCode || prompt("ใส่บาร์โค้ดที่ต้องการค้นหา:");
+    if (searchTerm) {
+      alert(
+        `กำลังค้นหา: ${searchTerm}\n(ฟีเจอร์นี้ยังไม่ได้ implement เต็มรูปแบบ)`
+      );
+    }
+  }, [lastDetectedCode]);
 
   // Functions to check unsaved data for logout confirmation
   const hasUnsavedData = (): boolean => {
@@ -414,6 +473,10 @@ export default function BarcodeDetectionPage() {
             // Layout options
             fullScreen={true}
             showHeader={false}
+            // ✅ Enhanced ProductNotFound props
+            onProductAdded={handleProductAdded}
+            onRescan={handleRescan}
+            onManualSearch={handleManualSearch}
           />
         </div>
 
@@ -511,6 +574,10 @@ export default function BarcodeDetectionPage() {
                 // Layout options
                 fullScreen={false}
                 showHeader={true}
+                // ✅ Enhanced ProductNotFound props
+                onProductAdded={handleProductAdded}
+                onRescan={handleRescan}
+                onManualSearch={handleManualSearch}
               />
             ) : (
               /* Desktop Layout - Side by Side (คงเดิม) */
@@ -565,6 +632,10 @@ export default function BarcodeDetectionPage() {
                       currentInventoryQuantity={currentInventoryQuantity}
                       isMobile={false}
                       onAddToInventory={handleAddToInventory} // ✅ Updated signature
+                      // ✅ Enhanced ProductNotFound props
+                      onProductAdded={handleProductAdded}
+                      onRescan={handleRescan}
+                      onManualSearch={handleManualSearch}
                     />
                   </div>
                 </div>

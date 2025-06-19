@@ -1,9 +1,9 @@
-// src/components/ProductInfo.tsx - Updated with QuantityInput Support
+// ./src/components/ProductInfo.tsx - Fixed with Enhanced ProductNotFound
 "use client";
 
 import React, { useState } from "react";
 import { Product } from "../types/product";
-import { QuantityInput } from "../hooks/inventory/types"; // ✅ Import QuantityInput
+import { QuantityInput } from "../hooks/inventory/types";
 
 // Import sub-components
 import { ProductHeader } from "./product/ProductHeader";
@@ -17,8 +17,11 @@ import {
   LoadingState,
   ErrorState,
   WaitingScanState,
-  ProductNotFoundState,
+  // ProductNotFoundState, // ❌ ลบบรรทัดนี้ออก
 } from "./product/EmptyStates";
+
+// ✅ เพิ่ม import EnhancedProductNotFoundState
+import { EnhancedProductNotFoundState } from "./product/EnhancedProductNotFoundState";
 
 interface ProductInfoProps {
   product: Product | null;
@@ -28,10 +31,15 @@ interface ProductInfoProps {
   error?: string;
   onAddToInventory?: (
     product: Product,
-    quantityInput: QuantityInput, // ✅ Changed from quantity: number to quantityInput: QuantityInput
+    quantityInput: QuantityInput,
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
   currentInventoryQuantity?: number;
+
+  // ✅ Enhanced ProductNotFound props
+  onProductAdded?: (product: Product) => void;
+  onRescan?: () => void;
+  onManualSearch?: () => void;
 }
 
 export const ProductInfo: React.FC<ProductInfoProps> = ({
@@ -42,6 +50,10 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
   error,
   onAddToInventory,
   currentInventoryQuantity = 0,
+  // ✅ Enhanced props
+  onProductAdded,
+  onRescan,
+  onManualSearch,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -58,6 +70,12 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
     }
   };
 
+  // ✅ Handle when new product is added
+  const handleProductAdded = (newProduct: Product) => {
+    console.log("New product added:", newProduct);
+    onProductAdded?.(newProduct);
+  };
+
   // Determine if inventory add section should be visible
   const shouldShowInventorySection = product && !error && onAddToInventory;
 
@@ -66,6 +84,22 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
     return <LoadingState />;
   }
 
+  // ✅ ใช้ Enhanced state สำหรับ error ที่มี barcode
+  if (error && barcode) {
+    return (
+      <EnhancedProductNotFoundState
+        barcode={barcode}
+        onCopyBarcode={copyBarcode}
+        copied={copied}
+        error={error}
+        onProductAdded={handleProductAdded}
+        onRescan={onRescan}
+        onManualSearch={onManualSearch}
+      />
+    );
+  }
+
+  // ใช้ ErrorState เดิมสำหรับ error ทั่วไป
   if (error) {
     return <ErrorState error={error} barcode={barcode} />;
   }
@@ -74,12 +108,16 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
     return <WaitingScanState />;
   }
 
+  // ✅ ใช้ Enhanced state สำหรับกรณีไม่เจอสินค้า
   if (!product && barcode) {
     return (
-      <ProductNotFoundState
+      <EnhancedProductNotFoundState
         barcode={barcode}
         onCopyBarcode={copyBarcode}
         copied={copied}
+        onProductAdded={handleProductAdded}
+        onRescan={onRescan}
+        onManualSearch={onManualSearch}
       />
     );
   }
@@ -103,7 +141,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
           <InventoryAddSection
             product={product!}
             currentInventoryQuantity={currentInventoryQuantity}
-            onAddToInventory={onAddToInventory!} // ✅ Passes through with new signature
+            onAddToInventory={onAddToInventory!}
             isVisible={true}
             barcodeType={barcodeType}
           />

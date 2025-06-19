@@ -6,6 +6,7 @@ import { CameraSection } from "../CameraSection";
 import { MobileProductSlide } from "./MobileProductSlide";
 import { Detection } from "../../hooks/detection/types";
 import { Product } from "../../types/product";
+import { QuantityInput } from "../../hooks/inventory/types"; // ✅ เพิ่ม import
 
 interface MobileScannerLayoutProps {
   // Camera props
@@ -38,7 +39,7 @@ interface MobileScannerLayoutProps {
   // Product actions
   onAddToInventory: (
     product: Product,
-    quantity: number,
+    quantityInput: QuantityInput, // ✅ แก้จาก quantity: number เป็น quantityInput: QuantityInput
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
   restartForNextScan: () => void;
@@ -47,6 +48,11 @@ interface MobileScannerLayoutProps {
   // Layout options
   fullScreen?: boolean;
   showHeader?: boolean;
+
+  // ✅ Enhanced ProductNotFound props
+  onProductAdded?: (product: Product) => void;
+  onRescan?: () => void;
+  onManualSearch?: () => void;
 }
 
 export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
@@ -74,6 +80,8 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
   product,
   detectedBarcodeType,
   isLoadingProduct,
+  productError, // ✅ เพิ่ม destructuring productError
+  lastDetectedCode, // <-- Added this line
 
   // Product actions
   onAddToInventory,
@@ -83,17 +91,28 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
   // Layout options
   fullScreen = true,
   showHeader = true,
+
+  // ✅ Enhanced ProductNotFound props
+  onProductAdded,
+  onRescan,
+  onManualSearch,
 }) => {
   const [showProductSlide, setShowProductSlide] = useState(false);
 
-  // Show product slide when product is found and camera is stopped
+  // ✅ แก้ไข logic เพื่อแสดง slide เมื่อมี product หรือมี error + barcode
   useEffect(() => {
-    if (product && !isStreaming && !isLoadingProduct) {
+    // แสดง slide เมื่อ:
+    // 1. มี product และ camera หยุดแล้ว
+    // 2. มี productError (ไม่เจอสินค้า) และไม่ได้ loading
+    if (
+      (product && !isStreaming && !isLoadingProduct) ||
+      (productError && !isLoadingProduct)
+    ) {
       setShowProductSlide(true);
     } else {
       setShowProductSlide(false);
     }
-  }, [product, isStreaming, isLoadingProduct]);
+  }, [product, productError, isStreaming, isLoadingProduct]);
 
   // Handle close product slide and restart scanning
   const handleCloseProductSlide = () => {
@@ -212,6 +231,14 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
         currentInventoryQuantity={currentInventoryQuantity}
         onClose={handleCloseProductSlide}
         onAddToInventory={onAddToInventory}
+        // ✅ เพิ่ม Enhanced ProductNotFound props
+        onProductAdded={onProductAdded}
+        onRescan={onRescan}
+        onManualSearch={onManualSearch}
+        // ✅ เพิ่ม props สำหรับ error handling
+        productError={productError}
+        // ✅ เพิ่ม lastDetectedCode เป็น barcode
+        barcode={lastDetectedCode}
       />
     </div>
   );
