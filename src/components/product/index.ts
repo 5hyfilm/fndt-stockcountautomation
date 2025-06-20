@@ -12,11 +12,11 @@ export { NutritionInfo } from "./NutritionInfo";
 // Export Empty States
 export { LoadingState, ErrorState, WaitingScanState } from "./EmptyStates";
 
-// ✅ Export Enhanced State แทน ProductNotFoundState เก่า
-export {
-  EnhancedProductNotFoundState,
-  EnhancedProductNotFoundState as ProductNotFoundState, // เพื่อ backward compatibility
-} from "./EnhancedProductNotFoundState";
+// ✅ Export Enhanced State (updated import path)
+export { EnhancedProductNotFoundState } from "./EnhancedProductNotFoundState";
+
+// ✅ Backward compatibility alias
+export { EnhancedProductNotFoundState as ProductNotFoundState } from "./EnhancedProductNotFoundState";
 
 // Export utils
 export * from "./utils";

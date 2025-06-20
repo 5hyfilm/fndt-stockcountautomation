@@ -19,7 +19,6 @@ import {
   WaitingScanState,
 } from "./product/EmptyStates";
 
-// ✅ ใช้ EnhancedProductNotFoundState แทน ProductNotFoundState เก่า
 import { EnhancedProductNotFoundState } from "./product/EnhancedProductNotFoundState";
 
 interface ProductInfoProps {

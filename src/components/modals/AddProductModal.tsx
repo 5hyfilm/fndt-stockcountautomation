@@ -1,15 +1,8 @@
-// ./src/components/modals/AddProductModal.tsx
+// src/components/modals/AddProductModal.tsx
 "use client";
 
 import React, { useState } from "react";
-import {
-  X,
-  Package,
-  Save,
-  Camera,
-  AlertCircle,
-  CheckCircle,
-} from "lucide-react";
+import { X, Package, Save, AlertCircle, CheckCircle } from "lucide-react";
 import { ProductCategory } from "../../types/product";
 
 interface AddProductModalProps {
@@ -30,7 +23,6 @@ interface ProductFormData {
   description?: string;
 }
 
-// ✅ เพิ่ม export เพื่อแก้ปัญหา module
 export const AddProductModal: React.FC<AddProductModalProps> = ({
   isOpen,
   onClose,
@@ -148,6 +140,20 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     }
   };
 
+  // Categories for dropdown
+  const categories = [
+    { value: ProductCategory.BEVERAGES, label: "เครื่องดื่ม" },
+    { value: ProductCategory.SNACKS, label: "ขนม" },
+    { value: ProductCategory.DAIRY, label: "นม/ผลิตภัณฑ์นม" },
+    { value: ProductCategory.CANNED_FOOD, label: "อาหารกระป๋อง" },
+    { value: ProductCategory.BAKERY, label: "เบเกอรี่" },
+    { value: ProductCategory.CONFECTIONERY, label: "ลูกกวาด/ช็อกโกแลต" },
+    { value: ProductCategory.INSTANT_NOODLES, label: "บะหมี่กึ่งสำเร็จรูป" },
+    { value: ProductCategory.SAUCES, label: "ซอส/เครื่องปรุงรส" },
+    { value: ProductCategory.SEASONING, label: "เครื่องเทศ" },
+    { value: ProductCategory.FROZEN, label: "อาหารแช่แข็ง" },
+  ];
+
   if (!isOpen) return null;
 
   return (
@@ -156,8 +162,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="bg-fn-green/10 p-2 rounded-lg">
-              <Package className="text-fn-green" size={24} />
+            <div className="bg-green-100 p-2 rounded-lg">
+              <Package className="text-green-600" size={24} />
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-800">
@@ -165,7 +171,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               </h2>
               <p className="text-sm text-gray-600">
                 สร้างข้อมูลสินค้าสำหรับบาร์โค้ด:{" "}
-                <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">
+                <code className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">
                   {barcode}
                 </code>
               </p>
@@ -186,7 +192,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
               <CheckCircle className="text-green-500" size={20} />
               <p className="text-green-700 text-sm">
-                เพิ่มสินค้าใหม่เรียบร้อยแล้ว!
+                เพิ่มสินค้าใหม่เรียบร้อยแล้ว! กำลังปิดหน้าต่าง...
               </p>
             </div>
           )}
@@ -195,42 +201,26 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
               <AlertCircle className="text-red-500" size={20} />
               <p className="text-red-700 text-sm">
-                เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง
+                เกิดข้อผิดพลาดในการเพิ่มสินค้า กรุณาลองใหม่อีกครั้ง
               </p>
             </div>
           )}
 
-          {/* Barcode (Read-only) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              บาร์โค้ด
-            </label>
-            <input
-              type="text"
-              value={formData.barcode}
-              disabled
-              className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-500 font-mono text-sm"
-            />
-            {errors.barcode && (
-              <p className="text-red-500 text-xs mt-1">{errors.barcode}</p>
-            )}
-          </div>
-
           {/* Product Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              ชื่อสินค้า <span className="text-red-500">*</span>
+              ชื่อสินค้า *
             </label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => handleChange("name", e.target.value)}
-              placeholder="เช่น น้ำส้มปั่น 100%"
+              placeholder="เช่น โค้ก 325ml"
               className={`w-full p-3 border rounded-xl transition-colors ${
                 errors.name
                   ? "border-red-300 focus:border-red-500"
-                  : "border-gray-200 focus:border-fn-green"
-              } focus:outline-none focus:ring-2 focus:ring-fn-green/20`}
+                  : "border-gray-200 focus:border-green-500"
+              } focus:outline-none focus:ring-2 focus:ring-green-200`}
             />
             {errors.name && (
               <p className="text-red-500 text-xs mt-1">{errors.name}</p>
@@ -240,18 +230,18 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           {/* Brand */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              แบรนด์ <span className="text-red-500">*</span>
+              แบรนด์ *
             </label>
             <input
               type="text"
               value={formData.brand}
               onChange={(e) => handleChange("brand", e.target.value)}
-              placeholder="เช่น Malee, Tipco"
+              placeholder="เช่น Coca-Cola"
               className={`w-full p-3 border rounded-xl transition-colors ${
                 errors.brand
                   ? "border-red-300 focus:border-red-500"
-                  : "border-gray-200 focus:border-fn-green"
-              } focus:outline-none focus:ring-2 focus:ring-fn-green/20`}
+                  : "border-gray-200 focus:border-green-500"
+              } focus:outline-none focus:ring-2 focus:ring-green-200`}
             />
             {errors.brand && (
               <p className="text-red-500 text-xs mt-1">{errors.brand}</p>
@@ -261,7 +251,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           {/* Category */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              หมวดหมู่ <span className="text-red-500">*</span>
+              หมวดหมู่ *
             </label>
             <select
               value={formData.category}
@@ -269,44 +259,37 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               className={`w-full p-3 border rounded-xl transition-colors ${
                 errors.category
                   ? "border-red-300 focus:border-red-500"
-                  : "border-gray-200 focus:border-fn-green"
-              } focus:outline-none focus:ring-2 focus:ring-fn-green/20`}
+                  : "border-gray-200 focus:border-green-500"
+              } focus:outline-none focus:ring-2 focus:ring-green-200`}
             >
               <option value="">เลือกหมวดหมู่</option>
-              <option value={ProductCategory.BEVERAGES}>เครื่องดื่ม</option>
-              <option value={ProductCategory.SNACKS}>ขนม</option>
-              <option value={ProductCategory.DAIRY}>ผลิตภัณฑ์นม</option>
-              <option value={ProductCategory.CANNED_FOOD}>อาหารกระป๋อง</option>
-              <option value={ProductCategory.BAKERY}>เบเกอรี่</option>
-              <option value={ProductCategory.CONFECTIONERY}>ขนมหวาน</option>
-              <option value={ProductCategory.INSTANT_NOODLES}>
-                บะหมี่กึ่งสำเร็จรูป
-              </option>
-              <option value={ProductCategory.SAUCES}>ซอส</option>
-              <option value={ProductCategory.SEASONING}>เครื่องปรุง</option>
-              <option value={ProductCategory.FROZEN}>อาหารแช่แข็ง</option>
+              {categories.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
             </select>
             {errors.category && (
               <p className="text-red-500 text-xs mt-1">{errors.category}</p>
             )}
           </div>
 
-          {/* Size and Unit */}
+          {/* Size & Unit */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                ขนาด <span className="text-red-500">*</span>
+                ขนาด *
               </label>
               <input
                 type="text"
                 value={formData.size}
                 onChange={(e) => handleChange("size", e.target.value)}
-                placeholder="เช่น 250"
+                placeholder="เช่น 325"
                 className={`w-full p-3 border rounded-xl transition-colors ${
                   errors.size
                     ? "border-red-300 focus:border-red-500"
-                    : "border-gray-200 focus:border-fn-green"
-                } focus:outline-none focus:ring-2 focus:ring-fn-green/20`}
+                    : "border-gray-200 focus:border-green-500"
+                } focus:outline-none focus:ring-2 focus:ring-green-200`}
               />
               {errors.size && (
                 <p className="text-red-500 text-xs mt-1">{errors.size}</p>
@@ -315,18 +298,18 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                หน่วย <span className="text-red-500">*</span>
+                หน่วย *
               </label>
               <input
                 type="text"
                 value={formData.unit}
                 onChange={(e) => handleChange("unit", e.target.value)}
-                placeholder="เช่น ml, g"
+                placeholder="เช่น ml, g, ชิ้น"
                 className={`w-full p-3 border rounded-xl transition-colors ${
                   errors.unit
                     ? "border-red-300 focus:border-red-500"
-                    : "border-gray-200 focus:border-fn-green"
-                } focus:outline-none focus:ring-2 focus:ring-fn-green/20`}
+                    : "border-gray-200 focus:border-green-500"
+                } focus:outline-none focus:ring-2 focus:ring-green-200`}
               />
               {errors.unit && (
                 <p className="text-red-500 text-xs mt-1">{errors.unit}</p>
@@ -337,7 +320,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           {/* Price (Optional) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              ราคา (บาท)
+              ราคา (บาท) - ไม่บังคับ
             </label>
             <input
               type="number"
@@ -348,21 +331,21 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               placeholder="เช่น 15.50"
               step="0.01"
               min="0"
-              className="w-full p-3 border border-gray-200 rounded-xl focus:border-fn-green focus:outline-none focus:ring-2 focus:ring-fn-green/20 transition-colors"
+              className="w-full p-3 border border-gray-200 rounded-xl focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200 transition-colors"
             />
           </div>
 
           {/* Description (Optional) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              รายละเอียดเพิ่มเติม
+              รายละเอียดเพิ่มเติม - ไม่บังคับ
             </label>
             <textarea
               value={formData.description || ""}
               onChange={(e) => handleChange("description", e.target.value)}
               placeholder="รายละเอียดสินค้า..."
               rows={3}
-              className="w-full p-3 border border-gray-200 rounded-xl focus:border-fn-green focus:outline-none focus:ring-2 focus:ring-fn-green/20 transition-colors resize-none"
+              className="w-full p-3 border border-gray-200 rounded-xl focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200 transition-colors resize-none"
             />
           </div>
 
@@ -379,7 +362,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 bg-fn-green hover:bg-fn-green/90 text-white font-medium py-3 px-4 rounded-xl transition-colors duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-xl transition-colors duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>
@@ -400,5 +383,4 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
   );
 };
 
-// ✅ เพิ่ม default export
 export default AddProductModal;

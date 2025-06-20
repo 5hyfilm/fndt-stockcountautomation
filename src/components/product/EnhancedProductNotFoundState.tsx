@@ -3,7 +3,6 @@
 
 import React, { useState } from "react";
 import {
-  Package,
   Copy,
   CheckCircle,
   Plus,
@@ -83,36 +82,46 @@ export const EnhancedProductNotFoundState: React.FC<
 
   return (
     <>
-      <div className="fn-product-not-found">
-        <div className="text-center">
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+        <div className="text-center space-y-6">
           {/* Error Icon */}
-          <div className="error-icon">
-            <AlertTriangle size={40} />
+          <div className="flex justify-center">
+            <div className="bg-orange-100 rounded-full w-16 h-16 flex items-center justify-center">
+              <AlertTriangle className="text-orange-500" size={32} />
+            </div>
           </div>
 
-          {/* Title */}
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">
-            ไม่พบข้อมูลสินค้า
-          </h3>
-
-          {/* Error Message */}
-          <p className="text-gray-600 text-sm mb-4">{error}</p>
+          {/* Title & Error Message */}
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-gray-800">
+              ไม่พบข้อมูลสินค้า
+            </h3>
+            <p className="text-gray-600 text-sm">{error}</p>
+          </div>
 
           {/* Barcode Display */}
-          <div className="fn-barcode-display">
-            <p className="text-xs text-gray-500 mb-1">Barcode ที่สแกน:</p>
-            <div className="flex items-center justify-between">
-              <code className="flex-1 text-left">{barcode}</code>
+          <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+            <p className="text-xs text-gray-500">Barcode ที่สแกน:</p>
+            <div className="flex items-center justify-between bg-white rounded-lg p-3 border">
+              <code className="flex-1 text-sm font-mono text-gray-800 text-left">
+                {barcode}
+              </code>
               <button
                 onClick={handleCopyBarcode}
-                className={`fn-copy-btn ml-2 ${copied ? "copied" : ""}`}
+                className={`ml-3 p-2 rounded-lg transition-all duration-200 ${
+                  copied
+                    ? "bg-green-100 text-green-600"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+                }`}
                 title="คัดลอกบาร์โค้ด"
               >
                 {copied ? <CheckCircle size={16} /> : <Copy size={16} />}
               </button>
             </div>
             {copied && (
-              <p className="text-xs text-fn-green mt-1">คัดลอกแล้ว!</p>
+              <p className="text-xs text-green-600 font-medium">
+                ✓ คัดลอกแล้ว!
+              </p>
             )}
           </div>
 
@@ -121,7 +130,7 @@ export const EnhancedProductNotFoundState: React.FC<
             {/* Primary Action: Add Product */}
             <button
               onClick={() => setIsAddProductModalOpen(true)}
-              className="fn-add-product-btn w-full"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-xl transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm"
             >
               <Plus size={18} />
               เพิ่มสินค้าใหม่
@@ -129,12 +138,18 @@ export const EnhancedProductNotFoundState: React.FC<
 
             {/* Secondary Actions */}
             <div className="grid grid-cols-2 gap-3">
-              <button onClick={handleRescan} className="fn-secondary-btn">
+              <button
+                onClick={handleRescan}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-xl transition-colors duration-200 flex items-center justify-center gap-2"
+              >
                 <RefreshCw size={16} />
                 สแกนใหม่
               </button>
 
-              <button onClick={handleManualSearch} className="fn-secondary-btn">
+              <button
+                onClick={handleManualSearch}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-xl transition-colors duration-200 flex items-center justify-center gap-2"
+              >
                 <Search size={16} />
                 ค้นหาด้วยตนเอง
               </button>
@@ -142,22 +157,31 @@ export const EnhancedProductNotFoundState: React.FC<
           </div>
 
           {/* Help Text */}
-          <div className="fn-help-text mt-4">
-            <p>
-              💡 <strong>เคล็ดลับ:</strong> ตรวจสอบว่าบาร์โค้ดถูกต้องและชัดเจน
-              หรือลองสแกนในแสงที่เพียงพอ
-            </p>
+          <div className="bg-blue-50 rounded-lg p-4 text-left">
+            <div className="flex items-start gap-3">
+              <div className="text-blue-500 text-lg">💡</div>
+              <div className="text-sm text-blue-800">
+                <p className="font-medium mb-1">เคล็ดลับ:</p>
+                <ul className="space-y-1 text-blue-700">
+                  <li>• ตรวจสอบว่าบาร์โค้ดถูกต้องและชัดเจน</li>
+                  <li>• ลองสแกนในแสงที่เพียงพอ</li>
+                  <li>• หากแน่ใจว่าเป็นสินค้าใหม่ กดปุ่ม "เพิ่มสินค้าใหม่"</li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Add Product Modal */}
-      <AddProductModal
-        isOpen={isAddProductModalOpen}
-        onClose={() => setIsAddProductModalOpen(false)}
-        barcode={barcode}
-        onSuccess={handleProductAdded}
-      />
+      {isAddProductModalOpen && (
+        <AddProductModal
+          isOpen={isAddProductModalOpen}
+          onClose={() => setIsAddProductModalOpen(false)}
+          barcode={barcode}
+          onSuccess={handleProductAdded}
+        />
+      )}
     </>
   );
 };

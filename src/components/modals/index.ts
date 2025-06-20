@@ -1,2 +1,7 @@
 // src/components/modals/index.ts
-export { LogoutConfirmationModal } from "./LogoutConfirmationModal";
+// Export all modal components
+
+export { AddProductModal } from "./AddProductModal";
+
+// Re-export as default for convenience
+export { default as AddProductModalDefault } from "./AddProductModal";

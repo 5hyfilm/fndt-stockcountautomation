@@ -52,7 +52,3 @@ export const WaitingScanState: React.FC = () => (
     </div>
   </div>
 );
-
-// ❌ ลบ ProductNotFoundState เก่าออกแล้ว
-// ใช้ EnhancedProductNotFoundState แทน
-// สำหรับการ import เก่า ให้ใช้ EnhancedProductNotFoundState จาก ./EnhancedProductNotFoundState
