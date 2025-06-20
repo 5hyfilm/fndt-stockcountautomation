@@ -34,6 +34,7 @@ interface MobileScannerLayoutProps {
   isLoadingProduct: boolean;
   productError: string | null;
   lastDetectedCode: string;
+  scannedBarcode?: string; // ✅ เพิ่ม: บาร์โค้ดที่ scan ได้
 
   // Product actions
   onAddToInventory: (
@@ -41,6 +42,7 @@ interface MobileScannerLayoutProps {
     quantity: number,
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
+  onAddNewProduct?: (barcode: string) => void; // ✅ เพิ่ม: callback สำหรับเพิ่มสินค้าใหม่
   restartForNextScan: () => void;
   currentInventoryQuantity: number;
 
@@ -76,9 +78,11 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
   isLoadingProduct,
   productError,
   lastDetectedCode,
+  scannedBarcode, // ✅ รับ scannedBarcode prop
 
   // Product actions
   onAddToInventory,
+  onAddNewProduct, // ✅ รับ callback สำหรับเพิ่มสินค้าใหม่
   restartForNextScan,
   currentInventoryQuantity,
 
@@ -250,10 +254,11 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
         product={product}
         detectedBarcodeType={detectedBarcodeType || undefined}
         currentInventoryQuantity={currentInventoryQuantity}
-        scannedBarcode={lastDetectedCode} // ✅ ส่งบาร์โค้ดที่ detect ได้
+        scannedBarcode={scannedBarcode || lastDetectedCode} // ✅ ใช้ scannedBarcode ถ้ามี หรือ lastDetectedCode
         productError={productError} // ✅ ส่ง error message
         onClose={handleCloseProductSlide}
         onAddToInventory={onAddToInventory}
+        onAddNewProduct={onAddNewProduct} // ✅ ส่ง callback สำหรับเพิ่มสินค้าใหม่
       />
     </div>
   );

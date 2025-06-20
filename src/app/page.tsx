@@ -295,6 +295,20 @@ export default function BarcodeDetectionPage() {
     return success;
   };
 
+  // ✅ New handler สำหรับเพิ่มสินค้าใหม่
+  const handleAddNewProduct = (barcode: string) => {
+    console.log("🆕 Add new product requested for barcode:", barcode);
+
+    // TODO: เปิด modal หรือ navigate ไปหน้าเพิ่มสินค้าใหม่
+    // สำหรับตอนนี้แค่ alert
+    alert(
+      `เพิ่มสินค้าใหม่สำหรับบาร์โค้ด: ${barcode}\n\n(ฟีเจอร์นี้จะเพิ่มในอนาคต)`
+    );
+
+    // ปิด slide หลังจาก handle เสร็จ
+    // restartForNextScan();
+  };
+
   // ✅ Enhanced update quantity handler for Phase 2
   const handleUpdateItemQuantity = (
     itemId: string,
@@ -410,6 +424,7 @@ export default function BarcodeDetectionPage() {
             scannedBarcode={lastDetectedCode} // ✅ เพิ่ม: ส่งบาร์โค้ดที่ scan ได้
             // Product actions
             onAddToInventory={handleAddToInventory} // ✅ Updated signature
+            onAddNewProduct={handleAddNewProduct} // ✅ เพิ่ม: handler สำหรับเพิ่มสินค้าใหม่
             restartForNextScan={restartForNextScan}
             currentInventoryQuantity={currentInventoryQuantity}
             // Layout options
@@ -508,6 +523,7 @@ export default function BarcodeDetectionPage() {
                 scannedBarcode={lastDetectedCode} // ✅ เพิ่ม: ส่งบาร์โค้ดที่ scan ได้
                 // Product actions
                 onAddToInventory={handleAddToInventory} // ✅ Updated signature
+                onAddNewProduct={handleAddNewProduct} // ✅ เพิ่ม: handler สำหรับเพิ่มสินค้าใหม่
                 restartForNextScan={restartForNextScan}
                 currentInventoryQuantity={currentInventoryQuantity}
                 // Layout options

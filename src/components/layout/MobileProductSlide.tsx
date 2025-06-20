@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { X, ArrowDown } from "lucide-react";
+import { X, ArrowDown, Plus } from "lucide-react";
 import { Product } from "../../types/product";
 import { ProductInfo } from "../ProductInfo";
 
@@ -19,6 +19,7 @@ interface MobileProductSlideProps {
     quantity: number,
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
+  onAddNewProduct?: (barcode: string) => void; // ✅ เพิ่ม: callback สำหรับเพิ่มสินค้าใหม่
   children?: React.ReactNode;
 }
 
@@ -31,6 +32,7 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
   productError = null, // ✅ รับ error message
   onClose,
   onAddToInventory,
+  onAddNewProduct, // ✅ รับ callback สำหรับเพิ่มสินค้าใหม่
   children,
 }) => {
   const [, setIsAnimating] = useState(false);
@@ -76,6 +78,18 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
     } else {
       return "สแกนใหม่";
     }
+  };
+
+  // ✅ Handler สำหรับเพิ่มสินค้าใหม่
+  const handleAddNewProduct = () => {
+    if (onAddNewProduct && scannedBarcode) {
+      onAddNewProduct(scannedBarcode);
+    }
+  };
+
+  // ✅ ตรวจสอบว่าควรแสดงปุ่ม "เพิ่มสินค้าใหม่" หรือไม่
+  const shouldShowAddNewProductButton = () => {
+    return !product && productError && scannedBarcode && onAddNewProduct;
   };
 
   return (
@@ -132,19 +146,39 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
           {children}
         </div>
 
-        {/* ✅ Action Buttons - Dynamic text based on product status */}
+        {/* ✅ Action Buttons - Dynamic based on product status */}
         <div className="px-4 py-4 border-t border-gray-100 bg-white">
-          <button
-            onClick={onClose}
-            className={`w-full font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 ${
-              product
-                ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                : "bg-fn-green hover:bg-fn-green/90 text-white"
-            }`}
-          >
-            <ArrowDown size={16} />
-            {getCloseButtonText()}
-          </button>
+          {product ? (
+            /* ✅ เจอสินค้า - แสดงปุ่มเดียว */
+            <button
+              onClick={onClose}
+              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              <ArrowDown size={16} />
+              สแกนต่อ
+            </button>
+          ) : (
+            /* ✅ ไม่เจอสินค้า - แสดง 2 ปุ่ม */
+            <div className="space-y-3">
+              {shouldShowAddNewProductButton() && (
+                <button
+                  onClick={handleAddNewProduct}
+                  className="w-full bg-fn-green hover:bg-fn-green/90 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus size={16} />
+                  เพิ่มสินค้าใหม่
+                </button>
+              )}
+
+              <button
+                onClick={onClose}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+              >
+                <ArrowDown size={16} />
+                {getCloseButtonText()}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </>
