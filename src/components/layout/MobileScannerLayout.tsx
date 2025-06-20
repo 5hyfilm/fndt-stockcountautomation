@@ -74,6 +74,8 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
   product,
   detectedBarcodeType,
   isLoadingProduct,
+  productError,
+  lastDetectedCode,
 
   // Product actions
   onAddToInventory,
@@ -86,17 +88,23 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
 }) => {
   const [showProductSlide, setShowProductSlide] = useState(false);
 
-  // Show product slide when product is found and camera is stopped
+  // ✅ แก้ไข: แสดง slide เมื่อมี barcode detection (ไม่ว่าจะเจอสินค้าหรือไม่)
   useEffect(() => {
-    if (product && !isStreaming && !isLoadingProduct) {
+    // แสดง slide เมื่อ:
+    // 1. มี lastDetectedCode (detect barcode ได้)
+    // 2. กล้องหยุดทำงานแล้ว (!isStreaming)
+    // 3. ไม่อยู่ในสถานะ loading
+    if (lastDetectedCode && !isStreaming && !isLoadingProduct) {
+      console.log("📱 Showing product slide for barcode:", lastDetectedCode);
       setShowProductSlide(true);
     } else {
       setShowProductSlide(false);
     }
-  }, [product, isStreaming, isLoadingProduct]);
+  }, [lastDetectedCode, isStreaming, isLoadingProduct]);
 
   // Handle close product slide and restart scanning
   const handleCloseProductSlide = () => {
+    console.log("🔄 Closing product slide and restarting scan");
     setShowProductSlide(false);
     restartForNextScan();
     setTimeout(() => {
@@ -111,39 +119,71 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
 
   const containerStyle = fullScreen
     ? {
-        height: "calc(100vh - 120px)",
-        minHeight: "calc(100vh - 120px)",
+        height: "100vh",
+        width: "100vw",
+        position: "fixed" as const,
+        top: 0,
+        left: 0,
+        zIndex: 30,
       }
-    : {};
+    : {
+        height: "100vh",
+      };
 
   return (
     <div className={containerClasses} style={containerStyle}>
-      {/* Camera Section - Full Screen */}
-      <div className="absolute inset-0">
-        <CameraSection
-          videoRef={videoRef}
-          canvasRef={canvasRef}
-          containerRef={containerRef}
-          isStreaming={isStreaming}
-          processingQueue={processingQueue}
-          detections={detections}
-          startCamera={startCamera}
-          stopCamera={stopCamera}
-          switchCamera={switchCamera}
-          captureAndProcess={captureAndProcess}
-          drawDetections={drawDetections}
-          updateCanvasSize={updateCanvasSize}
-          fullScreen={fullScreen}
-          showHeader={showHeader}
-          // ⭐ ส่ง torch props
-          torchOn={torchOn}
-          onToggleTorch={onToggleTorch}
-        />
-      </div>
+      {/* Header - Only show if not fullscreen or explicitly requested */}
+      {showHeader && !fullScreen && (
+        <div className="absolute top-0 left-0 right-0 z-40 bg-black/50 text-white p-3">
+          <div className="flex justify-between items-center">
+            <h1 className="text-lg font-semibold">สแกนบาร์โค้ด</h1>
+            <div className="flex gap-2">
+              {detections.length > 0 && (
+                <span className="text-xs bg-green-500 px-2 py-1 rounded">
+                  Detected: {detections.length}
+                </span>
+              )}
+              {processingQueue > 0 && (
+                <span className="text-xs bg-orange-500 px-2 py-1 rounded">
+                  Queue: {processingQueue}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* ปุ่มควบคุมมุมบนขวา - เฉพาะเมื่อกล้องเปิดและไม่แสดง header */}
-      {!showHeader && isStreaming && (
-        <div className="absolute top-4 right-4 z-30 flex gap-2">
+      {/* Main Camera Section */}
+      <CameraSection
+        videoRef={videoRef}
+        canvasRef={canvasRef}
+        containerRef={containerRef}
+        isStreaming={isStreaming}
+        processingQueue={processingQueue}
+        detections={detections}
+        drawDetections={drawDetections}
+        captureAndProcess={captureAndProcess}
+        updateCanvasSize={updateCanvasSize}
+        product={product}
+        isLoadingProduct={isLoadingProduct}
+        fullScreen={fullScreen}
+      />
+
+      {/* Control Buttons - Only show when camera is streaming */}
+      {isStreaming && (
+        <div className="absolute bottom-6 right-4 z-30 flex flex-col gap-3">
+          {/* ปุ่มสลับกล้อง */}
+          <button
+            onClick={switchCamera}
+            className="bg-gray-800/70 hover:bg-gray-700 text-white p-3 rounded-full shadow-lg transition-colors"
+            title="สลับกล้อง"
+          >
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M20 4h-3.17L15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 7c0 2.76-2.24 5-5 5s-5-2.24-5-5 2.24-5 5-5 5 2.24 5 5z" />
+              <path d="M12 17l1.5-1.5L9 12l4.5-3.5L12 7l-5 5 5 5z" />
+            </svg>
+          </button>
+
           {/* ปุ่มไฟฉาย */}
           {onToggleTorch && (
             <button
@@ -204,12 +244,14 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
         </div>
       )}
 
-      {/* Product Slide Overlay */}
+      {/* ✅ Product Slide Overlay - แสดงทั้งเจอและไม่เจอสินค้า */}
       <MobileProductSlide
         isVisible={showProductSlide}
         product={product}
         detectedBarcodeType={detectedBarcodeType || undefined}
         currentInventoryQuantity={currentInventoryQuantity}
+        scannedBarcode={lastDetectedCode} // ✅ ส่งบาร์โค้ดที่ detect ได้
+        productError={productError} // ✅ ส่ง error message
         onClose={handleCloseProductSlide}
         onAddToInventory={onAddToInventory}
       />

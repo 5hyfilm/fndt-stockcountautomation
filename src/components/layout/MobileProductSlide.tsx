@@ -1,4 +1,4 @@
-// ./src/components/layout/MobileProductSlide.tsx
+// Path: src/components/layout/MobileProductSlide.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -11,6 +11,8 @@ interface MobileProductSlideProps {
   product: Product | null;
   detectedBarcodeType?: "ea" | "dsp" | "cs";
   currentInventoryQuantity: number;
+  scannedBarcode?: string; // ✅ เพิ่ม: บาร์โค้ดที่ detect ได้
+  productError?: string | null; // ✅ เพิ่ม: error message
   onClose: () => void;
   onAddToInventory: (
     product: Product,
@@ -25,6 +27,8 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
   product,
   detectedBarcodeType,
   currentInventoryQuantity,
+  scannedBarcode = "", // ✅ รับ barcode ที่ scan
+  productError = null, // ✅ รับ error message
   onClose,
   onAddToInventory,
   children,
@@ -54,6 +58,26 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
     };
   }, [isVisible]);
 
+  // ✅ Dynamic header title based on product status
+  const getHeaderTitle = () => {
+    if (product) {
+      return "ข้อมูลสินค้า";
+    } else if (productError) {
+      return "ไม่พบสินค้า";
+    } else {
+      return "ผลการสแกน";
+    }
+  };
+
+  // ✅ Dynamic close button text
+  const getCloseButtonText = () => {
+    if (product) {
+      return "สแกนต่อ";
+    } else {
+      return "สแกนใหม่";
+    }
+  };
+
   return (
     <>
       {/* Backdrop */}
@@ -79,9 +103,11 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
           <div className="w-10 h-1 bg-gray-300 rounded-full" />
         </div>
 
-        {/* Header */}
+        {/* ✅ Dynamic Header */}
         <div className="flex items-center justify-between px-4 pb-3 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900">ข้อมูลสินค้า</h2>
+          <h2 className="text-lg font-semibold text-gray-900">
+            {getHeaderTitle()}
+          </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -90,13 +116,14 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
           </button>
         </div>
 
-        {/* Content - Use ProductInfo Component */}
+        {/* ✅ Content - Use ProductInfo Component with enhanced error handling */}
         <div className="flex-1 overflow-y-auto">
           <ProductInfo
             product={product}
+            barcode={scannedBarcode} // ✅ ส่งบาร์โค้ดที่ scan
             barcodeType={detectedBarcodeType}
             isLoading={false}
-            error={undefined}
+            error={productError} // ✅ ส่ง error message
             onAddToInventory={onAddToInventory}
             currentInventoryQuantity={currentInventoryQuantity}
           />
@@ -105,17 +132,25 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
           {children}
         </div>
 
-        {/* Action Buttons - Only "สแกนต่อ" */}
+        {/* ✅ Action Buttons - Dynamic text based on product status */}
         <div className="px-4 py-4 border-t border-gray-100 bg-white">
           <button
             onClick={onClose}
-            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+            className={`w-full font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 ${
+              product
+                ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                : "bg-fn-green hover:bg-fn-green/90 text-white"
+            }`}
           >
             <ArrowDown size={16} />
-            สแกนต่อ
+            {getCloseButtonText()}
           </button>
         </div>
       </div>
     </>
   );
 };
+
+// ✅ Export component
+export { MobileProductSlide };
+export default MobileProductSlide;

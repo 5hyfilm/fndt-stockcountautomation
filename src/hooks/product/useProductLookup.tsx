@@ -1,47 +1,24 @@
-// ./src/hooks/product/useProductLookup.tsx
+// Path: src/hooks/product/useProductLookup.tsx
 "use client";
 
 import { useState, useCallback } from "react";
 import { Product } from "../../types/product";
-import { findProductByBarcode, normalizeBarcode } from "../../data/csvProducts";
+import { findProductByBarcode } from "../../data/services/productServices";
+import { normalizeBarcode } from "../../data/utils/csvUtils";
 
 interface UseProductLookupProps {
-  onProductFound?: () => void; // เพิ่ม callback เมื่อเจอสินค้า
+  onProductFound?: () => void;
 }
 
-// Define proper error type instead of using any
-interface ProductLookupError {
-  message: string;
-  name?: string;
-  code?: string;
-  cause?: unknown;
-}
-
-// Type guard to check if error has message property
-const isErrorWithMessage = (error: unknown): error is ProductLookupError => {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error &&
-    typeof (error as Record<string, unknown>).message === "string"
-  );
-};
-
-// Helper function to get error message
+// Helper function to safely extract error message
 const getErrorMessage = (error: unknown): string => {
-  if (isErrorWithMessage(error)) {
-    return error.message;
-  }
-
-  if (typeof error === "string") {
-    return error;
-  }
-
   if (error instanceof Error) {
     return error.message;
   }
-
-  return "เกิดข้อผิดพลาดในการค้นหาสินค้า";
+  if (typeof error === "string") {
+    return error;
+  }
+  return "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ";
 };
 
 export const useProductLookup = (props?: UseProductLookupProps) => {
@@ -75,13 +52,15 @@ export const useProductLookup = (props?: UseProductLookupProps) => {
       setIsLoadingProduct(true);
       setProductError(null);
 
+      // ✅ Set lastDetectedCode ทันทีเมื่อมี barcode detection
+      setLastDetectedCode(normalizedBarcode);
+
       try {
         // ใช้ findProductByBarcode ที่ return barcode type
         const result = await findProductByBarcode(normalizedBarcode);
         if (result) {
           setProduct(result.product);
           setDetectedBarcodeType(result.barcodeType);
-          setLastDetectedCode(normalizedBarcode);
           console.log(
             `✅ Product found: ${
               result.product.name
@@ -94,10 +73,19 @@ export const useProductLookup = (props?: UseProductLookupProps) => {
             onProductFound();
           }
         } else {
+          // ✅ ไม่เจอสินค้า - แต่ยัง keep lastDetectedCode เพื่อแสดงใน error state
           setProduct(null);
           setDetectedBarcodeType(null);
           setProductError("ไม่พบข้อมูลสินค้าในระบบ");
           console.log("❌ Product not found for barcode:", normalizedBarcode);
+
+          // 🔥 เรียก callback เพื่อปิดกล้องแม้ไม่เจอสินค้า (เพื่อแสดง slide)
+          if (onProductFound) {
+            console.log(
+              "📷 Stopping camera after barcode detection (not found)"
+            );
+            onProductFound();
+          }
         }
       } catch (error: unknown) {
         // ✅ Fixed: Changed from 'any' to 'unknown'
@@ -106,6 +94,12 @@ export const useProductLookup = (props?: UseProductLookupProps) => {
         setProduct(null);
         setDetectedBarcodeType(null);
         setProductError(errorMessage);
+
+        // 🔥 เรียก callback แม้เกิด error
+        if (onProductFound) {
+          console.log("📷 Stopping camera after error");
+          onProductFound();
+        }
       } finally {
         setIsLoadingProduct(false);
       }
@@ -122,6 +116,7 @@ export const useProductLookup = (props?: UseProductLookupProps) => {
 
   // Clear current detection
   const clearCurrentDetection = useCallback(() => {
+    console.log("🔄 Clearing current detection");
     setLastDetectedCode("");
     clearProduct();
   }, [clearProduct]);

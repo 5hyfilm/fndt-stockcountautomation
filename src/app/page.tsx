@@ -401,12 +401,13 @@ export default function BarcodeDetectionPage() {
             // Torch props
             torchOn={torchOn}
             onToggleTorch={toggleTorch}
-            // Product props
+            // ✅ Updated Product props - Now includes scannedBarcode and productError
             product={product}
             detectedBarcodeType={detectedBarcodeType}
             isLoadingProduct={isLoadingProduct}
             productError={productError}
             lastDetectedCode={lastDetectedCode}
+            scannedBarcode={lastDetectedCode} // ✅ เพิ่ม: ส่งบาร์โค้ดที่ scan ได้
             // Product actions
             onAddToInventory={handleAddToInventory} // ✅ Updated signature
             restartForNextScan={restartForNextScan}
@@ -498,12 +499,13 @@ export default function BarcodeDetectionPage() {
                 // Torch props
                 torchOn={torchOn}
                 onToggleTorch={toggleTorch}
-                // Product props
+                // ✅ Updated Product props - Now includes scannedBarcode and productError
                 product={product}
                 detectedBarcodeType={detectedBarcodeType}
                 isLoadingProduct={isLoadingProduct}
                 productError={productError}
                 lastDetectedCode={lastDetectedCode}
+                scannedBarcode={lastDetectedCode} // ✅ เพิ่ม: ส่งบาร์โค้ดที่ scan ได้
                 // Product actions
                 onAddToInventory={handleAddToInventory} // ✅ Updated signature
                 restartForNextScan={restartForNextScan}
