@@ -34,6 +34,9 @@ import { MobileScannerLayout } from "../components/layout/MobileScannerLayout";
 import { LogoutConfirmationModal } from "../components/modals/LogoutConfirmationModal";
 import { useLogoutConfirmation } from "../hooks/useLogoutConfirmation";
 
+// ✅ Import AddNewProductForm
+import { AddNewProductForm } from "../components/forms/AddNewProductForm";
+
 export default function BarcodeDetectionPage() {
   const [activeTab, setActiveTab] = useState<"scanner" | "inventory">(
     "scanner"
@@ -42,6 +45,10 @@ export default function BarcodeDetectionPage() {
   const [exportFileName, setExportFileName] = useState<string>("");
   const [isMobile, setIsMobile] = useState(false);
   const [fullScreenMode, setFullScreenMode] = useState(false);
+
+  // ✅ State สำหรับ AddNewProductForm
+  const [showAddProductForm, setShowAddProductForm] = useState(false);
+  const [newProductBarcode, setNewProductBarcode] = useState<string>("");
 
   // Detect mobile viewport and set full screen mode
   useEffect(() => {
@@ -299,14 +306,81 @@ export default function BarcodeDetectionPage() {
   const handleAddNewProduct = (barcode: string) => {
     console.log("🆕 Add new product requested for barcode:", barcode);
 
-    // TODO: เปิด modal หรือ navigate ไปหน้าเพิ่มสินค้าใหม่
-    // สำหรับตอนนี้แค่ alert
-    alert(
-      `เพิ่มสินค้าใหม่สำหรับบาร์โค้ด: ${barcode}\n\n(ฟีเจอร์นี้จะเพิ่มในอนาคต)`
-    );
+    // เปิด form และเก็บ barcode
+    setNewProductBarcode(barcode);
+    setShowAddProductForm(true);
+  };
 
-    // ปิด slide หลังจาก handle เสร็จ
-    // restartForNextScan();
+  // ✅ Handler สำหรับบันทึกสินค้าใหม่
+  const handleSaveNewProduct = async (productData: {
+    barcode: string;
+    productName: string;
+    category: string;
+    description: string;
+    countCs: number;
+    countPieces: number;
+  }): Promise<boolean> => {
+    try {
+      console.log("💾 Saving new product:", productData);
+
+      // TODO: บันทึกสินค้าใหม่ลงฐานข้อมูล
+      // สำหรับตอนนี้จะจำลองการบันทึก
+
+      // สร้าง Product object จำลอง
+      const newProduct: Product = {
+        id: `new_${productData.barcode}`,
+        name: productData.productName,
+        brand: "เพิ่มใหม่",
+        category: productData.category as any, // TODO: map category properly
+        barcode: productData.barcode,
+        description: productData.description,
+        // ข้อมูลอื่นๆ ที่จำเป็น
+        price: 0,
+        weight: 0,
+        volume: 0,
+        status: "active" as any,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // เพิ่มเข้า inventory ด้วยจำนวนที่กรอก
+      let success = false;
+
+      if (productData.countCs > 0) {
+        success =
+          addOrUpdateItem(newProduct, productData.countCs, "cs") || success;
+      }
+
+      if (productData.countPieces > 0) {
+        success =
+          addOrUpdateItem(newProduct, productData.countPieces, "ea") || success;
+      }
+
+      if (success) {
+        console.log("✅ New product saved successfully");
+
+        // ปิด form
+        setShowAddProductForm(false);
+        setNewProductBarcode("");
+
+        // ปิด product slide และเริ่มสแกนใหม่
+        restartForNextScan();
+
+        return true;
+      } else {
+        console.error("❌ Failed to save new product");
+        return false;
+      }
+    } catch (error) {
+      console.error("❌ Error saving new product:", error);
+      return false;
+    }
+  };
+
+  // ✅ Handler สำหรับปิด form
+  const handleCloseAddProductForm = () => {
+    setShowAddProductForm(false);
+    setNewProductBarcode("");
   };
 
   // ✅ Enhanced update quantity handler for Phase 2
@@ -444,6 +518,14 @@ export default function BarcodeDetectionPage() {
           sessionTimeRemaining={formatTimeRemaining()}
           hasUnsavedData={hasUnsaved}
           unsavedDataCount={unsavedDataCount}
+        />
+
+        {/* ✅ Add New Product Form */}
+        <AddNewProductForm
+          isVisible={showAddProductForm}
+          barcode={newProductBarcode}
+          onClose={handleCloseAddProductForm}
+          onSave={handleSaveNewProduct}
         />
       </div>
     );
@@ -661,6 +743,14 @@ export default function BarcodeDetectionPage() {
         sessionTimeRemaining={formatTimeRemaining()}
         hasUnsavedData={hasUnsaved}
         unsavedDataCount={unsavedDataCount}
+      />
+
+      {/* ✅ Add New Product Form */}
+      <AddNewProductForm
+        isVisible={showAddProductForm}
+        barcode={newProductBarcode}
+        onClose={handleCloseAddProductForm}
+        onSave={handleSaveNewProduct}
       />
     </div>
   );
