@@ -5,7 +5,6 @@ import React, { useEffect, useState } from "react";
 import { X, ArrowDown } from "lucide-react";
 import { Product } from "../../types/product";
 import { ProductInfo } from "../ProductInfo";
-import { QuantityInput } from "../../hooks/inventory/types"; // ✅ เพิ่ม import
 
 interface MobileProductSlideProps {
   isVisible: boolean;
@@ -15,17 +14,10 @@ interface MobileProductSlideProps {
   onClose: () => void;
   onAddToInventory: (
     product: Product,
-    quantityInput: QuantityInput, // ✅ แก้จาก quantity: number เป็น quantityInput: QuantityInput
+    quantity: number,
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
   children?: React.ReactNode;
-
-  // ✅ Enhanced ProductNotFound props
-  onProductAdded?: (product: Product) => void;
-  onRescan?: () => void;
-  onManualSearch?: () => void;
-  productError?: string | null; // ✅ เพิ่ม productError prop
-  barcode?: string; // ✅ เพิ่ม barcode prop
 }
 
 export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
@@ -36,12 +28,6 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
   onClose,
   onAddToInventory,
   children,
-  // ✅ Enhanced ProductNotFound props
-  onProductAdded,
-  onRescan,
-  onManualSearch,
-  productError,
-  barcode, // ✅ เพิ่ม destructuring barcode
 }) => {
   const [, setIsAnimating] = useState(false);
 
@@ -67,34 +53,6 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
       document.body.style.overflow = "unset";
     };
   }, [isVisible]);
-
-  // ✅ Handle enhanced rescan - รวม onClose กับ onRescan
-  const handleEnhancedRescan = () => {
-    if (onRescan) {
-      onRescan();
-    } else {
-      onClose();
-    }
-  };
-
-  // ✅ Determine header title และ action button text
-  const getHeaderTitle = () => {
-    if (product) {
-      return "ข้อมูลสินค้า";
-    } else if (productError) {
-      return "ไม่พบข้อมูลสินค้า";
-    }
-    return "ข้อมูลสินค้า";
-  };
-
-  const getActionButtonText = () => {
-    if (product) {
-      return "สแกนต่อ";
-    } else if (productError) {
-      return "สแกนใหม่";
-    }
-    return "สแกนต่อ";
-  };
 
   return (
     <>
@@ -123,9 +81,7 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 pb-3 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900">
-            {getHeaderTitle()}
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-900">ข้อมูลสินค้า</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -138,34 +94,25 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
         <div className="flex-1 overflow-y-auto">
           <ProductInfo
             product={product}
-            barcode={barcode} // ✅ ส่ง barcode ไปให้ ProductInfo
             barcodeType={detectedBarcodeType}
             isLoading={false}
-            error={productError || undefined} // ✅ ส่ง productError เป็น error
+            error={undefined}
             onAddToInventory={onAddToInventory}
             currentInventoryQuantity={currentInventoryQuantity}
-            // ✅ Enhanced ProductNotFound props
-            onProductAdded={onProductAdded}
-            onRescan={onRescan}
-            onManualSearch={onManualSearch}
           />
 
           {/* Custom Content */}
           {children}
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Only "สแกนต่อ" */}
         <div className="px-4 py-4 border-t border-gray-100 bg-white">
           <button
-            onClick={handleEnhancedRescan}
-            className={`w-full font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 ${
-              productError
-                ? "bg-fn-green hover:bg-fn-green/90 text-white" // สีเขียวเมื่อมี error (สแกนใหม่)
-                : "bg-gray-100 hover:bg-gray-200 text-gray-700" // สีเทาเมื่อปกติ (สแกนต่อ)
-            }`}
+            onClick={onClose}
+            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
           >
             <ArrowDown size={16} />
-            {getActionButtonText()}
+            สแกนต่อ
           </button>
         </div>
       </div>
