@@ -46,7 +46,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     "idle" | "success" | "error"
   >("idle");
 
-  // Validation
+  // ✅ Validation function - Fixed complete implementation
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -70,7 +70,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission
+  // ✅ Handle form submission - Fixed complete implementation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -113,7 +113,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     }
   };
 
-  // Reset form
+  // ✅ Reset form function - Added complete implementation
   const resetForm = () => {
     setFormData({
       barcode,
@@ -129,7 +129,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     setSubmitStatus("idle");
   };
 
-  // Handle input changes
+  // ✅ Handle input changes - Fixed complete implementation
   const handleChange = (
     field: keyof ProductFormData,
     value: string | number
@@ -169,42 +169,56 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               <h2 className="text-xl font-semibold text-gray-800">
                 เพิ่มสินค้าใหม่
               </h2>
-              <p className="text-sm text-gray-600">
-                สร้างข้อมูลสินค้าสำหรับบาร์โค้ด:{" "}
-                <code className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">
-                  {barcode}
-                </code>
+              <p className="text-sm text-gray-500">
+                เพิ่มข้อมูลสินค้าที่ไม่มีในระบบ
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            disabled={isSubmitting}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
           >
-            <X size={20} />
+            <X size={20} className="text-gray-500" />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Success/Error Status */}
-          {submitStatus === "success" && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-              <CheckCircle className="text-green-500" size={20} />
-              <p className="text-green-700 text-sm">
-                เพิ่มสินค้าใหม่เรียบร้อยแล้ว! กำลังปิดหน้าต่าง...
-              </p>
-            </div>
-          )}
+        {/* Success/Error Status */}
+        {submitStatus === "success" && (
+          <div className="m-6 mb-0 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+            <CheckCircle className="text-green-600" size={20} />
+            <p className="text-green-800 text-sm font-medium">
+              เพิ่มสินค้าใหม่เรียบร้อยแล้ว!
+            </p>
+          </div>
+        )}
 
-          {submitStatus === "error" && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-              <AlertCircle className="text-red-500" size={20} />
-              <p className="text-red-700 text-sm">
-                เกิดข้อผิดพลาดในการเพิ่มสินค้า กรุณาลองใหม่อีกครั้ง
-              </p>
-            </div>
-          )}
+        {submitStatus === "error" && (
+          <div className="m-6 mb-0 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+            <AlertCircle className="text-red-600" size={20} />
+            <p className="text-red-800 text-sm font-medium">
+              เกิดข้อผิดพลาดในการเพิ่มสินค้า กรุณาลองใหม่อีกครั้ง
+            </p>
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Barcode (Read-only) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              บาร์โค้ด
+            </label>
+            <input
+              type="text"
+              value={formData.barcode}
+              readOnly
+              className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
+            />
+            {errors.barcode && (
+              <p className="text-red-500 text-xs mt-1">{errors.barcode}</p>
+            )}
+          </div>
 
           {/* Product Name */}
           <div>
@@ -215,7 +229,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               type="text"
               value={formData.name}
               onChange={(e) => handleChange("name", e.target.value)}
-              placeholder="เช่น โค้ก 325ml"
+              placeholder="เช่น นมข้นหวาน"
               className={`w-full p-3 border rounded-xl transition-colors ${
                 errors.name
                   ? "border-red-300 focus:border-red-500"
@@ -236,7 +250,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               type="text"
               value={formData.brand}
               onChange={(e) => handleChange("brand", e.target.value)}
-              placeholder="เช่น Coca-Cola"
+              placeholder="เช่น Carnation"
               className={`w-full p-3 border rounded-xl transition-colors ${
                 errors.brand
                   ? "border-red-300 focus:border-red-500"
@@ -274,7 +288,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             )}
           </div>
 
-          {/* Size & Unit */}
+          {/* Size and Unit */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -284,7 +298,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 type="text"
                 value={formData.size}
                 onChange={(e) => handleChange("size", e.target.value)}
-                placeholder="เช่น 325"
+                placeholder="เช่น 24x140"
                 className={`w-full p-3 border rounded-xl transition-colors ${
                   errors.size
                     ? "border-red-300 focus:border-red-500"

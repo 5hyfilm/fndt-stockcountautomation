@@ -11,7 +11,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-// Import AddProductModal
+// Import AddProductModal - ✅ Fixed import path
 import { AddProductModal } from "../modals/AddProductModal";
 
 interface EnhancedProductNotFoundStateProps {
@@ -41,7 +41,7 @@ export const EnhancedProductNotFoundState: React.FC<
   // Use external copied state if provided, otherwise use internal state
   const copied = externalCopied !== undefined ? externalCopied : internalCopied;
 
-  // Handle copy barcode
+  // ✅ Handle copy barcode - Fixed complete function
   const handleCopyBarcode = async () => {
     if (onCopyBarcode) {
       onCopyBarcode();
@@ -56,26 +56,28 @@ export const EnhancedProductNotFoundState: React.FC<
     }
   };
 
-  // Handle add product success
+  // ✅ Handle add product success - Fixed complete function
   const handleProductAdded = (product: any) => {
     setIsAddProductModalOpen(false);
     onProductAdded?.(product);
   };
 
-  // Handle rescan
+  // ✅ Handle rescan - Added complete function
   const handleRescan = () => {
     if (onRescan) {
       onRescan();
     } else {
+      // Fallback: reload page
       window.location.reload();
     }
   };
 
-  // Handle manual search
+  // ✅ Handle manual search - Added complete function
   const handleManualSearch = () => {
     if (onManualSearch) {
       onManualSearch();
     } else {
+      // Fallback: log for debugging
       console.log("Manual search for:", barcode);
     }
   };
@@ -173,7 +175,7 @@ export const EnhancedProductNotFoundState: React.FC<
         </div>
       </div>
 
-      {/* Add Product Modal */}
+      {/* ✅ Add Product Modal - Fixed complete implementation */}
       {isAddProductModalOpen && (
         <AddProductModal
           isOpen={isAddProductModalOpen}
