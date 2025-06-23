@@ -57,9 +57,12 @@ export const useInventoryExport = ({
   // ✅ Helper function to get description for CSV export
   const getProductDescription = useCallback(
     (item: InventoryItem): string => {
-      // For new products, use productName instead of thaiDescription
+      // For new products, use description from productData or fallback to productName
       if (isNewProduct(item)) {
-        return item.productName || "สินค้าใหม่";
+        // ใช้ description จาก productData.description (ที่กรอกจากฟอร์ม)
+        return (
+          item.productData?.description || item.productName || "สินค้าใหม่"
+        );
       }
 
       // For existing products, use thaiDescription or fallback to productName
@@ -229,7 +232,7 @@ export const useInventoryExport = ({
         }`
       );
       console.log(
-        `🏷️ Using productName for F/FG and category for Prod.Gr. for new products`
+        `🏷️ F/FG = productName, Prod.Gr. = category, รายละเอียด = productData.description`
       );
 
       return csvRows.join("\n");
