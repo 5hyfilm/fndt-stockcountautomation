@@ -311,7 +311,7 @@ export default function BarcodeDetectionPage() {
     setShowAddProductForm(true);
   };
 
-  // ✅ Handler สำหรับบันทึกสินค้าใหม่
+  // ✅ Handler สำหรับบันทึกสินค้าใหม่ - แก้ไขแล้ว
   const handleSaveNewProduct = async (productData: {
     barcode: string;
     productName: string;
@@ -343,17 +343,41 @@ export default function BarcodeDetectionPage() {
         updatedAt: new Date().toISOString(),
       };
 
-      // เพิ่มเข้า inventory ด้วยจำนวนที่กรอก
+      // ✅ FIX: รวมข้อมูล CS และ EA เป็น QuantityDetail เดียว
       let success = false;
 
-      if (productData.countCs > 0) {
-        success =
-          addOrUpdateItem(newProduct, productData.countCs, "cs") || success;
-      }
+      // ✅ ตรวจสอบว่ามีข้อมูลที่จะบันทึกหรือไม่
+      if (productData.countCs > 0 || productData.countPieces > 0) {
+        // ✅ สร้าง QuantityDetail ที่รวมทั้ง CS และ EA
+        const quantityDetail: QuantityDetail = {
+          major: productData.countCs, // จำนวนลัง (CS)
+          remainder: productData.countPieces, // จำนวนชิ้น (EA)
+          scannedType: productData.countCs > 0 ? "cs" : "ea", // ใช้ CS หาก CS > 0, ไม่งั้นใช้ EA
+        };
 
-      if (productData.countPieces > 0) {
-        success =
-          addOrUpdateItem(newProduct, productData.countPieces, "ea") || success;
+        console.log("✅ Creating combined quantity detail:", {
+          major: quantityDetail.major,
+          remainder: quantityDetail.remainder,
+          scannedType: quantityDetail.scannedType,
+        });
+
+        // ✅ เรียก addOrUpdateItem เพียงครั้งเดียวด้วย QuantityDetail
+        success = addOrUpdateItem(
+          newProduct,
+          quantityDetail,
+          quantityDetail.scannedType
+        );
+
+        if (success) {
+          console.log(
+            "✅ New product saved successfully with combined quantities:"
+          );
+          console.log(`   📦 CS: ${productData.countCs} ลัง`);
+          console.log(`   🔢 EA: ${productData.countPieces} ชิ้น`);
+        }
+      } else {
+        console.warn("⚠️ No quantities to save (both CS and EA are 0)");
+        return false;
       }
 
       if (success) {
