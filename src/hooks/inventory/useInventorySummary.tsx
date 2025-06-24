@@ -172,10 +172,11 @@ export const useInventorySummary = ({
       : 0;
   };
 
+  // 🔧 FIXED: แก้ไข getBrandPercentage - เปลี่ยนจาก summary.brands เป็น summary.totalItems
   const getBrandPercentage = (brand: string): number => {
     const count = summary.brands[brand] || 0;
     return summary.totalItems > 0
-      ? Math.round((count / summary.brands) * 100)
+      ? Math.round((count / summary.totalItems) * 100)
       : 0;
   };
 
@@ -212,8 +213,9 @@ export const useInventorySummary = ({
       breakdown.push(`${quantityBreakdown.totalCS} ลัง (CS)`);
     }
 
-    if (quantityBreakdown.totalRemainderItems > 0) {
-      breakdown.push(`${quantityBreakdown.totalRemainderItems} ชิ้นเศษ`);
+    // 🔧 FIXED: Handle undefined totalRemainderItems
+    if ((quantityBreakdown.totalRemainderItems || 0) > 0) {
+      breakdown.push(`${quantityBreakdown.totalRemainderItems || 0} ชิ้นเศษ`);
     }
 
     return breakdown;
