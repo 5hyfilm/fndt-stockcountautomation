@@ -222,19 +222,60 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
 
   return (
     <>
+      {/* Custom Scrollbar Styles */}
+      <style jsx>{`
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(243, 244, 246, 0.5);
+          border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(156, 163, 175, 0.7);
+          border-radius: 4px;
+          border: 1px solid rgba(243, 244, 246, 0.5);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(107, 114, 128, 0.8);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:active {
+          background: rgba(75, 85, 99, 0.9);
+        }
+
+        /* Better touch scrolling for mobile */
+        .custom-scrollbar {
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+        }
+      `}</style>
+
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/50 z-50" onClick={handleClose} />
 
-      {/* Modal */}
-      <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-fn-green text-white">
+      {/* Modal Container - Enhanced for mobile scrolling */}
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-2 sm:p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
+          {/* Header - Fixed */}
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-fn-green text-white flex-shrink-0">
             <div className="flex items-center gap-3">
-              <Package size={24} />
+              <Package size={20} className="sm:w-6 sm:h-6" />
               <div>
-                <h2 className="text-lg font-semibold">เพิ่มสินค้าใหม่</h2>
-                <p className="text-sm opacity-90">กรอกข้อมูลสินค้าใหม่</p>
+                <h2 className="text-base sm:text-lg font-semibold">
+                  เพิ่มสินค้าใหม่
+                </h2>
+                <p className="text-xs sm:text-sm opacity-90">
+                  กรอกข้อมูลสินค้าใหม่
+                </p>
               </div>
             </div>
             <button
@@ -242,12 +283,12 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
               disabled={isLoading}
               className="p-2 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
             >
-              <X size={20} />
+              <X size={18} className="sm:w-5 sm:h-5" />
             </button>
           </div>
 
-          {/* Form Content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {/* Form Content - Scrollable with enhanced scrollbar */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-6 py-4 sm:py-6 space-y-4 min-h-0">
             {/* ✅ Barcode Field with Edit Button */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
@@ -263,7 +304,7 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                     updateField("barcode", formatBarcode(e.target.value))
                   }
                   disabled={!isBarcodeEditable || isLoading} // ✅ Disabled จนกว่าจะกดปุ่มแก้ไข
-                  className={`w-full px-3 py-2 pr-12 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors font-mono ${
+                  className={`w-full px-3 py-2 pr-12 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors font-mono text-sm sm:text-base ${
                     errors.barcode
                       ? "border-red-500"
                       : formData.barcode && getBarcodeValidationStatus().isValid
@@ -337,7 +378,7 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                 type="text"
                 value={formData.productName}
                 onChange={(e) => updateField("productName", e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors ${
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors text-sm sm:text-base ${
                   errors.productName ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="กรอกชื่อสินค้า"
@@ -360,7 +401,7 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                 type="text"
                 value={formData.category}
                 onChange={(e) => updateField("category", e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors ${
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors text-sm sm:text-base ${
                   errors.category ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="กรอกหมวดหมู่สินค้า"
@@ -381,14 +422,14 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                 value={formData.description}
                 onChange={(e) => updateField("description", e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors resize-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors resize-none text-sm sm:text-base custom-scrollbar"
                 placeholder="กรอกรายละเอียดเพิ่มเติม (ไม่บังคับ)"
                 disabled={isLoading}
               />
             </div>
 
             {/* Count Section */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               {/* Count CS */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
@@ -402,7 +443,7 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                     updateField("countCs", parseInt(e.target.value) || 0)
                   }
                   min="0"
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors ${
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors text-sm sm:text-base ${
                     errors.countCs ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="0"
@@ -426,7 +467,7 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                     updateField("countPieces", parseInt(e.target.value) || 0)
                   }
                   min="0"
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors ${
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors text-sm sm:text-base ${
                     errors.countPieces ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="0"
@@ -455,22 +496,25 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                 </p>
               </div>
             )}
+
+            {/* Add some bottom padding for better mobile scrolling */}
+            <div className="h-4 sm:h-0"></div>
           </div>
 
-          {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+          {/* Footer - Fixed */}
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
             <div className="flex gap-3">
               <button
                 onClick={handleClose}
                 disabled={isLoading}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2 sm:py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm sm:text-base"
               >
                 ยกเลิก
               </button>
               <button
                 onClick={handleSave}
                 disabled={isLoading}
-                className="flex-1 px-4 py-2 bg-fn-green text-white rounded-lg hover:bg-fn-green/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 sm:py-2.5 bg-fn-green text-white rounded-lg hover:bg-fn-green/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 {isLoading ? (
                   <>
