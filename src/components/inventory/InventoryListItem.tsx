@@ -1,4 +1,4 @@
-// src/components/inventory/InventoryListItem.tsx - Fixed Version
+// src/components/inventory/InventoryListItem.tsx - Updated Layout Version
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -435,7 +435,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-3 flex-1">
           <div className={`p-2 rounded-lg ${unitConfig.color}`}>
             <unitConfig.icon size={20} />
@@ -452,55 +452,42 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {!isEditing && (
-            <>
+        {/* ✅ Quantity Display - Moved to center-right of card */}
+        {!isEditing && (
+          <div className="flex items-center gap-3">
+            {/* Quantity Display */}
+            <div className="flex flex-col items-end">
+              {renderQuantityDisplay()}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => onQuickAdjust(-1)}
-                disabled={item.quantity <= 1}
-                className="w-8 h-8 rounded border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                onClick={onEditStart}
+                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                title="แก้ไขจำนวน"
               >
-                <Minus size={14} />
+                <Edit3 size={16} />
               </button>
               <button
-                onClick={() => onQuickAdjust(1)}
-                className="w-8 h-8 rounded border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50"
+                onClick={onRemove}
+                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="ลบรายการ"
               >
-                <Plus size={14} />
+                <Trash2 size={16} />
               </button>
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Quantity Display or Edit Form */}
+      {/* 🔄 Updated Layout: Quantity moved to center-right, simplified bottom section */}
       {isEditing ? (
         renderEditForm()
       ) : (
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-2">
-            {renderQuantityDisplay()}
-            <div className="text-xs text-gray-500">
-              อัพเดท: {formatDate(item.lastUpdated)}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onEditStart}
-              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-              title="แก้ไขจำนวน"
-            >
-              <Edit3 size={16} />
-            </button>
-            <button
-              onClick={onRemove}
-              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              title="ลบรายการ"
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
+        /* ✅ Only timestamp when not editing */
+        <div className="text-xs text-gray-500">
+          อัพเดท: {formatDate(item.lastUpdated)}
         </div>
       )}
     </div>
