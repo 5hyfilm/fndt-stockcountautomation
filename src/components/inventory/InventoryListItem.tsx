@@ -71,7 +71,6 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
   onEditCancel,
   onEditQuantityChange,
   onEditQuantityDetailChange,
-  onQuickAdjust,
   onRemove,
 }) => {
   // ✅ Initialize edit state based on item data
