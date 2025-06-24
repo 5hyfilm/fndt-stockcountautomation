@@ -1,4 +1,4 @@
-// Path: src/components/layout/MobileScannerLayout.tsx
+// ./src/components/layout/MobileScannerLayout.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -6,6 +6,7 @@ import { CameraSection } from "../CameraSection";
 import { MobileProductSlide } from "./MobileProductSlide";
 import { Detection } from "../../hooks/detection/types";
 import { Product } from "../../types/product";
+import { QuantityInput } from "../../hooks/inventory/types"; // ✅ เพิ่ม import QuantityInput
 
 interface MobileScannerLayoutProps {
   // Camera props
@@ -39,7 +40,7 @@ interface MobileScannerLayoutProps {
   // Product actions
   onAddToInventory: (
     product: Product,
-    quantity: number,
+    quantityInput: QuantityInput, // ✅ FIX: เปลี่ยนจาก quantity: number เป็น quantityInput: QuantityInput
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
   onAddNewProduct?: (barcode: string) => void; // ✅ เพิ่ม: callback สำหรับเพิ่มสินค้าใหม่
@@ -165,12 +166,20 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
         isStreaming={isStreaming}
         processingQueue={processingQueue}
         detections={detections}
-        drawDetections={drawDetections}
+        startCamera={startCamera} // ✅ เพิ่ม props ที่ CameraSection ต้องการ
+        stopCamera={stopCamera}
+        switchCamera={switchCamera}
         captureAndProcess={captureAndProcess}
+        drawDetections={drawDetections}
         updateCanvasSize={updateCanvasSize}
-        product={product}
-        isLoadingProduct={isLoadingProduct}
         fullScreen={fullScreen}
+        showHeader={showHeader}
+        // ✅ FIX: ลบ props ที่ CameraSection ไม่รับ
+        // product={product}           // ❌ ลบออก
+        // isLoadingProduct={isLoadingProduct}  // ❌ ลบออก
+        // ✅ เพิ่ม torch props ที่ CameraSection รองรับ
+        torchOn={torchOn}
+        onToggleTorch={onToggleTorch}
       />
 
       {/* Control Buttons - Only show when camera is streaming */}
@@ -255,7 +264,7 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
         detectedBarcodeType={detectedBarcodeType || undefined}
         currentInventoryQuantity={currentInventoryQuantity}
         scannedBarcode={scannedBarcode || lastDetectedCode} // ✅ ใช้ scannedBarcode ถ้ามี หรือ lastDetectedCode
-        productError={productError} // ✅ ส่ง error message
+        productError={productError || undefined} // ✅ FIX: แปลง null เป็น undefined
         onClose={handleCloseProductSlide}
         onAddToInventory={onAddToInventory}
         onAddNewProduct={onAddNewProduct} // ✅ ส่ง callback สำหรับเพิ่มสินค้าใหม่
