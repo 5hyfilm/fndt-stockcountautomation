@@ -230,17 +230,17 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
         }
 
         .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
+          width: 6px;
         }
 
         .custom-scrollbar::-webkit-scrollbar-track {
           background: rgba(243, 244, 246, 0.5);
-          border-radius: 4px;
+          border-radius: 3px;
         }
 
         .custom-scrollbar::-webkit-scrollbar-thumb {
           background: rgba(156, 163, 175, 0.7);
-          border-radius: 4px;
+          border-radius: 3px;
           border: 1px solid rgba(243, 244, 246, 0.5);
         }
 
@@ -262,49 +262,45 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/50 z-50" onClick={handleClose} />
 
-      {/* Modal Container - Enhanced for mobile scrolling */}
-      <div className="fixed inset-0 flex items-center justify-center z-50 p-2 sm:p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
-          {/* Header - Fixed */}
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-fn-green text-white flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <Package size={20} className="sm:w-6 sm:h-6" />
+      {/* Modal Container - ลดขนาดสำหรับมือถือ */}
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-1 sm:p-2">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-xs sm:max-w-sm flex flex-col max-h-[98vh] overflow-hidden">
+          {/* Header - ลดขนาด */}
+          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-fn-green text-white flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <Package size={16} />
               <div>
-                <h2 className="text-base sm:text-lg font-semibold">
-                  เพิ่มสินค้าใหม่
-                </h2>
-                <p className="text-xs sm:text-sm opacity-90">
-                  กรอกข้อมูลสินค้าใหม่
-                </p>
+                <h2 className="text-sm font-semibold">เพิ่มสินค้าใหม่</h2>
+                <p className="text-xs opacity-90">กรอกข้อมูลสินค้าใหม่</p>
               </div>
             </div>
             <button
               onClick={handleClose}
               disabled={isLoading}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
+              className="p-1 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
             >
-              <X size={18} className="sm:w-5 sm:h-5" />
+              <X size={16} />
             </button>
           </div>
 
-          {/* Form Content - Scrollable with enhanced scrollbar */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-6 py-4 sm:py-6 space-y-4 min-h-0">
+          {/* Form Content - ลดขนาด */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-3 space-y-3 min-h-0">
             {/* ✅ Barcode Field with Edit Button */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <Scan size={16} />
+              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <Scan size={12} />
                 Barcode (หมายเลขบาร์โค้ด) *
               </label>
               <div className="relative">
                 <input
-                  ref={barcodeInputRef} // ✅ เพิ่ม ref
+                  ref={barcodeInputRef}
                   type="text"
                   value={formData.barcode}
                   onChange={(e) =>
                     updateField("barcode", formatBarcode(e.target.value))
                   }
-                  disabled={!isBarcodeEditable || isLoading} // ✅ Disabled จนกว่าจะกดปุ่มแก้ไข
-                  className={`w-full px-3 py-2 pr-12 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors font-mono text-sm sm:text-base ${
+                  disabled={!isBarcodeEditable || isLoading}
+                  className={`w-full px-2 py-1.5 pr-8 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors font-mono text-xs ${
                     errors.barcode
                       ? "border-red-500"
                       : formData.barcode && getBarcodeValidationStatus().isValid
@@ -315,7 +311,7 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                   }`}
                   placeholder={
                     isBarcodeEditable
-                      ? "กรอกหมายเลขบาร์โค้ด (8-14 หลัก)"
+                      ? "กรอกหมายเลขบาร์โค้ด"
                       : "กดปุ่มดินสอเพื่อแก้ไข"
                   }
                 />
@@ -325,7 +321,7 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                   type="button"
                   onClick={toggleBarcodeEditable}
                   disabled={isLoading}
-                  className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md transition-colors ${
+                  className={`absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded transition-colors ${
                     isBarcodeEditable
                       ? "text-green-600 hover:bg-green-50"
                       : "text-gray-500 hover:bg-gray-100"
@@ -333,9 +329,9 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                   title={isBarcodeEditable ? "ยืนยันการแก้ไข" : "แก้ไขบาร์โค้ด"}
                 >
                   {isBarcodeEditable ? (
-                    <Check size={16} />
+                    <Check size={12} />
                   ) : (
-                    <Edit3 size={16} />
+                    <Edit3 size={12} />
                   )}
                 </button>
               </div>
@@ -343,7 +339,7 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
               {/* ✅ Real-time validation feedback */}
               {formData.barcode && !errors.barcode && isBarcodeEditable && (
                 <p
-                  className={`text-xs mt-1 ${
+                  className={`text-xs mt-0.5 ${
                     getBarcodeValidationStatus().isValid
                       ? "text-green-600"
                       : "text-orange-600"
@@ -353,39 +349,39 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                 </p>
               )}
               {errors.barcode && (
-                <p className="text-red-500 text-xs mt-1">{errors.barcode}</p>
+                <p className="text-red-500 text-xs mt-0.5">{errors.barcode}</p>
               )}
               {!formData.barcode && !errors.barcode && (
-                <p className="text-gray-500 text-xs mt-1">
-                  รองรับบาร์โค้ด 8-14 หลัก (EAN-8, UPC-A, EAN-13 หรือ ITF-14)
+                <p className="text-gray-500 text-xs mt-0.5">
+                  รองรับบาร์โค้ด 8-14 หลัก
                 </p>
               )}
               {!isBarcodeEditable && formData.barcode && !errors.barcode && (
-                <p className="text-blue-600 text-xs mt-1 flex items-center gap-1">
-                  <Edit3 size={12} />
-                  กดปุ่มดินสอเพื่อแก้ไขบาร์โค้ด
+                <p className="text-blue-600 text-xs mt-0.5 flex items-center gap-1">
+                  <Edit3 size={10} />
+                  กดปุ่มดินสอเพื่อแก้ไข
                 </p>
               )}
             </div>
 
             {/* Product Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <Tag size={16} />
+              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <Tag size={12} />
                 F/FG Prod (ชื่อสินค้า) *
               </label>
               <input
                 type="text"
                 value={formData.productName}
                 onChange={(e) => updateField("productName", e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors text-sm sm:text-base ${
+                className={`w-full px-2 py-1.5 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors text-xs ${
                   errors.productName ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="กรอกชื่อสินค้า"
                 disabled={isLoading}
               />
               {errors.productName && (
-                <p className="text-red-500 text-xs mt-1">
+                <p className="text-red-500 text-xs mt-0.5">
                   {errors.productName}
                 </p>
               )}
@@ -393,47 +389,47 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
 
             {/* Category */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <Package size={16} />
+              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <Package size={12} />
                 Gr. (หมวดหมู่) *
               </label>
               <input
                 type="text"
                 value={formData.category}
                 onChange={(e) => updateField("category", e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors text-sm sm:text-base ${
+                className={`w-full px-2 py-1.5 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors text-xs ${
                   errors.category ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="กรอกหมวดหมู่สินค้า"
                 disabled={isLoading}
               />
               {errors.category && (
-                <p className="text-red-500 text-xs mt-1">{errors.category}</p>
+                <p className="text-red-500 text-xs mt-0.5">{errors.category}</p>
               )}
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <FileText size={16} />
+              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <FileText size={12} />
                 รายละเอียด
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => updateField("description", e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors resize-none text-sm sm:text-base custom-scrollbar"
+                rows={2}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors resize-none text-xs custom-scrollbar"
                 placeholder="กรอกรายละเอียดเพิ่มเติม (ไม่บังคับ)"
                 disabled={isLoading}
               />
             </div>
 
             {/* Count Section */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 gap-2">
               {/* Count CS */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <Hash size={16} />
+                <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
+                  <Hash size={12} />
                   นับจริง (cs)
                 </label>
                 <input
@@ -443,21 +439,23 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                     updateField("countCs", parseInt(e.target.value) || 0)
                   }
                   min="0"
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors text-sm sm:text-base ${
+                  className={`w-full px-2 py-1.5 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors text-xs ${
                     errors.countCs ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="0"
                   disabled={isLoading}
                 />
                 {errors.countCs && (
-                  <p className="text-red-500 text-xs mt-1">{errors.countCs}</p>
+                  <p className="text-red-500 text-xs mt-0.5">
+                    {errors.countCs}
+                  </p>
                 )}
               </div>
 
               {/* Count Pieces */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <Hash size={16} />
+                <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
+                  <Hash size={12} />
                   นับจริง (ชิ้น)
                 </label>
                 <input
@@ -467,14 +465,14 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                     updateField("countPieces", parseInt(e.target.value) || 0)
                   }
                   min="0"
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors text-sm sm:text-base ${
+                  className={`w-full px-2 py-1.5 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors text-xs ${
                     errors.countPieces ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="0"
                   disabled={isLoading}
                 />
                 {errors.countPieces && (
-                  <p className="text-red-500 text-xs mt-1">
+                  <p className="text-red-500 text-xs mt-0.5">
                     {errors.countPieces}
                   </p>
                 )}
@@ -483,8 +481,8 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
 
             {/* Summary */}
             {(formData.countCs > 0 || formData.countPieces > 0) && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-sm text-blue-800">
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-2">
+                <p className="text-xs text-blue-800">
                   <span className="font-medium">จะเพิ่ม: </span>
                   {formData.countCs > 0 && <span>{formData.countCs} ลัง</span>}
                   {formData.countCs > 0 && formData.countPieces > 0 && (
@@ -498,32 +496,32 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
             )}
 
             {/* Add some bottom padding for better mobile scrolling */}
-            <div className="h-4 sm:h-0"></div>
+            <div className="h-2"></div>
           </div>
 
-          {/* Footer - Fixed */}
-          <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
-            <div className="flex gap-3">
+          {/* Footer - ลดขนาด */}
+          <div className="px-3 py-2 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+            <div className="flex gap-2">
               <button
                 onClick={handleClose}
                 disabled={isLoading}
-                className="flex-1 px-4 py-2 sm:py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm sm:text-base"
+                className="flex-1 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 text-xs"
               >
                 ยกเลิก
               </button>
               <button
                 onClick={handleSave}
                 disabled={isLoading}
-                className="flex-1 px-4 py-2 sm:py-2.5 bg-fn-green text-white rounded-lg hover:bg-fn-green/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"
+                className="flex-1 px-3 py-1.5 bg-fn-green text-white rounded-md hover:bg-fn-green/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-1 text-xs"
               >
                 {isLoading ? (
                   <>
-                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    <div className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full"></div>
                     กำลังบันทึก...
                   </>
                 ) : (
                   <>
-                    <Save size={16} />
+                    <Save size={12} />
                     บันทึก
                   </>
                 )}
