@@ -1,7 +1,7 @@
-// src/components/inventory/InventoryListItem.tsx - Phase 2: Enhanced Display
+// src/components/inventory/InventoryListItem.tsx - Unified Edit Mode
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Package,
   Edit3,
@@ -24,20 +24,19 @@ interface InventoryListItemProps {
   onEditQuantityDetailSave?: (
     itemId: string,
     quantityDetail: QuantityDetail
-  ) => boolean; // ✅ New prop
+  ) => boolean;
   onEditCancel: () => void;
   onEditQuantityChange: (quantity: number) => void;
-  onEditQuantityDetailChange?: (quantityDetail: QuantityDetail) => void; // ✅ New prop
+  onEditQuantityDetailChange?: (quantityDetail: QuantityDetail) => void;
   onQuickAdjust: (delta: number) => void;
   onRemove: () => void;
 }
 
-// ✅ Enhanced edit state for quantity details
+// ✅ Simplified edit state - no mode switching
 interface EditState {
-  mode: "simple" | "detailed";
-  simpleQuantity: number;
-  majorQuantity: number;
-  remainderQuantity: number;
+  simpleQuantity: number; // For EA items
+  majorQuantity: number; // For DSP/CS items (main unit)
+  remainderQuantity: number; // For DSP/CS items (remainder)
 }
 
 // ✅ Unit configuration
@@ -68,19 +67,38 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
   editQuantity,
   onEditStart,
   onEditSave,
-  onEditQuantityDetailSave, // ✅ New prop
+  onEditQuantityDetailSave,
   onEditCancel,
   onEditQuantityChange,
   onQuickAdjust,
   onRemove,
 }) => {
-  // ✅ Local edit state for detailed quantity editing
+  // ✅ Initialize edit state based on item data
   const [editState, setEditState] = useState<EditState>({
-    mode: item.quantityDetail ? "detailed" : "simple",
     simpleQuantity: editQuantity,
     majorQuantity: item.quantityDetail?.major || editQuantity,
     remainderQuantity: item.quantityDetail?.remainder || 0,
   });
+
+  // ✅ Sync editState when item data changes (when editing starts)
+  useEffect(() => {
+    if (isEditing) {
+      const newEditState = {
+        simpleQuantity: editQuantity,
+        majorQuantity: item.quantityDetail?.major || editQuantity,
+        remainderQuantity: item.quantityDetail?.remainder || 0,
+      };
+
+      console.log("🔄 Syncing edit state on edit start:", {
+        isEditing,
+        editQuantity,
+        itemQuantityDetail: item.quantityDetail,
+        newEditState,
+      });
+
+      setEditState(newEditState);
+    }
+  }, [isEditing, editQuantity, item.quantityDetail]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("th-TH", {
@@ -95,16 +113,30 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
   // ✅ Get barcode type configuration
   const barcodeType = item.barcodeType || "ea";
   const unitConfig = UNIT_CONFIG[barcodeType];
+  const isDetailedUnit = barcodeType !== "ea"; // DSP or CS
 
-  // ✅ Handle edit mode switching
-  const handleEditModeChange = (mode: "simple" | "detailed") => {
-    setEditState((prev) => ({ ...prev, mode }));
-  };
+  // ✅ Debug logging in development
+  console.log("🔍 InventoryListItem render:", {
+    itemId: item.id,
+    barcodeType,
+    isDetailedUnit,
+    isEditing,
+    editState,
+    itemQuantityDetail: item.quantityDetail,
+    hasOnEditQuantityDetailSave: !!onEditQuantityDetailSave,
+  });
 
   // ✅ Handle edit quantity changes
   const handleEditQuantityChange = (field: keyof EditState, value: number) => {
+    console.log("🔄 Changing edit quantity:", {
+      field,
+      value,
+      currentEditState: editState,
+    });
+
     setEditState((prev) => {
       const newState = { ...prev, [field]: Math.max(0, value) };
+      console.log("📝 New edit state:", newState);
 
       // Auto-update the legacy editQuantity for backward compatibility
       if (field === "simpleQuantity") {
@@ -119,23 +151,40 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
 
   // ✅ Handle save with appropriate format
   const handleSave = () => {
-    if (editState.mode === "detailed" && onEditQuantityDetailSave) {
+    console.log("🔍 Saving inventory item:", {
+      itemId: item.id,
+      barcodeType,
+      isDetailedUnit,
+      editState,
+      hasOnEditQuantityDetailSave: !!onEditQuantityDetailSave,
+    });
+
+    if (isDetailedUnit && onEditQuantityDetailSave) {
+      // Save as detailed quantity for DSP/CS
       const quantityDetail: QuantityDetail = {
         major: editState.majorQuantity,
         remainder: editState.remainderQuantity,
         scannedType: barcodeType,
       };
-      // Use the new prop to save quantity detail directly
-      onEditQuantityDetailSave(item.id, quantityDetail);
+
+      console.log("💾 Saving quantity detail:", quantityDetail);
+      const success = onEditQuantityDetailSave(item.id, quantityDetail);
+      console.log("✅ Save result:", success);
+
+      if (success) {
+        onEditSave();
+      }
     } else {
+      // Save as simple quantity for EA
+      console.log("💾 Saving simple quantity:", editState.simpleQuantity);
       onEditQuantityChange(editState.simpleQuantity);
+      onEditSave();
     }
-    onEditSave();
   };
 
   // ✅ Render quantity display based on item data
   const renderQuantityDisplay = () => {
-    if (item.quantityDetail) {
+    if (item.quantityDetail && isDetailedUnit) {
       const { major, remainder, scannedType } = item.quantityDetail;
       const config = UNIT_CONFIG[scannedType];
 
@@ -161,7 +210,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
       );
     }
 
-    // ✅ Fallback to simple quantity display
+    // ✅ Simple quantity display for EA or fallback
     return (
       <div className="flex items-center gap-2">
         <span
@@ -177,84 +226,13 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     );
   };
 
-  // ✅ Render edit form based on mode
+  // ✅ Render edit form based on barcode type (no mode switching)
   const renderEditForm = () => {
-    const canSwitchMode = barcodeType !== "ea"; // Only allow detailed mode for DSP/CS
-
     return (
       <div className="space-y-3">
-        {/* Mode Selector */}
-        {canSwitchMode && (
-          <div className="flex gap-2 mb-3">
-            <button
-              onClick={() => handleEditModeChange("simple")}
-              className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                editState.mode === "simple"
-                  ? "bg-blue-100 text-blue-700 font-medium"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              แก้ไขแบบง่าย
-            </button>
-            <button
-              onClick={() => handleEditModeChange("detailed")}
-              className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                editState.mode === "detailed"
-                  ? "bg-green-100 text-green-700 font-medium"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              แก้ไขแบบรายละเอียด
-            </button>
-          </div>
-        )}
-
-        {editState.mode === "simple" ? (
-          // ✅ Simple edit mode
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() =>
-                handleEditQuantityChange(
-                  "simpleQuantity",
-                  editState.simpleQuantity - 1
-                )
-              }
-              disabled={editState.simpleQuantity <= 1}
-              className="w-8 h-8 rounded border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-            >
-              <Minus size={14} />
-            </button>
-
-            <input
-              type="number"
-              value={editState.simpleQuantity}
-              onChange={(e) =>
-                handleEditQuantityChange(
-                  "simpleQuantity",
-                  parseInt(e.target.value) || 0
-                )
-              }
-              className="w-16 h-8 text-center border border-gray-300 rounded focus:ring-2 focus:ring-fn-green focus:border-transparent text-sm"
-              min="1"
-            />
-
-            <button
-              onClick={() =>
-                handleEditQuantityChange(
-                  "simpleQuantity",
-                  editState.simpleQuantity + 1
-                )
-              }
-              className="w-8 h-8 rounded border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50"
-            >
-              <Plus size={14} />
-            </button>
-
-            <span className="text-sm text-gray-600">{unitConfig.label}</span>
-          </div>
-        ) : (
-          // ✅ Detailed edit mode
-          <div className="space-y-3">
+        {isDetailedUnit ? (
+          // ✅ Detailed edit for DSP/CS - show both major and remainder
+          <>
             {/* Major quantity */}
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -346,6 +324,54 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
                 </button>
               </div>
             </div>
+          </>
+        ) : (
+          // ✅ Simple edit for EA - show only one quantity
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              จำนวน ({unitConfig.label})
+            </label>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() =>
+                  handleEditQuantityChange(
+                    "simpleQuantity",
+                    editState.simpleQuantity - 1
+                  )
+                }
+                disabled={editState.simpleQuantity <= 1}
+                className="w-8 h-8 rounded border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+              >
+                <Minus size={14} />
+              </button>
+
+              <input
+                type="number"
+                value={editState.simpleQuantity}
+                onChange={(e) =>
+                  handleEditQuantityChange(
+                    "simpleQuantity",
+                    parseInt(e.target.value) || 0
+                  )
+                }
+                className="w-16 h-8 text-center border border-gray-300 rounded focus:ring-2 focus:ring-fn-green focus:border-transparent text-sm"
+                min="1"
+              />
+
+              <button
+                onClick={() =>
+                  handleEditQuantityChange(
+                    "simpleQuantity",
+                    editState.simpleQuantity + 1
+                  )
+                }
+                className="w-8 h-8 rounded border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50"
+              >
+                <Plus size={14} />
+              </button>
+
+              <span className="text-sm text-gray-600">{unitConfig.label}</span>
+            </div>
           </div>
         )}
 
@@ -419,24 +445,6 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2">
-                {/* Quick Adjust Buttons */}
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => onQuickAdjust(-1)}
-                    className="w-7 h-7 rounded border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors"
-                    title="ลด 1"
-                  >
-                    <Minus size={12} />
-                  </button>
-                  <button
-                    onClick={() => onQuickAdjust(1)}
-                    className="w-7 h-7 rounded border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors"
-                    title="เพิ่ม 1"
-                  >
-                    <Plus size={12} />
-                  </button>
-                </div>
-
                 {/* Edit Button */}
                 <button
                   onClick={onEditStart}
