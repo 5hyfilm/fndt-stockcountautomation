@@ -1,7 +1,7 @@
 // src/hooks/inventory/useInventoryValidation.tsx - Phase 2: Enhanced Validation Rules
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import {
   InventoryItem,
   QuantityDetail,
@@ -57,7 +57,10 @@ const DEFAULT_VALIDATION_RULES: QuantityValidationRules = {
 export const useInventoryValidation = (
   customRules: Partial<QuantityValidationRules> = {}
 ) => {
-  const rules = { ...DEFAULT_VALIDATION_RULES, ...customRules };
+  // ✅ แก้ไข: ใช้ useMemo เพื่อ memoize rules object
+  const rules = useMemo(() => {
+    return { ...DEFAULT_VALIDATION_RULES, ...customRules };
+  }, [customRules]);
 
   // ✅ Validate basic product data
   const validateProduct = useCallback((product: Product): ValidationResult => {
@@ -99,7 +102,7 @@ export const useInventoryValidation = (
     };
   }, []);
 
-  // ✅ Validate simple quantity (EA)
+  // ✅ Validate simple quantity (EA) - ตอนนี้ใช้ stable rules dependency
   const validateSimpleQuantity = useCallback(
     (quantity: number): ValidationResult => {
       const errors: string[] = [];
@@ -133,7 +136,7 @@ export const useInventoryValidation = (
     [rules]
   );
 
-  // ✅ Validate quantity detail (DSP/CS)
+  // ✅ Validate quantity detail (DSP/CS) - ตอนนี้ใช้ stable rules dependency
   const validateQuantityDetail = useCallback(
     (quantityDetail: QuantityDetail, product?: Product): ValidationResult => {
       const errors: string[] = [];

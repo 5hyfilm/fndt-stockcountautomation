@@ -105,7 +105,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
 
       setEditState(newEditState);
     }
-  }, [isEditing]); // ✅ Only sync when editing starts, not during value changes
+  }, [isEditing, editQuantity, item.quantity, item.quantityDetail]); // ✅ เพิ่ม dependencies ครบถ้วน
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("th-TH", {

@@ -15,7 +15,7 @@ import { ErrorDisplay } from "../components/ErrorDisplay";
 import { ExportSuccessToast } from "../components/ExportSuccessToast";
 
 // Import Product type
-import { Product } from "../types/product";
+import { Product, ProductCategory, ProductStatus } from "../types/product"; // ✅ เพิ่ม import enums
 
 // ✅ Import new quantity types from Phase 2
 import { QuantityInput, QuantityDetail } from "../hooks/inventory/types";
@@ -36,6 +36,48 @@ import { useLogoutConfirmation } from "../hooks/useLogoutConfirmation";
 
 // ✅ Import AddNewProductForm
 import { AddNewProductForm } from "../components/forms/AddNewProductForm";
+
+// ✅ Helper function เพื่อ map category string เป็น ProductCategory enum
+const mapStringToProductCategory = (
+  categoryString: string
+): ProductCategory => {
+  const categoryMap: Record<string, ProductCategory> = {
+    beverages: ProductCategory.BEVERAGES,
+    dairy: ProductCategory.DAIRY,
+    snacks: ProductCategory.SNACKS,
+    canned_food: ProductCategory.CANNED_FOOD,
+    instant_noodles: ProductCategory.INSTANT_NOODLES,
+    sauces: ProductCategory.SAUCES,
+    seasoning: ProductCategory.SEASONING,
+    frozen: ProductCategory.FROZEN,
+    bakery: ProductCategory.BAKERY,
+    confectionery: ProductCategory.CONFECTIONERY,
+    เครื่องดื่ม: ProductCategory.BEVERAGES,
+    ผลิตภัณฑ์นม: ProductCategory.DAIRY,
+    ขนม: ProductCategory.SNACKS,
+    อาหารกระป๋อง: ProductCategory.CANNED_FOOD,
+    บะหมี่กึ่งสำเร็จรูป: ProductCategory.INSTANT_NOODLES,
+    ซอส: ProductCategory.SAUCES,
+    เครื่องปรุงรส: ProductCategory.SEASONING,
+    อาหารแช่แข็ง: ProductCategory.FROZEN,
+    เบเกอรี่: ProductCategory.BAKERY,
+    ขนมหวาน: ProductCategory.CONFECTIONERY,
+  };
+
+  // ลองใช้ key โดยตรงก่อน
+  if (categoryMap[categoryString]) {
+    return categoryMap[categoryString];
+  }
+
+  // ลองใช้ lowercase
+  const lowercaseKey = categoryString.toLowerCase();
+  if (categoryMap[lowercaseKey]) {
+    return categoryMap[lowercaseKey];
+  }
+
+  // fallback เป็น OTHER
+  return ProductCategory.OTHER;
+};
 
 export default function BarcodeDetectionPage() {
   const [activeTab, setActiveTab] = useState<"scanner" | "inventory">(
@@ -331,16 +373,14 @@ export default function BarcodeDetectionPage() {
         id: `new_${productData.barcode}`,
         name: productData.productName,
         brand: "เพิ่มใหม่",
-        category: productData.category as any, // TODO: map category properly
+        category: mapStringToProductCategory(productData.category), // ✅ แก้ไข: ใช้ helper function แทน as any
         barcode: productData.barcode,
         description: productData.description,
-        // ข้อมูลอื่นๆ ที่จำเป็น
+        // ข้อมูลอื่นๆ ที่จำเป็น (ใช้เฉพาะ properties ที่มีใน Product interface)
         price: 0,
-        weight: 0,
-        volume: 0,
-        status: "active" as any,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        status: ProductStatus.ACTIVE, // ✅ แก้ไข: ใช้ enum แทน "active" as any
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
 
       // ✅ FIX: รวมข้อมูล CS และ EA เป็น QuantityDetail เดียว
