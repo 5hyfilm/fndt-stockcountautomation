@@ -45,6 +45,7 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
 
   const slideRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // 🆕 Constants for drag behavior
   const CLOSE_THRESHOLD = 100; // distance to close when swiping down
@@ -287,20 +288,34 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
           </button>
         </div>
 
-        {/* Content - Use ProductInfo Component with enhanced error handling */}
-        <div className="flex-1 overflow-y-auto">
-          <ProductInfo
-            product={product}
-            barcode={scannedBarcode}
-            barcodeType={detectedBarcodeType}
-            isLoading={false}
-            error={productError}
-            onAddToInventory={onAddToInventory}
-            currentInventoryQuantity={currentInventoryQuantity}
-          />
-
-          {/* Custom Content */}
-          {children}
+        {/* 🎯 Enhanced Content Area with Custom Scrollbar */}
+        <div
+          ref={contentRef}
+          className="flex-1 overflow-y-auto custom-scrollbar px-1"
+          style={{
+            // กำหนดความสูงที่เหลือให้กับ content area
+            maxHeight: `calc(${calculateModalHeight()} - 140px)`, // ลบความสูงของ header และ footer
+            // 🆕 Enhanced scrollbar styling for better mobile experience
+            scrollBehavior: "smooth",
+            WebkitOverflowScrolling: "touch", // Smooth scrolling บน iOS
+          }}
+        >
+          <div className="px-3 pb-2">
+            <ProductInfo
+              product={product}
+              barcode={scannedBarcode}
+              barcodeType={detectedBarcodeType}
+              isLoading={false}
+              error={productError}
+              onAddToInventory={onAddToInventory}
+              currentInventoryQuantity={currentInventoryQuantity}
+            />
+            {/* Custom Content */}
+            {children}
+            {/* 🆕 Extra padding for better scroll experience */}
+            <div className="h-4" />{" "}
+            {/* Extra space at bottom for comfortable scrolling */}
+          </div>
         </div>
 
         {/* Action Buttons - Dynamic based on product status */}
@@ -311,32 +326,29 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
           }}
         >
           {product ? (
-            /* เจอสินค้า - แสดงปุ่มเดียว */
+            // Show "Scan Next" when product is found
             <button
               onClick={onClose}
-              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-fn-green text-white py-3 px-4 rounded-lg font-medium transition-colors hover:bg-fn-green/90"
             >
-              <ArrowDown size={16} />
-              สแกนต่อ
+              {getCloseButtonText()}
             </button>
           ) : (
-            /* ไม่เจอสินค้า - แสดง 2 ปุ่ม */
+            // Show different options when product is not found
             <div className="space-y-3">
               {shouldShowAddNewProductButton() && (
                 <button
                   onClick={handleAddNewProduct}
-                  className="w-full bg-fn-green hover:bg-fn-green/90 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+                  className="w-full bg-fn-green text-white py-3 px-4 rounded-lg font-medium transition-colors hover:bg-fn-green/90 flex items-center justify-center gap-2"
                 >
-                  <Plus size={16} />
+                  <Plus size={20} />
                   เพิ่มสินค้าใหม่
                 </button>
               )}
-
               <button
                 onClick={onClose}
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-gray-600 text-white py-3 px-4 rounded-lg font-medium transition-colors hover:bg-gray-700"
               >
-                <ArrowDown size={16} />
                 {getCloseButtonText()}
               </button>
             </div>
