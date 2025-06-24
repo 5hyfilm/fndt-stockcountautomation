@@ -266,10 +266,11 @@ export const useInventoryExport = ({
           prodGroup = group.productGroup;
 
           // ✅ แสดง barcodeTypes ที่มีในกลุ่มนี้
-          const barcodeTypesArray = Array.from(group.barcodeTypes).sort();
-          description = `${group.thaiDescription} (${barcodeTypesArray
-            .join(", ")
-            .toUpperCase()})`;
+          // const barcodeTypesArray = Array.from(group.barcodeTypes).sort();
+          // description = `${group.thaiDescription} (${barcodeTypesArray
+          //   .join(", ")
+          //   .toUpperCase()})`;
+          description = group.thaiDescription;
         }
 
         // แสดง Material Code และข้อมูลที่ถูกต้อง

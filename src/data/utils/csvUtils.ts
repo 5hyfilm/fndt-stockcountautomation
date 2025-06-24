@@ -35,15 +35,17 @@ export const formatProductName = (
   description: string
 ): string => {
   const name = thaiDesc || description;
-  return name
-    .replace(/^\d+[xX]\(.*?\)\s*/, "")
-    .replace(/\s+\d+[xX].*$/, "")
-    .replace(/\s*TH\s*$/, "")
-    .replace(/\s*FS\s*$/, "")
-    .replace(/\s*P12\s*$/, "")
-    .replace(/\s*10B\.\s*$/, "")
-    .replace(/\s*\(.*?\)\s*$/, "")
-    .trim();
+  return (
+    name
+      // .replace(/^\d+[xX]\(.*?\)\s*/, "")
+      // .replace(/\s+\d+[xX].*$/, "")
+      // .replace(/\s*TH\s*$/, "")
+      // .replace(/\s*FS\s*$/, "")
+      // .replace(/\s*P12\s*$/, "")
+      // .replace(/\s*10B\.\s*$/, "")
+      // .replace(/\s*\(.*?\)\s*$/, "")
+      .trim()
+  );
 };
 
 // Enhanced pack size parsing
