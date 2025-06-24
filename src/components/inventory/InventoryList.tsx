@@ -1,10 +1,10 @@
-// src/components/inventory/InventoryList.tsx
+// src/components/inventory/InventoryList.tsx - Enhanced Version
 "use client";
 
 import React from "react";
-import { Archive } from "lucide-react";
-import { InventoryItem } from "../../hooks/useInventoryManager";
+import { InventoryItem, QuantityDetail } from "../../hooks/inventory/types";
 import { InventoryListItem } from "./InventoryListItem";
+import { Package } from "lucide-react";
 
 interface InventoryListProps {
   items: InventoryItem[];
@@ -12,15 +12,20 @@ interface InventoryListProps {
   editingItem: string | null;
   editQuantity: number;
   onEditStart: (item: InventoryItem) => void;
-  onEditSave: (itemId: string) => void;
+  onEditSave: () => void;
+  onEditQuantityDetailSave?: (
+    itemId: string,
+    quantityDetail: QuantityDetail
+  ) => boolean;
   onEditCancel: () => void;
   onEditQuantityChange: (quantity: number) => void;
+  onEditQuantityDetailChange?: (quantityDetail: QuantityDetail) => void; // ✅ New prop
   onQuickAdjust: (
     itemId: string,
     currentQuantity: number,
     delta: number
   ) => void;
-  onRemoveItem: (itemId: string) => void;
+  onRemoveItem: (itemId: string) => boolean;
 }
 
 export const InventoryList: React.FC<InventoryListProps> = ({
@@ -30,34 +35,40 @@ export const InventoryList: React.FC<InventoryListProps> = ({
   editQuantity,
   onEditStart,
   onEditSave,
+  onEditQuantityDetailSave,
   onEditCancel,
   onEditQuantityChange,
+  onEditQuantityDetailChange, // ✅ Receive new prop
   onQuickAdjust,
   onRemoveItem,
 }) => {
   if (items.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="text-center py-12">
-          <Archive className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-600 text-lg mb-2">
-            {totalCount === 0
-              ? "ยังไม่มีสินค้าใน inventory"
-              : "ไม่พบสินค้าที่ตรงกับเงื่อนไข"}
-          </p>
-          <p className="text-gray-500 text-sm">
-            {totalCount === 0
-              ? "เริ่มสแกนบาร์โค้ดเพื่อเพิ่มสินค้า"
-              : "ลองเปลี่ยนคำค้นหาหรือfilter"}
-          </p>
+      <div className="text-center py-12">
+        <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+          <Package className="w-8 h-8 text-gray-400" />
         </div>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">
+          ไม่มีรายการสินค้า
+        </h3>
+        <p className="text-gray-500">
+          เริ่มต้นการนับสต็อกด้วยการสแกนบาร์โค้ดสินค้า
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      <div className="divide-y divide-gray-200">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-gray-900">
+          รายการสินค้า ({items.length} จาก {totalCount} รายการ)
+        </h2>
+      </div>
+
+      {/* Items List */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => (
           <InventoryListItem
             key={item.id}
@@ -65,9 +76,11 @@ export const InventoryList: React.FC<InventoryListProps> = ({
             isEditing={editingItem === item.id}
             editQuantity={editQuantity}
             onEditStart={() => onEditStart(item)}
-            onEditSave={() => onEditSave(item.id)}
+            onEditSave={onEditSave}
+            onEditQuantityDetailSave={onEditQuantityDetailSave} // ✅ Pass through
             onEditCancel={onEditCancel}
             onEditQuantityChange={onEditQuantityChange}
+            onEditQuantityDetailChange={onEditQuantityDetailChange} // ✅ Pass new callback
             onQuickAdjust={(delta) =>
               onQuickAdjust(item.id, item.quantity, delta)
             }

@@ -1,4 +1,4 @@
-// src/components/InventoryDisplay.tsx - Updated with QuantityDetail Support
+// src/components/InventoryDisplay.tsx - Enhanced Version with Detailed Quantity Support
 "use client";
 
 import React, { useState } from "react";
@@ -6,7 +6,7 @@ import {
   InventoryItem,
   InventorySummary,
   QuantityDetail,
-} from "../hooks/inventory/types"; // ✅ Updated import
+} from "../hooks/inventory/types";
 import {
   InventoryHeader,
   InventoryControls,
@@ -25,12 +25,19 @@ interface InventoryDisplayProps {
   onUpdateQuantityDetail?: (
     itemId: string,
     quantityDetail: QuantityDetail
-  ) => boolean; // ✅ New prop
+  ) => boolean;
   onRemoveItem: (itemId: string) => boolean;
   onClearInventory: () => boolean;
   onExportInventory: () => boolean;
   onClearError: () => void;
   onSearch: (searchTerm: string) => InventoryItem[];
+}
+
+// ✅ Enhanced edit state for detailed quantity support
+interface EditState {
+  itemId: string | null;
+  simpleQuantity: number;
+  quantityDetail?: QuantityDetail;
 }
 
 export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
@@ -39,17 +46,20 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   isLoading,
   error,
   onUpdateQuantity,
-  onUpdateQuantityDetail, // ✅ Receive new prop
+  onUpdateQuantityDetail,
   onRemoveItem,
   onClearInventory,
   onExportInventory,
   onClearError,
   onSearch,
 }) => {
-  // State สำหรับ UI
+  // ✅ Enhanced state management
   const [searchTerm, setSearchTerm] = useState("");
-  const [editingItem, setEditingItem] = useState<string | null>(null);
-  const [editQuantity, setEditQuantity] = useState<number>(0);
+  const [editState, setEditState] = useState<EditState>({
+    itemId: null,
+    simpleQuantity: 0,
+    quantityDetail: undefined,
+  });
   const [showConfirmClear, setShowConfirmClear] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
@@ -109,28 +119,86 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
     onSearch,
   ]);
 
-  // Event handlers
+  // ✅ Enhanced event handlers
   const handleEditStart = (item: InventoryItem) => {
-    setEditingItem(item.id);
-    setEditQuantity(item.quantity);
+    console.log("🎯 Starting edit for item:", {
+      id: item.id,
+      quantity: item.quantity,
+      quantityDetail: item.quantityDetail,
+      barcodeType: item.barcodeType,
+    });
+
+    setEditState({
+      itemId: item.id,
+      simpleQuantity: item.quantityDetail?.major || item.quantity,
+      quantityDetail: item.quantityDetail,
+    });
   };
 
-  const handleEditSave = (itemId: string) => {
-    const success = onUpdateQuantity(itemId, editQuantity);
+  const handleEditSave = () => {
+    if (!editState.itemId) return;
+
+    console.log("💾 Saving edit state:", editState);
+
+    // Find the item being edited
+    const item = inventory.find((i) => i.id === editState.itemId);
+    if (!item) return;
+
+    const isDetailedUnit = item.barcodeType !== "ea";
+
+    let success = false;
+
+    if (isDetailedUnit && editState.quantityDetail && onUpdateQuantityDetail) {
+      // Save detailed quantity for DSP/CS
+      success = onUpdateQuantityDetail(
+        editState.itemId,
+        editState.quantityDetail
+      );
+      console.log("✅ Detailed quantity save result:", success);
+    } else {
+      // Save simple quantity for EA or fallback
+      success = onUpdateQuantity(editState.itemId, editState.simpleQuantity);
+      console.log("✅ Simple quantity save result:", success);
+    }
+
     if (success) {
-      setEditingItem(null);
+      setEditState({
+        itemId: null,
+        simpleQuantity: 0,
+        quantityDetail: undefined,
+      });
     }
   };
 
-  // ✅ New handler for quantity detail updates
+  // ✅ New handler for detailed quantity changes during editing
+  const handleEditQuantityDetailChange = (quantityDetail: QuantityDetail) => {
+    console.log("🔄 Updating quantity detail in edit state:", quantityDetail);
+
+    setEditState((prev) => ({
+      ...prev,
+      quantityDetail,
+      simpleQuantity: quantityDetail.major, // Keep simple quantity in sync
+    }));
+  };
+
+  // ✅ Enhanced handler for quantity detail saves
   const handleEditQuantityDetailSave = (
     itemId: string,
     quantityDetail: QuantityDetail
-  ) => {
+  ): boolean => {
+    console.log("💾 Direct save quantity detail:", { itemId, quantityDetail });
+
     if (onUpdateQuantityDetail) {
       const success = onUpdateQuantityDetail(itemId, quantityDetail);
       if (success) {
-        setEditingItem(null);
+        // Update our edit state if this is the item being edited
+        if (editState.itemId === itemId) {
+          setEditState({
+            itemId: null,
+            simpleQuantity: 0,
+            quantityDetail: undefined,
+          });
+        }
       }
       return success;
     }
@@ -138,8 +206,20 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   };
 
   const handleEditCancel = () => {
-    setEditingItem(null);
-    setEditQuantity(0);
+    console.log("❌ Cancelling edit");
+    setEditState({
+      itemId: null,
+      simpleQuantity: 0,
+      quantityDetail: undefined,
+    });
+  };
+
+  const handleEditQuantityChange = (quantity: number) => {
+    console.log("🔄 Edit quantity change:", quantity);
+    setEditState((prev) => ({
+      ...prev,
+      simpleQuantity: quantity,
+    }));
   };
 
   const handleQuickAdjust = (
@@ -148,6 +228,12 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
     delta: number
   ) => {
     const newQuantity = Math.max(0, currentQuantity + delta);
+    console.log("⚡ Quick adjust:", {
+      itemId,
+      currentQuantity,
+      delta,
+      newQuantity,
+    });
     onUpdateQuantity(itemId, newQuantity);
   };
 
@@ -199,7 +285,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
       {/* Error Display */}
       <ErrorAlert error={error} onDismiss={onClearError} />
 
-      {/* Summary Header - แสดงเป็น dropdown ที่ปิดเป็นค่าเริ่มต้น */}
+      {/* Summary Header */}
       <InventoryHeader
         summary={summary}
         showSummary={showSummary}
@@ -226,17 +312,18 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         filteredCount={filteredAndSortedInventory.length}
       />
 
-      {/* Inventory List */}
+      {/* ✅ Enhanced Inventory List with detailed quantity support */}
       <InventoryList
         items={filteredAndSortedInventory}
         totalCount={inventory.length}
-        editingItem={editingItem}
-        editQuantity={editQuantity}
+        editingItem={editState.itemId}
+        editQuantity={editState.simpleQuantity}
         onEditStart={handleEditStart}
         onEditSave={handleEditSave}
-        onEditQuantityDetailSave={handleEditQuantityDetailSave} // ✅ Pass new handler
+        onEditQuantityDetailSave={handleEditQuantityDetailSave}
         onEditCancel={handleEditCancel}
-        onEditQuantityChange={setEditQuantity}
+        onEditQuantityChange={handleEditQuantityChange}
+        onEditQuantityDetailChange={handleEditQuantityDetailChange} // ✅ New callback
         onQuickAdjust={handleQuickAdjust}
         onRemoveItem={onRemoveItem}
       />

@@ -1,4 +1,4 @@
-// src/components/inventory/InventoryListItem.tsx - Unified Edit Mode
+// src/components/inventory/InventoryListItem.tsx - Fixed Version
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -32,7 +32,7 @@ interface InventoryListItemProps {
   onRemove: () => void;
 }
 
-// ✅ Simplified edit state - no mode switching
+// ✅ Simplified edit state
 interface EditState {
   simpleQuantity: number; // For EA items
   majorQuantity: number; // For DSP/CS items (main unit)
@@ -70,35 +70,43 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
   onEditQuantityDetailSave,
   onEditCancel,
   onEditQuantityChange,
+  onEditQuantityDetailChange,
   onQuickAdjust,
   onRemove,
 }) => {
   // ✅ Initialize edit state based on item data
-  const [editState, setEditState] = useState<EditState>({
-    simpleQuantity: editQuantity,
-    majorQuantity: item.quantityDetail?.major || editQuantity,
-    remainderQuantity: item.quantityDetail?.remainder || 0,
+  const [editState, setEditState] = useState<EditState>(() => {
+    return {
+      simpleQuantity:
+        item.quantityDetail?.major || item.quantity || editQuantity,
+      majorQuantity:
+        item.quantityDetail?.major || item.quantity || editQuantity,
+      remainderQuantity: item.quantityDetail?.remainder || 0,
+    };
   });
 
-  // ✅ Sync editState when item data changes (when editing starts)
+  // ✅ Enhanced sync - only when editing starts, not during editing
   useEffect(() => {
     if (isEditing) {
       const newEditState = {
-        simpleQuantity: editQuantity,
-        majorQuantity: item.quantityDetail?.major || editQuantity,
+        simpleQuantity:
+          item.quantityDetail?.major || item.quantity || editQuantity,
+        majorQuantity:
+          item.quantityDetail?.major || item.quantity || editQuantity,
         remainderQuantity: item.quantityDetail?.remainder || 0,
       };
 
-      console.log("🔄 Syncing edit state on edit start:", {
+      console.log("🔄 Enhanced sync edit state:", {
         isEditing,
         editQuantity,
+        itemQuantity: item.quantity,
         itemQuantityDetail: item.quantityDetail,
         newEditState,
       });
 
       setEditState(newEditState);
     }
-  }, [isEditing, editQuantity, item.quantityDetail]);
+  }, [isEditing]); // ✅ Only sync when editing starts, not during value changes
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("th-TH", {
@@ -115,41 +123,57 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
   const unitConfig = UNIT_CONFIG[barcodeType];
   const isDetailedUnit = barcodeType !== "ea"; // DSP or CS
 
-  // ✅ Debug logging in development
-  console.log("🔍 InventoryListItem render:", {
-    itemId: item.id,
-    barcodeType,
-    isDetailedUnit,
-    isEditing,
-    editState,
-    itemQuantityDetail: item.quantityDetail,
-    hasOnEditQuantityDetailSave: !!onEditQuantityDetailSave,
-  });
-
-  // ✅ Handle edit quantity changes
+  // ✅ Simplified and fixed edit quantity change handler
   const handleEditQuantityChange = (field: keyof EditState, value: number) => {
+    const safeValue = Math.max(0, value);
+
     console.log("🔄 Changing edit quantity:", {
       field,
-      value,
+      value: safeValue,
       currentEditState: editState,
     });
 
-    setEditState((prev) => {
-      const newState = { ...prev, [field]: Math.max(0, value) };
-      console.log("📝 New edit state:", newState);
+    // ✅ Calculate new state values first
+    const newState = { ...editState, [field]: safeValue };
+    console.log("📝 New edit state:", newState);
 
-      // Auto-update the legacy editQuantity for backward compatibility
-      if (field === "simpleQuantity") {
-        onEditQuantityChange(value);
-      } else if (field === "majorQuantity") {
-        onEditQuantityChange(value);
+    // ✅ Update local state
+    setEditState(newState);
+
+    // ✅ Sync with parent component based on field type
+    if (field === "simpleQuantity") {
+      // For EA items - sync simple quantity
+      onEditQuantityChange(safeValue);
+    } else if (field === "majorQuantity") {
+      // For DSP/CS items - sync major quantity with parent
+      onEditQuantityChange(safeValue);
+
+      // Also notify about detailed changes if callback exists
+      if (onEditQuantityDetailChange) {
+        const quantityDetail: QuantityDetail = {
+          major: safeValue,
+          remainder: newState.remainderQuantity,
+          scannedType: barcodeType,
+        };
+        onEditQuantityDetailChange(quantityDetail);
       }
+    } else if (field === "remainderQuantity") {
+      // For remainder changes - keep major the same but update remainder
+      onEditQuantityChange(newState.majorQuantity);
 
-      return newState;
-    });
+      // Notify about detailed changes if callback exists
+      if (onEditQuantityDetailChange) {
+        const quantityDetail: QuantityDetail = {
+          major: newState.majorQuantity,
+          remainder: safeValue,
+          scannedType: barcodeType,
+        };
+        onEditQuantityDetailChange(quantityDetail);
+      }
+    }
   };
 
-  // ✅ Handle save with appropriate format
+  // ✅ Enhanced save handler
   const handleSave = () => {
     console.log("🔍 Saving inventory item:", {
       itemId: item.id,
@@ -180,6 +204,19 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
       onEditQuantityChange(editState.simpleQuantity);
       onEditSave();
     }
+  };
+
+  // ✅ Enhanced cancel handler
+  const handleCancel = () => {
+    // Reset to original values
+    const resetState = {
+      simpleQuantity: item.quantityDetail?.major || item.quantity,
+      majorQuantity: item.quantityDetail?.major || item.quantity,
+      remainderQuantity: item.quantityDetail?.remainder || 0,
+    };
+
+    setEditState(resetState);
+    onEditCancel();
   };
 
   // ✅ Render quantity display based on item data
@@ -226,7 +263,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     );
   };
 
-  // ✅ Render edit form based on barcode type (no mode switching)
+  // ✅ Enhanced edit form
   const renderEditForm = () => {
     return (
       <div className="space-y-3">
@@ -379,16 +416,16 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
         <div className="flex gap-2 mt-3">
           <button
             onClick={handleSave}
-            className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+            className="flex-1 bg-fn-green text-white px-3 py-2 rounded-lg hover:bg-green-600 flex items-center justify-center gap-2 text-sm font-medium"
           >
-            <CheckCircle size={14} />
+            <CheckCircle size={16} />
             บันทึก
           </button>
           <button
-            onClick={onEditCancel}
-            className="flex items-center gap-1 px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 transition-colors"
+            onClick={handleCancel}
+            className="flex-1 bg-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-400 flex items-center justify-center gap-2 text-sm font-medium"
           >
-            <X size={14} />
+            <X size={16} />
             ยกเลิก
           </button>
         </div>
@@ -398,75 +435,74 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
-        {/* Product Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className="font-medium text-gray-900 truncate">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3 flex-1">
+          <div className={`p-2 rounded-lg ${unitConfig.color}`}>
+            <unitConfig.icon size={20} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-gray-900 truncate">
               {item.productName}
             </h3>
-          </div>
-
-          <div className="text-sm text-gray-600 space-y-1">
-            <p>
-              <span className="font-medium text-fn-green">{item.brand}</span>
-              {item.category && (
-                <>
-                  <span className="mx-2">•</span>
-                  <span>{item.category}</span>
-                </>
-              )}
-            </p>
-
-            {item.size && (
-              <p>
-                ขนาด: {item.size} {item.unit}
-              </p>
-            )}
-
-            <p className="font-mono text-xs bg-gray-100 inline-block px-2 py-1 rounded">
-              {item.barcode}
-            </p>
-
-            <p className="text-xs text-gray-500">
-              อัพเดทล่าสุด: {formatDate(item.lastUpdated)}
-            </p>
+            <div className="text-sm text-gray-600 space-y-1">
+              <p>รหัส: {item.materialCode || item.barcode}</p>
+              <p>หมวดหมู่: {item.category}</p>
+              {item.brand && <p>แบรนด์: {item.brand}</p>}
+            </div>
           </div>
         </div>
 
-        {/* Quantity Section */}
-        <div className="flex flex-col items-end gap-3 ml-4">
-          {isEditing ? (
-            renderEditForm()
-          ) : (
+        <div className="flex items-center gap-2">
+          {!isEditing && (
             <>
-              {/* Quantity Display */}
-              <div className="text-right">{renderQuantityDisplay()}</div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2">
-                {/* Edit Button */}
-                <button
-                  onClick={onEditStart}
-                  className="w-7 h-7 rounded border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors"
-                  title="แก้ไข"
-                >
-                  <Edit3 size={12} />
-                </button>
-
-                {/* Remove Button */}
-                <button
-                  onClick={onRemove}
-                  className="w-7 h-7 rounded border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-colors"
-                  title="ลบ"
-                >
-                  <Trash2 size={12} />
-                </button>
-              </div>
+              <button
+                onClick={() => onQuickAdjust(-1)}
+                disabled={item.quantity <= 1}
+                className="w-8 h-8 rounded border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+              >
+                <Minus size={14} />
+              </button>
+              <button
+                onClick={() => onQuickAdjust(1)}
+                className="w-8 h-8 rounded border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50"
+              >
+                <Plus size={14} />
+              </button>
             </>
           )}
         </div>
       </div>
+
+      {/* Quantity Display or Edit Form */}
+      {isEditing ? (
+        renderEditForm()
+      ) : (
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-2">
+            {renderQuantityDisplay()}
+            <div className="text-xs text-gray-500">
+              อัพเดท: {formatDate(item.lastUpdated)}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onEditStart}
+              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              title="แก้ไขจำนวน"
+            >
+              <Edit3 size={16} />
+            </button>
+            <button
+              onClick={onRemove}
+              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="ลบรายการ"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
