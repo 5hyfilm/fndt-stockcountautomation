@@ -90,11 +90,12 @@ export interface UseInventoryManagerReturn {
   error: string | null;
   summary: InventorySummary;
 
-  // ✅ Updated CRUD Actions - supporting both old and new quantity formats
+  // ✅ Updated CRUD Actions - supporting both old and new quantity formats AND directProductGroup
   addOrUpdateItem: (
     product: Product,
     quantityInput: QuantityInput,
-    barcodeType?: "ea" | "dsp" | "cs"
+    barcodeType?: "ea" | "dsp" | "cs",
+    directProductGroup?: string // ✅ เพิ่ม parameter สำหรับ product group ตรงๆ
   ) => boolean;
 
   updateItemQuantity: (itemId: string, newQuantity: number) => boolean;
@@ -190,16 +191,5 @@ export interface InventoryError extends Error {
     | "VALIDATION_ERROR"
     | "EXPORT_ERROR"
     | "QUANTITY_ERROR";
-  context?: string;
-}
-
-// ✅ Enhanced validation rules
-export interface InventoryValidationRules {
-  minQuantity: number;
-  maxQuantity?: number;
-  minMajorQuantity?: number;
-  maxMajorQuantity?: number;
-  minRemainder?: number;
-  maxRemainder?: number;
-  allowZeroRemainder?: boolean;
+  context?: Record<string, unknown>;
 }

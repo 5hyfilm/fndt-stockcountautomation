@@ -113,7 +113,7 @@ export const useInventoryExport = ({
           // ✅ เพิ่มฟิลด์สำหรับสินค้าใหม่
           isNewProduct: boolean;
           productName?: string; // สำหรับ F/FG ของสินค้าใหม่
-          category?: string; // สำหรับ Prod. Gr. ของสินค้าใหม่
+          productGroupFromForm?: string; // ✅ เปลี่ยนจาก category เป็น productGroupFromForm เพื่อไม่สับสน
           description?: string; // สำหรับรายละเอียดของสินค้าใหม่
           // ✅ เก็บ barcodeTypes ที่มีในกลุ่มนี้
           barcodeTypes: Set<string>;
@@ -134,13 +134,14 @@ export const useInventoryExport = ({
           quantity: item.quantity,
           quantityDetail: item.quantityDetail,
           isNewProduct: isNew,
+          productGroup: item.productGroup, // ✅ Log productGroup instead of category
         });
 
         // ✅ FIX: ใช้ key ที่รวมตาม materialCode และ productGroup เท่านั้น
         let key: string;
         if (isNew) {
-          // สำหรับสินค้าใหม่ ใช้ productName + category
-          key = `NEW_${item.productName}_${item.category}`;
+          // ✅ สำหรับสินค้าใหม่ ใช้ productName + productGroup
+          key = `NEW_${item.productName}_${item.productGroup}`;
         } else {
           // สำหรับสินค้าเดิม ใช้ materialCode + productGroup
           key = `${item.materialCode}_${item.productGroup}`;
@@ -219,7 +220,7 @@ export const useInventoryExport = ({
             // ✅ เพิ่มข้อมูลสำหรับสินค้าใหม่
             isNewProduct: isNew,
             productName: isNew ? item.productName : undefined,
-            category: isNew ? item.category : undefined,
+            productGroupFromForm: isNew ? item.productGroup : undefined, // ✅ เปลี่ยนจาก category เป็น productGroupFromForm
             description: isNew ? item.productData?.description : undefined,
             // ✅ เริ่มต้น Set ของ barcodeTypes
             barcodeTypes: new Set([item.barcodeType || "ea"]),
@@ -246,10 +247,14 @@ export const useInventoryExport = ({
         let description: string;
 
         if (group.isNewProduct) {
-          // ✅ สำหรับสินค้าใหม่ ใช้ข้อมูลจากฟอร์ม
+          // ✅ สำหรับสินค้าใหม่ ใช้ข้อมูลจากฟอร์ม - ใช้ productGroupFromForm ตรงๆ
           fgCode = group.productName || "NEW";
-          prodGroup = group.category || "NEW";
+          prodGroup = group.productGroupFromForm || "NEW"; // ✅ ใช้ productGroupFromForm แทน category
           description = group.description || group.productName || "";
+
+          console.log(
+            `🆕 New product export: ${fgCode} - ${prodGroup} (from form)`
+          );
         } else {
           // ✅ สำหรับสินค้าเดิม ใช้ logic เดิมไม่เปลี่ยนแปลง
           let displayMaterialCode = group.materialCode; // fallback
@@ -263,7 +268,7 @@ export const useInventoryExport = ({
           }
 
           fgCode = displayMaterialCode;
-          prodGroup = group.productGroup;
+          prodGroup = group.productGroup; // ✅ ใช้ productGroup ตรงๆ จาก item
 
           // ✅ แสดง barcodeTypes ที่มีในกลุ่มนี้
           // const barcodeTypesArray = Array.from(group.barcodeTypes).sort();
@@ -271,6 +276,10 @@ export const useInventoryExport = ({
           //   .join(", ")
           //   .toUpperCase()})`;
           description = group.thaiDescription;
+
+          console.log(
+            `📦 Existing product export: ${fgCode} - ${prodGroup} (from CSV data)`
+          );
         }
 
         // แสดง Material Code และข้อมูลที่ถูกต้อง
@@ -279,12 +288,12 @@ export const useInventoryExport = ({
             ","
           )}) - CS:${group.csCount}, Pieces:${group.pieceCount}, isNew:${
             group.isNewProduct
-          }`
+          }, prodGroup:${prodGroup}` // ✅ เพิ่ม prodGroup ใน log
         );
 
         const row = [
           escapeCsvField(fgCode), // F/FG
-          escapeCsvField(prodGroup), // Prod. Gr.
+          escapeCsvField(prodGroup), // Prod. Gr. - ✅ ตอนนี้จะได้ Product Group Code ที่ถูกต้องแล้ว
           escapeCsvField(description), // รายละเอียด
           group.csCount > 0 ? group.csCount.toString() : "",
           group.pieceCount > 0 ? group.pieceCount.toString() : "",

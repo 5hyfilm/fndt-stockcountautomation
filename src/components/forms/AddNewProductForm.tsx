@@ -12,12 +12,25 @@ import {
   Scan,
   Edit3,
   Check,
+  ChevronDown,
 } from "lucide-react";
+
+// ✅ Product Group Options for dropdown
+const PRODUCT_GROUP_OPTIONS = [
+  "STM", // Sterilized Milk
+  "BB Gold", // Bear Brand Gold
+  "EVAP", // Evaporated
+  "SBC", // Sweetened Beverage Creamer
+  "SCM", // Sweetened Condensed Milk
+  "Magnolia UHT", // Magnolia UHT
+  "NUTRISOY", // Nutriwell
+  "Gummy", // Gummy candy
+];
 
 interface NewProductData {
   barcode: string;
   productName: string;
-  category: string;
+  productGroup: string; // ✅ เปลี่ยนจาก category เป็น productGroup
   description: string;
   countCs: number;
   countPieces: number;
@@ -27,7 +40,7 @@ interface NewProductData {
 interface FormErrors {
   barcode?: string;
   productName?: string;
-  category?: string;
+  productGroup?: string; // ✅ เปลี่ยนจาก category เป็น productGroup
   description?: string;
   countCs?: string;
   countPieces?: string;
@@ -49,7 +62,7 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
   const [formData, setFormData] = useState<NewProductData>({
     barcode: barcode,
     productName: "",
-    category: "",
+    productGroup: "", // ✅ เปลี่ยนจาก category เป็น productGroup
     description: "",
     countCs: 0,
     countPieces: 0,
@@ -157,8 +170,11 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
       newErrors.productName = "กรุณากรอกชื่อสินค้า";
     }
 
-    if (!formData.category.trim()) {
-      newErrors.category = "กรุณากรอกหมวดหมู่สินค้า";
+    // ✅ เปลี่ยน validation สำหรับ productGroup
+    if (!formData.productGroup.trim()) {
+      newErrors.productGroup = "กรุณาเลือกหมวดหมู่สินค้า";
+    } else if (!PRODUCT_GROUP_OPTIONS.includes(formData.productGroup)) {
+      newErrors.productGroup = "กรุณาเลือกหมวดหมู่สินค้าที่ถูกต้อง";
     }
 
     if (formData.countCs < 0) {
@@ -193,7 +209,7 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
         setFormData({
           barcode: "",
           productName: "",
-          category: "",
+          productGroup: "", // ✅ เปลี่ยนจาก category เป็น productGroup
           description: "",
           countCs: 0,
           countPieces: 0,
@@ -387,24 +403,46 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
               )}
             </div>
 
-            {/* Category */}
+            {/* ✅ Product Group - เปลี่ยนเป็น Dropdown */}
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
                 <Package size={12} />
-                Gr. (หมวดหมู่) *
+                Prod. Gr. (หมวดหมู่สินค้า) *
               </label>
-              <input
-                type="text"
-                value={formData.category}
-                onChange={(e) => updateField("category", e.target.value)}
-                className={`w-full px-2 py-1.5 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors text-xs ${
-                  errors.category ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="กรอกหมวดหมู่สินค้า"
-                disabled={isLoading}
-              />
-              {errors.category && (
-                <p className="text-red-500 text-xs mt-0.5">{errors.category}</p>
+              <div className="relative">
+                <select
+                  value={formData.productGroup}
+                  onChange={(e) => updateField("productGroup", e.target.value)}
+                  className={`w-full px-2 py-1.5 pr-8 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors text-xs appearance-none bg-white ${
+                    errors.productGroup ? "border-red-500" : "border-gray-300"
+                  }`}
+                  disabled={isLoading}
+                >
+                  <option value="">เลือกหมวดหมู่สินค้า</option>
+                  {PRODUCT_GROUP_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+
+                {/* ✅ Custom dropdown arrow */}
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <ChevronDown size={12} className="text-gray-500" />
+                </div>
+              </div>
+
+              {errors.productGroup && (
+                <p className="text-red-500 text-xs mt-0.5">
+                  {errors.productGroup}
+                </p>
+              )}
+
+              {/* ✅ Show selected value info */}
+              {formData.productGroup && !errors.productGroup && (
+                <p className="text-green-600 text-xs mt-0.5">
+                  ✓ เลือก: {formData.productGroup}
+                </p>
               )}
             </div>
 

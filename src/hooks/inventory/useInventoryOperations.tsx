@@ -28,7 +28,7 @@ export const useInventoryOperations = ({
   employeeContext,
   setError,
 }: UseInventoryOperationsProps) => {
-  // Helper function to map category to product group
+  // Helper function to map category to product group (for existing products only)
   const mapCategoryToProductGroup = useCallback((category: string): string => {
     const categoryMapping: Record<string, string> = {
       beverages: "STM",
@@ -40,6 +40,31 @@ export const useInventoryOperations = ({
 
     return categoryMapping[category.toLowerCase()] || "OTHER";
   }, []);
+
+  // ✅ Helper function to determine product group correctly
+  const getProductGroupForItem = useCallback(
+    (
+      product: Product,
+      directProductGroup?: string // ✅ เพิ่ม parameter สำหรับ product group ที่ส่งมาตรงๆ
+    ): string => {
+      // ✅ ถ้ามี directProductGroup (จาก form) ให้ใช้ตรงๆ
+      if (directProductGroup) {
+        console.log("🎯 Using direct product group:", directProductGroup);
+        return directProductGroup;
+      }
+
+      // ✅ ถ้าไม่มี ให้ใช้ mapping เดิม (สำหรับสินค้าจาก CSV)
+      const mappedGroup = mapCategoryToProductGroup(product.category || "");
+      console.log(
+        "🔄 Mapped product group from category:",
+        product.category,
+        "->",
+        mappedGroup
+      );
+      return mappedGroup;
+    },
+    [mapCategoryToProductGroup]
+  );
 
   // ✅ Helper function to normalize quantity input
   const normalizeQuantityInput = useCallback(
@@ -108,15 +133,24 @@ export const useInventoryOperations = ({
     [setError]
   );
 
-  // ✅ Enhanced add or update inventory item with QuantityInput support
+  // ✅ Enhanced add or update inventory item with QuantityInput support and direct productGroup
   const addOrUpdateItem = useCallback(
     (
       product: Product,
       quantityInput: QuantityInput, // ✅ Changed from number to QuantityInput
-      barcodeType?: "ea" | "dsp" | "cs"
+      barcodeType?: "ea" | "dsp" | "cs",
+      directProductGroup?: string // ✅ เพิ่ม parameter สำหรับ product group ที่ส่งมาตรงๆ
     ): boolean => {
       try {
         setError(null);
+
+        console.log("📦 Adding/updating item:", {
+          productName: product.name,
+          category: product.category,
+          directProductGroup,
+          quantityInput,
+          barcodeType,
+        });
 
         // ✅ Normalize quantity input to handle both formats
         const { quantity, quantityDetail } = normalizeQuantityInput(
@@ -141,6 +175,12 @@ export const useInventoryOperations = ({
             item.barcodeType === (barcodeType || "ea")
         );
 
+        // ✅ Use the helper function to get correct product group
+        const productGroup = getProductGroupForItem(
+          product,
+          directProductGroup
+        );
+
         const newItem: InventoryItem = {
           id: itemId,
           barcode: product.barcode || "",
@@ -161,9 +201,14 @@ export const useInventoryOperations = ({
           branchName: employeeContext?.branchName || "",
           barcodeType: barcodeType || "ea",
           materialCode: product.sku || "",
-          productGroup: mapCategoryToProductGroup(product.category || ""),
+          productGroup: productGroup, // ✅ ใช้ helper function แทน direct mapping
           thaiDescription: product.description || "",
         };
+
+        console.log(
+          "✅ Created inventory item with productGroup:",
+          productGroup
+        );
 
         let updatedInventory: InventoryItem[];
 
@@ -224,6 +269,7 @@ export const useInventoryOperations = ({
             quantity: quantity,
             quantityDetail: quantityDetail,
             barcodeType: barcodeType || "ea",
+            productGroup: productGroup,
           });
           return true;
         } else {
@@ -242,7 +288,7 @@ export const useInventoryOperations = ({
       saveInventory,
       employeeContext,
       setError,
-      mapCategoryToProductGroup,
+      getProductGroupForItem, // ✅ ใช้ helper function ใหม่
       normalizeQuantityInput,
       validateQuantityDetail,
     ]

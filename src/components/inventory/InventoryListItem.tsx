@@ -473,7 +473,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
               <p className="truncate">
                 รหัส: {item.materialCode || item.barcode}
               </p>
-              <p className="truncate">หมวดหมู่: {item.category}</p>
+              <p className="truncate">หมวดหมู่: {item.productGroup}</p>
               {item.brand && <p className="truncate">แบรนด์: {item.brand}</p>}
             </div>
           </div>
