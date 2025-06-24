@@ -1,8 +1,18 @@
-// Path: src/components/forms/AddNewProductForm.tsx
+// ./src/components/forms/AddNewProductForm.tsx
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, Save, Package, Tag, FileText, Hash, Scan, Edit3, Check } from "lucide-react";
+import {
+  X,
+  Save,
+  Package,
+  Tag,
+  FileText,
+  Hash,
+  Scan,
+  Edit3,
+  Check,
+} from "lucide-react";
 
 interface NewProductData {
   barcode: string;
@@ -11,6 +21,16 @@ interface NewProductData {
   description: string;
   countCs: number;
   countPieces: number;
+}
+
+// ✅ FIX: สร้าง interface แยกสำหรับ form errors
+interface FormErrors {
+  barcode?: string;
+  productName?: string;
+  category?: string;
+  description?: string;
+  countCs?: string;
+  countPieces?: string;
 }
 
 interface AddNewProductFormProps {
@@ -36,15 +56,16 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<Partial<NewProductData>>({});
+  // ✅ FIX: ใช้ FormErrors interface แทน Partial<NewProductData>
+  const [errors, setErrors] = useState<FormErrors>({});
   const [isBarcodeEditable, setIsBarcodeEditable] = useState(false); // ✅ เพิ่ม state สำหรับ control การแก้ไข barcode
   const barcodeInputRef = useRef<HTMLInputElement>(null); // ✅ เพิ่ม ref สำหรับ focus
 
   // ✅ Update barcode when prop changes
   useEffect(() => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      barcode: barcode
+      barcode: barcode,
     }));
     // ✅ Reset barcode editable state เมื่อได้รับ barcode ใหม่
     setIsBarcodeEditable(false);
@@ -52,16 +73,16 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
 
   // Update form data
   const updateField = (field: keyof NewProductData, value: string | number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
-    
+
     // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({
+    if (errors[field as keyof FormErrors]) {
+      setErrors((prev) => ({
         ...prev,
-        [field]: undefined
+        [field]: undefined,
       }));
     }
   };
@@ -69,19 +90,25 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
   // ✅ Helper function สำหรับ format barcode
   const formatBarcode = (value: string): string => {
     // เก็บเฉพาะตัวเลข
-    const numbersOnly = value.replace(/\D/g, '');
+    const numbersOnly = value.replace(/\D/g, "");
     // จำกัดความยาวไม่เกิน 14 หลัก
     return numbersOnly.slice(0, 14);
   };
 
   // ✅ Get barcode validation status
-  const getBarcodeValidationStatus = (): { isValid: boolean; message: string } => {
+  const getBarcodeValidationStatus = (): {
+    isValid: boolean;
+    message: string;
+  } => {
     const barcode = formData.barcode.trim();
     if (!barcode) {
       return { isValid: false, message: "กรุณากรอกหมายเลขบาร์โค้ด" };
     }
     if (barcode.length < 8) {
-      return { isValid: false, message: `ต้องการอีก ${8 - barcode.length} หลัก` };
+      return {
+        isValid: false,
+        message: `ต้องการอีก ${8 - barcode.length} หลัก`,
+      };
     }
     if (barcode.length > 14) {
       return { isValid: false, message: "ยาวเกินไป" };
@@ -96,15 +123,15 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
   const toggleBarcodeEditable = () => {
     const newEditableState = !isBarcodeEditable;
     setIsBarcodeEditable(newEditableState);
-    
+
     // Clear barcode error when enabling edit
     if (newEditableState && errors.barcode) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        barcode: undefined
+        barcode: undefined,
       }));
     }
-    
+
     // ✅ Focus on input when enabling edit
     if (newEditableState) {
       setTimeout(() => {
@@ -116,7 +143,8 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
 
   // Validate form
   const validateForm = (): boolean => {
-    const newErrors: Partial<NewProductData> = {};
+    // ✅ FIX: ใช้ FormErrors type
+    const newErrors: FormErrors = {};
 
     // ✅ Barcode validation
     if (!formData.barcode.trim()) {
@@ -231,39 +259,55 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                   ref={barcodeInputRef} // ✅ เพิ่ม ref
                   type="text"
                   value={formData.barcode}
-                  onChange={(e) => updateField("barcode", formatBarcode(e.target.value))}
+                  onChange={(e) =>
+                    updateField("barcode", formatBarcode(e.target.value))
+                  }
                   disabled={!isBarcodeEditable || isLoading} // ✅ Disabled จนกว่าจะกดปุ่มแก้ไข
                   className={`w-full px-3 py-2 pr-12 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors font-mono ${
-                    errors.barcode ? "border-red-500" : 
-                    formData.barcode && getBarcodeValidationStatus().isValid ? "border-green-500" :
-                    "border-gray-300"
+                    errors.barcode
+                      ? "border-red-500"
+                      : formData.barcode && getBarcodeValidationStatus().isValid
+                      ? "border-green-500"
+                      : "border-gray-300"
                   } ${
                     !isBarcodeEditable ? "bg-gray-50 text-gray-600" : "bg-white"
                   }`}
-                  placeholder={isBarcodeEditable ? "กรอกหมายเลขบาร์โค้ด (8-14 หลัก)" : "กดปุ่มดินสอเพื่อแก้ไข"}
+                  placeholder={
+                    isBarcodeEditable
+                      ? "กรอกหมายเลขบาร์โค้ด (8-14 หลัก)"
+                      : "กดปุ่มดินสอเพื่อแก้ไข"
+                  }
                 />
-                
+
                 {/* ✅ Edit/Confirm Button */}
                 <button
                   type="button"
                   onClick={toggleBarcodeEditable}
                   disabled={isLoading}
                   className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md transition-colors ${
-                    isBarcodeEditable 
-                      ? "text-green-600 hover:bg-green-50" 
+                    isBarcodeEditable
+                      ? "text-green-600 hover:bg-green-50"
                       : "text-gray-500 hover:bg-gray-100"
                   } disabled:opacity-50`}
                   title={isBarcodeEditable ? "ยืนยันการแก้ไข" : "แก้ไขบาร์โค้ด"}
                 >
-                  {isBarcodeEditable ? <Check size={16} /> : <Edit3 size={16} />}
+                  {isBarcodeEditable ? (
+                    <Check size={16} />
+                  ) : (
+                    <Edit3 size={16} />
+                  )}
                 </button>
               </div>
-              
+
               {/* ✅ Real-time validation feedback */}
               {formData.barcode && !errors.barcode && isBarcodeEditable && (
-                <p className={`text-xs mt-1 ${
-                  getBarcodeValidationStatus().isValid ? "text-green-600" : "text-orange-600"
-                }`}>
+                <p
+                  className={`text-xs mt-1 ${
+                    getBarcodeValidationStatus().isValid
+                      ? "text-green-600"
+                      : "text-orange-600"
+                  }`}
+                >
                   {getBarcodeValidationStatus().message}
                 </p>
               )}
@@ -300,7 +344,9 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                 disabled={isLoading}
               />
               {errors.productName && (
-                <p className="text-red-500 text-xs mt-1">{errors.productName}</p>
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.productName}
+                </p>
               )}
             </div>
 
@@ -352,7 +398,9 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                 <input
                   type="number"
                   value={formData.countCs}
-                  onChange={(e) => updateField("countCs", parseInt(e.target.value) || 0)}
+                  onChange={(e) =>
+                    updateField("countCs", parseInt(e.target.value) || 0)
+                  }
                   min="0"
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors ${
                     errors.countCs ? "border-red-500" : "border-gray-300"
@@ -374,7 +422,9 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                 <input
                   type="number"
                   value={formData.countPieces}
-                  onChange={(e) => updateField("countPieces", parseInt(e.target.value) || 0)}
+                  onChange={(e) =>
+                    updateField("countPieces", parseInt(e.target.value) || 0)
+                  }
                   min="0"
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors ${
                     errors.countPieces ? "border-red-500" : "border-gray-300"
@@ -383,7 +433,9 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                   disabled={isLoading}
                 />
                 {errors.countPieces && (
-                  <p className="text-red-500 text-xs mt-1">{errors.countPieces}</p>
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.countPieces}
+                  </p>
                 )}
               </div>
             </div>
@@ -393,9 +445,7 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <p className="text-sm text-blue-800">
                   <span className="font-medium">จะเพิ่ม: </span>
-                  {formData.countCs > 0 && (
-                    <span>{formData.countCs} ลัง</span>
-                  )}
+                  {formData.countCs > 0 && <span>{formData.countCs} ลัง</span>}
                   {formData.countCs > 0 && formData.countPieces > 0 && (
                     <span> + </span>
                   )}

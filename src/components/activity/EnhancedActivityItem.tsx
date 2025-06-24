@@ -1,4 +1,4 @@
-// src/components/activity/EnhancedActivityItem.tsx - Phase 2: Enhanced Activity Display
+// ./src/components/activity/EnhancedActivityItem.tsx - แก้ไข renderMetadata function
 "use client";
 
 import React from "react";
@@ -116,7 +116,8 @@ export const EnhancedActivityItem: React.FC<EnhancedActivityItemProps> = ({
 
   // ✅ Enhanced quantity display for activities
   const renderQuantityInfo = () => {
-    const { quantity, oldQuantity, newQuantity, barcodeType } = activity;
+    // ✅ FIX: เพิ่ม fallback สำหรับ barcodeType ที่อาจจะ undefined
+    const { quantity, oldQuantity, newQuantity, barcodeType = "ea" } = activity;
 
     if (!showDetails) return null;
 
@@ -181,11 +182,12 @@ export const EnhancedActivityItem: React.FC<EnhancedActivityItemProps> = ({
     );
   };
 
-  // ✅ Enhanced metadata display
+  // ✅ Enhanced metadata display - FIX: ระบุ type ให้ชัดเจน
   const renderMetadata = () => {
     if (!showDetails) return null;
 
-    const metadata = [];
+    // ✅ FIX: ระบุ type ของ metadata เป็น string[] อย่างชัดเจน
+    const metadata: string[] = [];
 
     if (activity.brand) {
       metadata.push(activity.brand);

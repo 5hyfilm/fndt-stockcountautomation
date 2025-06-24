@@ -12,6 +12,8 @@ export interface ActivityItem {
   category?: string;
   oldQuantity?: number;
   newQuantity?: number;
+  // ✅ เพิ่ม barcodeType property เพื่อรองรับการแสดงผล unit ที่ถูกต้อง
+  barcodeType?: "ea" | "dsp" | "cs";
 }
 
 export interface ActivityItemProps {

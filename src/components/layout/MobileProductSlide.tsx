@@ -1,10 +1,11 @@
-// Path: src/components/layout/MobileProductSlide.tsx
+// ./src/components/layout/MobileProductSlide.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
 import { X, ArrowDown, Plus } from "lucide-react";
 import { Product } from "../../types/product";
 import { ProductInfo } from "../ProductInfo";
+import { QuantityInput } from "../../hooks/inventory/types"; // ✅ เพิ่ม import QuantityInput (number | QuantityDetail)
 
 interface MobileProductSlideProps {
   isVisible: boolean;
@@ -12,11 +13,11 @@ interface MobileProductSlideProps {
   detectedBarcodeType?: "ea" | "dsp" | "cs";
   currentInventoryQuantity: number;
   scannedBarcode?: string; // ✅ เพิ่ม: บาร์โค้ดที่ detect ได้
-  productError?: string | null; // ✅ เพิ่ม: error message
+  productError?: string; // ✅ FIX: เปลี่ยนจาก string | null เป็น string | undefined
   onClose: () => void;
   onAddToInventory: (
     product: Product,
-    quantity: number,
+    quantityInput: QuantityInput, // ✅ FIX: เปลี่ยนจาก quantity: number เป็น quantityInput: QuantityInput เพื่อรองรับ Phase 2
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
   onAddNewProduct?: (barcode: string) => void; // ✅ เพิ่ม: callback สำหรับเพิ่มสินค้าใหม่
@@ -29,7 +30,7 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
   detectedBarcodeType,
   currentInventoryQuantity,
   scannedBarcode = "", // ✅ รับ barcode ที่ scan
-  productError = null, // ✅ รับ error message
+  productError, // ✅ FIX: รับ error message ที่เป็น string | undefined
   onClose,
   onAddToInventory,
   onAddNewProduct, // ✅ รับ callback สำหรับเพิ่มสินค้าใหม่
@@ -137,8 +138,8 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
             barcode={scannedBarcode} // ✅ ส่งบาร์โค้ดที่ scan
             barcodeType={detectedBarcodeType}
             isLoading={false}
-            error={productError} // ✅ ส่ง error message
-            onAddToInventory={onAddToInventory}
+            error={productError} // ✅ FIX: ตอนนี้ type ตรงกันแล้ว (string | undefined)
+            onAddToInventory={onAddToInventory} // ✅ FIX: ตอนนี้ signature ตรงกันแล้ว (QuantityInput)
             currentInventoryQuantity={currentInventoryQuantity}
           />
 

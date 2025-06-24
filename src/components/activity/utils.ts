@@ -39,6 +39,7 @@ export const formatTimeFromNow = (timestamp: string): string => {
 
 /**
  * Create activity item from inventory data
+ * ✅ รองรับ barcodeType และ quantityDetail จาก Phase 2
  */
 export const createActivityFromInventory = (
   item: InventoryItem,
@@ -53,6 +54,8 @@ export const createActivityFromInventory = (
     timestamp: item.lastUpdated || new Date().toISOString(),
     brand: item.brand || "ไม่ระบุแบรนด์",
     category: item.category,
+    // ✅ เพิ่ม barcodeType จาก InventoryItem
+    barcodeType: item.barcodeType || "ea",
   };
 };
 
@@ -67,6 +70,7 @@ const isInventoryItem = (
 
 /**
  * Create scan activity from barcode
+ * ✅ รองรับ barcodeType detection จากสินค้า
  */
 export const createScanActivity = (
   barcode: string,
@@ -81,6 +85,8 @@ export const createScanActivity = (
       timestamp: new Date().toISOString(),
       brand: "ไม่ระบุแบรนด์",
       category: undefined,
+      // ✅ ใช้ default เป็น "ea" สำหรับสินค้าที่ไม่รู้จัก
+      barcodeType: "ea",
     };
   }
 
@@ -88,6 +94,11 @@ export const createScanActivity = (
   const productName = isInventoryItem(productData)
     ? productData.productName
     : productData.name;
+
+  // ✅ ดึง barcodeType จาก InventoryItem ถ้าเป็น InventoryItem
+  const barcodeType = isInventoryItem(productData)
+    ? productData.barcodeType || "ea"
+    : "ea"; // Product ไม่มี barcodeType ให้ใช้ default
 
   return {
     id: `scan_${barcode}_${Date.now()}`,
@@ -97,6 +108,8 @@ export const createScanActivity = (
     timestamp: new Date().toISOString(),
     brand: productData.brand || "ไม่ระบุแบรนด์",
     category: productData.category,
+    // ✅ เพิ่ม barcodeType ให้ถูกต้อง
+    barcodeType,
   };
 };
 
@@ -153,6 +166,7 @@ export const getActivitySummary = (activities: ActivityItem[]) => {
   const summary = {
     total: activities.length,
     byType: {} as Record<ActivityItem["type"], number>,
+    byBarcodeType: {} as Record<"ea" | "dsp" | "cs", number>,
     today: 0,
     thisWeek: 0,
   };
@@ -164,6 +178,11 @@ export const getActivitySummary = (activities: ActivityItem[]) => {
   activities.forEach((activity) => {
     // Count by type
     summary.byType[activity.type] = (summary.byType[activity.type] || 0) + 1;
+
+    // ✅ Count by barcode type
+    const barcodeType = activity.barcodeType || "ea";
+    summary.byBarcodeType[barcodeType] =
+      (summary.byBarcodeType[barcodeType] || 0) + 1;
 
     // Count by time period
     const activityDate = new Date(activity.timestamp);
