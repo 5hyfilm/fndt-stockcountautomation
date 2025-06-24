@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { X, ArrowDown, Plus } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import { Product } from "../../types/product";
 import { ProductInfo } from "../ProductInfo";
 import { QuantityInput } from "../../hooks/inventory/types";
