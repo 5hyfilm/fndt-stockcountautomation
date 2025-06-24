@@ -187,4 +187,3 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
 
 // ✅ Export component
 export { MobileProductSlide };
-export default MobileProductSlide;
