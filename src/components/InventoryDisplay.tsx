@@ -1,7 +1,7 @@
-// src/components/InventoryDisplay.tsx - Enhanced Version with Detailed Quantity Support
+// Path: src/components/InventoryDisplay.tsx - Fixed Major Unit Edit Issue
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   InventoryItem,
   InventorySummary,
@@ -40,6 +40,9 @@ interface EditState {
   quantityDetail?: QuantityDetail;
 }
 
+type SortBy = "name" | "quantity" | "date";
+type SortOrder = "asc" | "desc";
+
 export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   inventory,
   summary,
@@ -64,39 +67,47 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
   const [showSummary, setShowSummary] = useState(false);
-  const [sortBy, setSortBy] = useState<"name" | "quantity" | "date">("date");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [sortBy, setSortBy] = useState<SortBy>("date");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [isExporting, setIsExporting] = useState(false);
 
-  // Filter และ sort inventory
-  const filteredAndSortedInventory = React.useMemo(() => {
-    let filtered = inventory;
+  // ✅ Enhanced filtered and sorted inventory with proper field names
+  const filteredAndSortedInventory = useMemo(() => {
+    let filtered = [...inventory];
 
-    // Filter by search term
-    if (searchTerm) {
-      filtered = onSearch(searchTerm);
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const searchResults = onSearch(searchTerm.trim());
+      filtered = searchResults;
     }
 
-    // Filter by category
+    // Apply category filter - Fixed field name
     if (selectedCategory !== "all") {
-      filtered = filtered.filter((item) => item.category === selectedCategory);
+      filtered = filtered.filter(
+        (item) =>
+          item.category === selectedCategory ||
+          item.productGroup === selectedCategory
+      );
     }
 
-    // Filter by brand
+    // Apply brand filter
     if (selectedBrand !== "all") {
       filtered = filtered.filter((item) => item.brand === selectedBrand);
     }
 
-    // Sort
+    // Apply sorting
     filtered.sort((a, b) => {
       let comparison = 0;
 
       switch (sortBy) {
         case "name":
-          comparison = a.productName.localeCompare(b.productName);
+          comparison = a.productName.localeCompare(b.productName, "th");
           break;
         case "quantity":
-          comparison = a.quantity - b.quantity;
+          // ✅ Enhanced quantity comparison supporting quantityDetail
+          const aQty = a.quantityDetail?.major ?? a.quantity;
+          const bQty = b.quantityDetail?.major ?? b.quantity;
+          comparison = aQty - bQty;
           break;
         case "date":
           comparison =
@@ -120,7 +131,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   ]);
 
   // ✅ Enhanced event handlers
-  const handleEditStart = (item: InventoryItem) => {
+  const handleEditStart = useCallback((item: InventoryItem) => {
     console.log("🎯 Starting edit for item:", {
       id: item.id,
       quantity: item.quantity,
@@ -133,111 +144,164 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
       simpleQuantity: item.quantityDetail?.major || item.quantity,
       quantityDetail: item.quantityDetail,
     });
-  };
+  }, []);
 
-  const handleEditSave = () => {
-    if (!editState.itemId) return;
+  // ✅ Fixed edit save handler
+  const handleEditSave = useCallback(() => {
+    if (!editState.itemId) {
+      console.warn("⚠️ No item ID in edit state");
+      return;
+    }
 
     console.log("💾 Saving edit state:", editState);
 
     // Find the item being edited
     const item = inventory.find((i) => i.id === editState.itemId);
-    if (!item) return;
+    if (!item) {
+      console.error("❌ Item not found:", editState.itemId);
+      return;
+    }
 
     const isDetailedUnit = item.barcodeType !== "ea";
 
     let success = false;
 
-    if (isDetailedUnit && editState.quantityDetail && onUpdateQuantityDetail) {
-      // Save detailed quantity for DSP/CS
-      success = onUpdateQuantityDetail(
-        editState.itemId,
-        editState.quantityDetail
-      );
-      console.log("✅ Detailed quantity save result:", success);
-    } else {
-      // Save simple quantity for EA or fallback
-      success = onUpdateQuantity(editState.itemId, editState.simpleQuantity);
-      console.log("✅ Simple quantity save result:", success);
-    }
-
-    if (success) {
-      setEditState({
-        itemId: null,
-        simpleQuantity: 0,
-        quantityDetail: undefined,
-      });
-    }
-  };
-
-  // ✅ New handler for detailed quantity changes during editing
-  const handleEditQuantityDetailChange = (quantityDetail: QuantityDetail) => {
-    console.log("🔄 Updating quantity detail in edit state:", quantityDetail);
-
-    setEditState((prev) => ({
-      ...prev,
-      quantityDetail,
-      simpleQuantity: quantityDetail.major, // Keep simple quantity in sync
-    }));
-  };
-
-  // ✅ Enhanced handler for quantity detail saves
-  const handleEditQuantityDetailSave = (
-    itemId: string,
-    quantityDetail: QuantityDetail
-  ): boolean => {
-    console.log("💾 Direct save quantity detail:", { itemId, quantityDetail });
-
-    if (onUpdateQuantityDetail) {
-      const success = onUpdateQuantityDetail(itemId, quantityDetail);
-      if (success) {
-        // Update our edit state if this is the item being edited
-        if (editState.itemId === itemId) {
-          setEditState({
-            itemId: null,
-            simpleQuantity: 0,
-            quantityDetail: undefined,
-          });
-        }
+    try {
+      if (
+        isDetailedUnit &&
+        editState.quantityDetail &&
+        onUpdateQuantityDetail
+      ) {
+        // Save detailed quantity for DSP/CS
+        console.log(
+          "💾 Saving as detailed quantity:",
+          editState.quantityDetail
+        );
+        success = onUpdateQuantityDetail(
+          editState.itemId,
+          editState.quantityDetail
+        );
+        console.log("✅ Detailed quantity save result:", success);
+      } else {
+        // Save simple quantity for EA or fallback
+        console.log("💾 Saving as simple quantity:", editState.simpleQuantity);
+        success = onUpdateQuantity(editState.itemId, editState.simpleQuantity);
+        console.log("✅ Simple quantity save result:", success);
       }
-      return success;
-    }
-    return false;
-  };
 
-  const handleEditCancel = () => {
+      if (success) {
+        // ✅ Reset edit state after successful save
+        setEditState({
+          itemId: null,
+          simpleQuantity: 0,
+          quantityDetail: undefined,
+        });
+      } else {
+        console.error("❌ Save operation failed");
+      }
+    } catch (error) {
+      console.error("❌ Error during save:", error);
+    }
+  }, [editState, inventory, onUpdateQuantity, onUpdateQuantityDetail]);
+
+  // ✅ Enhanced handler for detailed quantity changes during editing
+  const handleEditQuantityDetailChange = useCallback(
+    (quantityDetail: QuantityDetail) => {
+      console.log("🔄 Updating quantity detail in edit state:", quantityDetail);
+
+      setEditState((prev) => ({
+        ...prev,
+        quantityDetail,
+        simpleQuantity: quantityDetail.major, // Keep simple quantity in sync
+      }));
+    },
+    []
+  );
+
+  // ✅ Fixed handler for direct quantity detail saves (from InventoryListItem)
+  const handleEditQuantityDetailSave = useCallback(
+    (itemId: string, quantityDetail: QuantityDetail): boolean => {
+      console.log("💾 Direct save quantity detail:", {
+        itemId,
+        quantityDetail,
+      });
+
+      try {
+        if (onUpdateQuantityDetail) {
+          const success = onUpdateQuantityDetail(itemId, quantityDetail);
+
+          if (success) {
+            console.log("✅ Direct detailed quantity save successful");
+
+            // ✅ Reset edit state only if this is the item being edited
+            if (editState.itemId === itemId) {
+              setEditState({
+                itemId: null,
+                simpleQuantity: 0,
+                quantityDetail: undefined,
+              });
+            }
+
+            return true;
+          } else {
+            console.error("❌ Direct detailed quantity save failed");
+            return false;
+          }
+        } else {
+          console.warn("⚠️ onUpdateQuantityDetail callback not available");
+          return false;
+        }
+      } catch (error) {
+        console.error("❌ Error during direct detailed quantity save:", error);
+        return false;
+      }
+    },
+    [editState.itemId, onUpdateQuantityDetail]
+  );
+
+  const handleEditCancel = useCallback(() => {
     console.log("❌ Cancelling edit");
     setEditState({
       itemId: null,
       simpleQuantity: 0,
       quantityDetail: undefined,
     });
-  };
+  }, []);
 
-  const handleEditQuantityChange = (quantity: number) => {
+  // ✅ Fixed edit quantity change handler
+  const handleEditQuantityChange = useCallback((quantity: number) => {
     console.log("🔄 Edit quantity change:", quantity);
     setEditState((prev) => ({
       ...prev,
       simpleQuantity: quantity,
+      // ✅ Also update quantityDetail.major if it exists
+      quantityDetail: prev.quantityDetail
+        ? { ...prev.quantityDetail, major: quantity }
+        : undefined,
     }));
-  };
+  }, []);
 
-  const handleQuickAdjust = (
-    itemId: string,
-    currentQuantity: number,
-    delta: number
-  ) => {
-    const newQuantity = Math.max(0, currentQuantity + delta);
-    console.log("⚡ Quick adjust:", {
-      itemId,
-      currentQuantity,
-      delta,
-      newQuantity,
-    });
-    onUpdateQuantity(itemId, newQuantity);
-  };
+  const handleQuickAdjust = useCallback(
+    (itemId: string, currentQuantity: number, delta: number) => {
+      const newQuantity = Math.max(0, currentQuantity + delta);
+      console.log("⚡ Quick adjust:", {
+        itemId,
+        currentQuantity,
+        delta,
+        newQuantity,
+      });
 
-  const handleExport = async () => {
+      const success = onUpdateQuantity(itemId, newQuantity);
+      if (success) {
+        console.log(
+          `✅ Quick adjusted ${itemId}: ${currentQuantity} -> ${newQuantity}`
+        );
+      }
+    },
+    [onUpdateQuantity]
+  );
+
+  const handleExport = useCallback(async () => {
     if (inventory.length === 0) {
       return;
     }
@@ -246,6 +310,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
     try {
       const success = onExportInventory();
       if (success) {
+        console.log("✅ Export successful");
         // Show success message briefly
         setTimeout(() => {
           setIsExporting(false);
@@ -254,28 +319,48 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         setIsExporting(false);
       }
     } catch (error) {
-      console.error("Export error:", error);
+      console.error("❌ Export failed:", error);
       setIsExporting(false);
     }
-  };
+  }, [onExportInventory, inventory.length]);
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     setSearchTerm("");
     setSelectedCategory("all");
     setSelectedBrand("all");
-  };
+  }, []);
 
-  const handleSortChange = (sort: string, order: string) => {
-    setSortBy(sort as "name" | "quantity" | "date");
-    setSortOrder(order as "asc" | "desc");
-  };
+  // ✅ Fixed sort change handler with proper typing
+  const handleSortChange = useCallback(
+    (newSortBy: string, newSortOrder: string) => {
+      const validSortBy = newSortBy as SortBy;
+      const validSortOrder = newSortOrder as SortOrder;
 
-  const handleConfirmClear = () => {
-    onClearInventory();
-    setShowConfirmClear(false);
-  };
+      console.log("🔄 Sort change:", {
+        sortBy: validSortBy,
+        sortOrder: validSortOrder,
+      });
 
-  // Loading state
+      setSortBy(validSortBy);
+      setSortOrder(validSortOrder);
+    },
+    []
+  );
+
+  const handleConfirmClear = useCallback(() => {
+    const success = onClearInventory();
+    if (success) {
+      setShowConfirmClear(false);
+      // Also reset edit state
+      setEditState({
+        itemId: null,
+        simpleQuantity: 0,
+        quantityDetail: undefined,
+      });
+    }
+  }, [onClearInventory]);
+
+  // ✅ Enhanced loading and error states
   if (isLoading) {
     return <LoadingSpinner message="กำลังโหลดข้อมูล inventory..." size="lg" />;
   }
@@ -312,7 +397,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         filteredCount={filteredAndSortedInventory.length}
       />
 
-      {/* ✅ Enhanced Inventory List with detailed quantity support */}
+      {/* ✅ Enhanced Inventory List with all detailed quantity callbacks */}
       <InventoryList
         items={filteredAndSortedInventory}
         totalCount={inventory.length}
@@ -320,7 +405,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         editQuantity={editState.simpleQuantity}
         onEditStart={handleEditStart}
         onEditSave={handleEditSave}
-        onEditQuantityDetailSave={handleEditQuantityDetailSave}
+        onEditQuantityDetailSave={handleEditQuantityDetailSave} // ✅ Fixed callback
         onEditCancel={handleEditCancel}
         onEditQuantityChange={handleEditQuantityChange}
         onEditQuantityDetailChange={handleEditQuantityDetailChange} // ✅ New callback
