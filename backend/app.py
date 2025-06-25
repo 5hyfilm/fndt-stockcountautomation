@@ -1,7 +1,8 @@
-# backend/app.py
+# Path: /backend/app.py
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import torch
+# ✅ เปลี่ยนจาก torch เป็น onnxruntime
+import onnxruntime as ort
 import cv2
 import numpy as np
 from pyzbar import pyzbar 
@@ -14,14 +15,97 @@ import base64
 app = Flask(__name__)
 CORS(app)  # เปิดใช้ CORS สำหรับ frontend
 
-# โหลดโมเดล YOLOv5
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+# ✅ โหลดโมเดล ONNX แทน PyTorch
 try:
-    model = torch.hub.load('ultralytics/yolov5', 'custom', path='model.pt').to(device)
-    print("✅ โหลดโมเดลสำเร็จ")
+    # Setup ONNX Runtime providers (GPU first, then CPU fallback)
+    providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
+    session = ort.InferenceSession('model.onnx', providers=providers)
+    
+    # Get model input details
+    input_name = session.get_inputs()[0].name
+    input_shape = session.get_inputs()[0].shape
+    
+    print(f"✅ โหลดโมเดล ONNX สำเร็จ")
+    print(f"📊 Input: {input_name}, Shape: {input_shape}")
+    print(f"🔧 Providers: {session.get_providers()}")
+    
 except Exception as e:
-    print(f"⚠️ ไม่สามารถโหลดโมเดลได้: {e}")
-    model = None
+    print(f"⚠️ ไม่สามารถโหลดโมเดล ONNX ได้: {e}")
+    session = None
+
+# ✅ เพิ่มฟังก์ชันสำหรับ ONNX preprocessing และ postprocessing
+def preprocess_frame(frame):
+    """
+    เตรียม input สำหรับ ONNX model
+    """
+    # Resize เป็น 640x640 (YOLO input size)
+    img = cv2.resize(frame, (640, 640))
+    
+    # แปลงจาก BGR เป็น RGB
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    
+    # Normalize เป็น 0-1
+    img = img.astype(np.float32) / 255.0
+    
+    # เปลี่ยน format จาก HWC เป็น CHW และเพิ่ม batch dimension
+    img = img.transpose(2, 0, 1)  # HWC -> CHW
+    img = np.expand_dims(img, axis=0)  # เพิ่ม batch dimension
+    
+    return img
+
+def postprocess_outputs(outputs, original_shape, conf_threshold=0.5, nms_threshold=0.4):
+    """
+    แปลง ONNX outputs กลับเป็น detection format
+    """
+    detections = outputs[0]  # Shape: (1, 25200, 85) for YOLO
+    
+    # Get original dimensions
+    orig_h, orig_w = original_shape[:2]
+    
+    # Scale factors
+    scale_x = orig_w / 640
+    scale_y = orig_h / 640
+    
+    detection_results = []
+    
+    # Process detections
+    for detection in detections[0]:  # Remove batch dimension
+        # YOLO format: [x_center, y_center, width, height, confidence, class_scores...]
+        confidence = detection[4]
+        
+        if confidence > conf_threshold:
+            # Get bounding box
+            x_center, y_center, width, height = detection[:4]
+            
+            # Convert to corner coordinates
+            x1 = int((x_center - width/2) * scale_x)
+            y1 = int((y_center - height/2) * scale_y)
+            x2 = int((x_center + width/2) * scale_x)
+            y2 = int((y_center + height/2) * scale_y)
+            
+            # Ensure coordinates are within image bounds
+            x1 = max(0, min(x1, orig_w))
+            y1 = max(0, min(y1, orig_h))
+            x2 = max(0, min(x2, orig_w))
+            y2 = max(0, min(y2, orig_h))
+            
+            # Get class with highest score
+            class_scores = detection[5:]
+            class_id = np.argmax(class_scores)
+            
+            detection_result = {
+                'xmin': x1,
+                'ymin': y1,
+                'xmax': x2,
+                'ymax': y2,
+                'class': int(class_id),
+                'confidence': float(confidence)
+            }
+            detection_results.append(detection_result)
+    
+    return detection_results
+
+# ✅ ส่วนที่เหลือใช้เหมือนเดิม (ไม่ต้องแก้) - Advanced Barcode Detection Functions
 
 def detect_line_segments(image):
     """
@@ -279,39 +363,33 @@ def enhanced_barcode_detection(cropped_img):
 
 def process_detections(frame):
     """
-    Process frame through YOLO model and detect barcodes
+    ✅ ประมวลผล frame ผ่าน ONNX model และตรวจหา barcodes
     """
-    if model is None:
+    if session is None:
         return {
             'success': False,
-            'error': 'โมเดลยังไม่ถูกโหลด'
+            'error': 'โมเดล ONNX ยังไม่ถูกโหลด'
         }
     
     try:
-        # รันโมเดล YOLO
-        results = model(frame)
-        detections = results.pandas().xyxy[0]
+        # ✅ Preprocess input สำหรับ ONNX
+        input_tensor = preprocess_frame(frame)
+        
+        # ✅ รัน ONNX inference
+        outputs = session.run(None, {input_name: input_tensor})
+        
+        # ✅ Postprocess outputs
+        detections = postprocess_outputs(outputs, frame.shape)
         
         detection_results = []
         barcode_results = []
         
-        for i, detection in detections.iterrows():
-            x1, y1, x2, y2 = detection[['xmin', 'ymin', 'xmax', 'ymax']]
-            x1, y1, x2, y2 = [round(num) for num in [x1, y1, x2, y2]]
-            
-            class_id = detection['class']
+        # ประมวลผล detections แต่ละตัว
+        for detection in detections:
+            x1, y1, x2, y2 = detection['xmin'], detection['ymin'], detection['xmax'], detection['ymax']
             confidence = detection['confidence']
             
-            # เก็บข้อมูล detection
-            detection_result = {
-                'xmin': x1,
-                'ymin': y1,
-                'xmax': x2,
-                'ymax': y2,
-                'class': int(class_id),
-                'confidence': float(confidence)
-            }
-            detection_results.append(detection_result)
+            detection_results.append(detection)
             
             # Crop และวิเคราะห์ barcode
             cropped_img = frame[y1:y2, x1:x2]
@@ -327,7 +405,7 @@ def process_detections(frame):
                         'rotation_angle': rotation_angle,
                         'decode_method': decode_method,
                         'confidence': confidence,
-                        'bbox': detection_result
+                        'bbox': detection
                     }
                     barcode_results.append(barcode_result)
                     print(f"🎯 Successfully decoded: {data} using {decode_method}")
@@ -393,14 +471,19 @@ def detect_barcode():
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    """Health check endpoint"""
+    """✅ อัพเดท Health check endpoint สำหรับ ONNX"""
     return jsonify({
         'status': 'healthy',
-        'model_loaded': model is not None,
-        'device': str(device)
+        'model_loaded': session is not None,
+        'model_type': 'ONNX Runtime',
+        'providers': session.get_providers() if session else [],
+        'input_shape': input_shape if session else None
     })
 
 if __name__ == '__main__':
-    print(f"🚀 Starting server on device: {device}")
-    print(f"📱 Model loaded: {model is not None}")
+    print(f"🚀 Starting server with ONNX Runtime")
+    print(f"📱 Model loaded: {session is not None}")
+    if session:
+        print(f"🔧 Available providers: {session.get_providers()}")
+        print(f"📊 Input shape: {input_shape}")
     app.run(host='0.0.0.0', port=8000, debug=True)
