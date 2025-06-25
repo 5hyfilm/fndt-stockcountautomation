@@ -167,7 +167,7 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
     }
 
     if (!formData.productName.trim()) {
-      newErrors.productName = "กรุณากรอกชื่อสินค้า";
+      newErrors.productName = "กรุณากรอกรหัสสินค้า";
     }
 
     // ✅ เปลี่ยน validation สำหรับ productGroup
@@ -175,6 +175,10 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
       newErrors.productGroup = "กรุณาเลือกหมวดหมู่สินค้า";
     } else if (!PRODUCT_GROUP_OPTIONS.includes(formData.productGroup)) {
       newErrors.productGroup = "กรุณาเลือกหมวดหมู่สินค้าที่ถูกต้อง";
+    }
+
+    if (!formData.description.trim()) {
+      newErrors.description = "กรุณากรอกรายละเอียด";
     }
 
     if (formData.countCs < 0) {
@@ -384,7 +388,7 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
                 <Tag size={12} />
-                F/FG Prod (ชื่อสินค้า) *
+                F/FG Prod (รหัสสินค้า) *
               </label>
               <input
                 type="text"
@@ -393,7 +397,7 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
                 className={`w-full px-2 py-1.5 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors text-xs ${
                   errors.productName ? "border-red-500" : "border-gray-300"
                 }`}
-                placeholder="กรอกชื่อสินค้า"
+                placeholder="กรอกรหัสสินค้า"
                 disabled={isLoading}
               />
               {errors.productName && (
@@ -450,16 +454,23 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
                 <FileText size={12} />
-                รายละเอียด
+                รายละเอียด *
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => updateField("description", e.target.value)}
                 rows={2}
-                className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors resize-none text-xs custom-scrollbar"
-                placeholder="กรอกรายละเอียดเพิ่มเติม (ไม่บังคับ)"
+                className={`w-full px-2 py-1.5 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors resize-none text-xs custom-scrollbar ${
+                  errors.description ? "border-red-500" : "border-gray-300"
+                }`}
+                placeholder="กรอกรายละเอียดสินค้า"
                 disabled={isLoading}
               />
+              {errors.description && (
+                <p className="text-red-500 text-xs mt-0.5">
+                  {errors.description}
+                </p>
+              )}
             </div>
 
             {/* Count Section */}
