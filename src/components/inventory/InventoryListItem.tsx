@@ -1,4 +1,4 @@
-// Path: src/components/inventory/InventoryListItem.tsx - Updated F/FG Display Format
+// Path: src/components/inventory/InventoryListItem.tsx - แสดง description สำหรับสินค้าใหม่
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -137,12 +137,22 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     );
   };
 
-  // ✅ NEW: Generate product code display for new products
+  // ✅ NEW: Get display name for product (description for new products)
+  const getProductDisplayName = (item: InventoryItem): string => {
+    if (isNewProduct(item)) {
+      // ✅ สำหรับสินค้าใหม่ แสดง description จาก productData แทน productName
+      return item.productData?.description || item.productName || "สินค้าใหม่";
+    } else {
+      // สำหรับสินค้าเดิม แสดง productName ปกติ
+      return item.productName || "ไม่ระบุชื่อ";
+    }
+  };
+
+  // ✅ Generate product code display for new products
   const getProductCodeDisplay = (item: InventoryItem): string => {
     if (isNewProduct(item)) {
-      // สำหรับสินค้าใหม่ แสดงเป็น "F/FG Prod (รหัสสินค้า)"
+      // สำหรับสินค้าใหม่ แสดงเป็น productName (รหัสสินค้า)
       const fgCode = item.productName || "NEW";
-
       return `${fgCode}`;
     } else {
       // สำหรับสินค้าเดิม แสดงเป็น materialCode ปกติ
@@ -545,8 +555,9 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
 
           {/* Product Info - Fixed text overflow */}
           <div className="flex-1 min-w-0">
+            {/* ✅ UPDATED: ใช้ getProductDisplayName แทน item.productName */}
             <h3 className="font-semibold text-gray-900 mb-1 break-words leading-tight">
-              {item.productName}
+              {getProductDisplayName(item)}
             </h3>
             <div className="text-sm text-gray-600 space-y-1">
               {/* ✅ UPDATED: Use new product code display format */}
