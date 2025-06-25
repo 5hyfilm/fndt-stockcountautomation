@@ -1,4 +1,4 @@
-// Path: src/components/InventoryDisplay.tsx - Added F/FG Code Sorting
+// Path: src/components/InventoryDisplay.tsx - Added Individual Delete Confirmation Modal
 "use client";
 
 import React, { useState, useMemo, useCallback } from "react";
@@ -15,6 +15,8 @@ import {
   ErrorAlert,
   LoadingSpinner,
 } from "./inventory";
+// ✅ Import the new individual delete confirmation modal
+import { ConfirmDeleteItemDialog } from "./inventory/ConfirmDeleteItemDialog";
 
 interface InventoryDisplayProps {
   inventory: InventoryItem[];
@@ -86,7 +88,14 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
     simpleQuantity: 0,
     quantityDetail: undefined,
   });
+
+  // ✅ State for clear all confirmation modal (existing)
   const [showConfirmClear, setShowConfirmClear] = useState(false);
+
+  // ✅ NEW: State for individual delete confirmation modal
+  const [showConfirmDeleteItem, setShowConfirmDeleteItem] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
+
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
   const [showSummary, setShowSummary] = useState(false);
@@ -382,6 +391,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
     []
   );
 
+  // ✅ Handler for clear all confirmation (existing)
   const handleConfirmClear = useCallback(() => {
     const success = onClearInventory();
     if (success) {
@@ -394,6 +404,62 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
       });
     }
   }, [onClearInventory]);
+
+  // ✅ NEW: Handlers for individual delete confirmation
+  const handleShowDeleteConfirmation = useCallback(
+    (itemId: string) => {
+      console.log("🗑️ Showing delete confirmation for item:", itemId);
+
+      // Find the item to delete
+      const item = inventory.find((i) => i.id === itemId);
+      if (item) {
+        setItemToDelete(item);
+        setShowConfirmDeleteItem(true);
+      } else {
+        console.error("❌ Item not found for deletion:", itemId);
+      }
+    },
+    [inventory]
+  );
+
+  const handleCancelDeleteItem = useCallback(() => {
+    console.log("❌ Cancelling item deletion");
+    setShowConfirmDeleteItem(false);
+    setItemToDelete(null);
+  }, []);
+
+  const handleConfirmDeleteItem = useCallback(
+    (itemId: string) => {
+      console.log("🗑️ Confirming item deletion:", itemId);
+
+      try {
+        const success = onRemoveItem(itemId);
+        if (success) {
+          console.log("✅ Item deleted successfully:", itemId);
+
+          // Close modal and reset state
+          setShowConfirmDeleteItem(false);
+          setItemToDelete(null);
+
+          // Reset edit state if we're deleting the item being edited
+          if (editState.itemId === itemId) {
+            setEditState({
+              itemId: null,
+              simpleQuantity: 0,
+              quantityDetail: undefined,
+            });
+          }
+        } else {
+          console.error("❌ Failed to delete item:", itemId);
+          // Keep modal open so user can try again
+        }
+      } catch (error) {
+        console.error("❌ Error during item deletion:", error);
+        // Keep modal open so user can try again
+      }
+    },
+    [onRemoveItem, editState.itemId]
+  );
 
   // ✅ Enhanced loading and error states
   if (isLoading) {
@@ -432,7 +498,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         filteredCount={filteredAndSortedInventory.length}
       />
 
-      {/* ✅ Enhanced Inventory List with all detailed quantity callbacks */}
+      {/* ✅ Enhanced Inventory List with updated remove handler */}
       <InventoryList
         items={filteredAndSortedInventory}
         totalCount={inventory.length}
@@ -440,20 +506,28 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         editQuantity={editState.simpleQuantity}
         onEditStart={handleEditStart}
         onEditSave={handleEditSave}
-        onEditQuantityDetailSave={handleEditQuantityDetailSave} // ✅ Fixed callback
+        onEditQuantityDetailSave={handleEditQuantityDetailSave}
         onEditCancel={handleEditCancel}
         onEditQuantityChange={handleEditQuantityChange}
-        onEditQuantityDetailChange={handleEditQuantityDetailChange} // ✅ New callback
+        onEditQuantityDetailChange={handleEditQuantityDetailChange}
         onQuickAdjust={handleQuickAdjust}
-        onRemoveItem={onRemoveItem}
+        onRemoveItem={handleShowDeleteConfirmation} // ✅ Changed to show confirmation instead of direct removal
       />
 
-      {/* Confirm Clear Dialog */}
+      {/* Confirm Clear All Dialog (existing) */}
       <ConfirmDeleteDialog
         isOpen={showConfirmClear}
         itemCount={inventory.length}
         onConfirm={handleConfirmClear}
         onCancel={() => setShowConfirmClear(false)}
+      />
+
+      {/* ✅ NEW: Confirm Delete Individual Item Dialog */}
+      <ConfirmDeleteItemDialog
+        isOpen={showConfirmDeleteItem}
+        item={itemToDelete}
+        onConfirm={handleConfirmDeleteItem}
+        onCancel={handleCancelDeleteItem}
       />
     </div>
   );

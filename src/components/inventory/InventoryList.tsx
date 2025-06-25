@@ -1,4 +1,4 @@
-// src/components/inventory/InventoryList.tsx - Enhanced Version
+// src/components/inventory/InventoryList.tsx - Enhanced Version with Individual Delete Confirmation Support
 "use client";
 
 import React from "react";
@@ -19,13 +19,14 @@ interface InventoryListProps {
   ) => boolean;
   onEditCancel: () => void;
   onEditQuantityChange: (quantity: number) => void;
-  onEditQuantityDetailChange?: (quantityDetail: QuantityDetail) => void; // ✅ New prop
+  onEditQuantityDetailChange?: (quantityDetail: QuantityDetail) => void;
   onQuickAdjust: (
     itemId: string,
     currentQuantity: number,
     delta: number
   ) => void;
-  onRemoveItem: (itemId: string) => boolean;
+  // ✅ UPDATED: Changed return type from boolean to void for confirmation flow
+  onRemoveItem: (itemId: string) => void;
 }
 
 export const InventoryList: React.FC<InventoryListProps> = ({
@@ -38,7 +39,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
   onEditQuantityDetailSave,
   onEditCancel,
   onEditQuantityChange,
-  onEditQuantityDetailChange, // ✅ Receive new prop
+  onEditQuantityDetailChange,
   onQuickAdjust,
   onRemoveItem,
 }) => {
@@ -77,13 +78,14 @@ export const InventoryList: React.FC<InventoryListProps> = ({
             editQuantity={editQuantity}
             onEditStart={() => onEditStart(item)}
             onEditSave={onEditSave}
-            onEditQuantityDetailSave={onEditQuantityDetailSave} // ✅ Pass through
+            onEditQuantityDetailSave={onEditQuantityDetailSave}
             onEditCancel={onEditCancel}
             onEditQuantityChange={onEditQuantityChange}
-            onEditQuantityDetailChange={onEditQuantityDetailChange} // ✅ Pass new callback
+            onEditQuantityDetailChange={onEditQuantityDetailChange}
             onQuickAdjust={(delta) =>
               onQuickAdjust(item.id, item.quantity, delta)
             }
+            // ✅ UPDATED: Pass itemId to onRemoveItem (now triggers confirmation modal)
             onRemove={() => onRemoveItem(item.id)}
           />
         ))}

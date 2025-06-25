@@ -1,4 +1,4 @@
-// Path: src/components/inventory/InventoryListItem.tsx - แสดง description สำหรับสินค้าใหม่
+// Path: src/components/inventory/InventoryListItem.tsx - Enhanced with Individual Delete Confirmation Support
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -29,6 +29,7 @@ interface InventoryListItemProps {
   onEditQuantityChange: (quantity: number) => void;
   onEditQuantityDetailChange?: (quantityDetail: QuantityDetail) => void;
   onQuickAdjust: (delta: number) => void;
+  // ✅ UPDATED: Now triggers confirmation modal instead of direct deletion
   onRemove: () => void;
 }
 
@@ -266,6 +267,13 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     console.log("🔄 Reset state:", resetState);
     setEditState(resetState);
     onEditCancel();
+  };
+
+  // ✅ UPDATED: Handle delete with confirmation flow
+  const handleDelete = () => {
+    console.log("🗑️ Triggering delete confirmation for item:", item.id);
+    // This now triggers the confirmation modal instead of direct deletion
+    onRemove();
   };
 
   // ✅ Render quantity display based on item data - Unified horizontal layout
@@ -590,7 +598,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
                 <Edit3 size={16} />
               </button>
               <button
-                onClick={onRemove}
+                onClick={handleDelete}
                 className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors touch-button"
                 title="ลบรายการ"
               >
