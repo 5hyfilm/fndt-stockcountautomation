@@ -1,4 +1,4 @@
-// Path: src/components/inventory/InventoryListItem.tsx - Fixed Major Unit Edit Issue
+// Path: src/components/inventory/InventoryListItem.tsx - Updated F/FG Display Format
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -124,6 +124,30 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  // ✅ Helper function to determine if item is a new product
+  const isNewProduct = (item: InventoryItem): boolean => {
+    return (
+      item.materialCode?.startsWith("new_") ||
+      item.brand === "เพิ่มใหม่" ||
+      item.id?.startsWith("new_") ||
+      !item.materialCode ||
+      item.materialCode === ""
+    );
+  };
+
+  // ✅ NEW: Generate product code display for new products
+  const getProductCodeDisplay = (item: InventoryItem): string => {
+    if (isNewProduct(item)) {
+      // สำหรับสินค้าใหม่ แสดงเป็น "F/FG Prod (รหัสสินค้า)"
+      const fgCode = item.productName || "NEW";
+
+      return `${fgCode}`;
+    } else {
+      // สำหรับสินค้าเดิม แสดงเป็น materialCode ปกติ
+      return item.materialCode || item.barcode || "";
+    }
   };
 
   // ✅ Get barcode type configuration
@@ -525,11 +549,16 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
               {item.productName}
             </h3>
             <div className="text-sm text-gray-600 space-y-1">
-              <p className="truncate">
-                รหัส: {item.materialCode || item.barcode}
-              </p>
+              {/* ✅ UPDATED: Use new product code display format */}
+              <p className="truncate">รหัส: {getProductCodeDisplay(item)}</p>
               <p className="truncate">หมวดหมู่: {item.productGroup}</p>
               {item.brand && <p className="truncate">แบรนด์: {item.brand}</p>}
+              {/* ✅ NEW: Show indicator for new products */}
+              {isNewProduct(item) && (
+                <span className="inline-block text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium">
+                  สินค้าใหม่
+                </span>
+              )}
             </div>
           </div>
         </div>
