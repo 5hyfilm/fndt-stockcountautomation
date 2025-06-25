@@ -1,4 +1,4 @@
-// Path: src/components/InventoryDisplay.tsx - Fixed Major Unit Edit Issue
+// Path: src/components/InventoryDisplay.tsx - Added F/FG Code Sorting
 "use client";
 
 import React, { useState, useMemo, useCallback } from "react";
@@ -40,7 +40,8 @@ interface EditState {
   quantityDetail?: QuantityDetail;
 }
 
-type SortBy = "name" | "quantity" | "date";
+// ✅ Updated SortBy type to include fgCode
+type SortBy = "name" | "quantity" | "date" | "fgCode";
 type SortOrder = "asc" | "desc";
 
 export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
@@ -56,7 +57,29 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   onClearError,
   onSearch,
 }) => {
-  // ✅ Enhanced state management
+  // ✅ Helper function to determine if item is a new product
+  const isNewProduct = useCallback((item: InventoryItem): boolean => {
+    return (
+      item.materialCode?.startsWith("new_") ||
+      item.brand === "เพิ่มใหม่" ||
+      item.id?.startsWith("new_") ||
+      !item.materialCode ||
+      item.materialCode === ""
+    );
+  }, []);
+
+  // ✅ Helper function to get F/FG code for sorting
+  const getFgCode = useCallback(
+    (item: InventoryItem): string => {
+      if (isNewProduct(item)) {
+        return item.productName || "NEW";
+      }
+      return item.materialCode || item.barcode || "";
+    },
+    [isNewProduct]
+  );
+
+  // ✅ Enhanced state management - Changed default to fgCode sorting
   const [searchTerm, setSearchTerm] = useState("");
   const [editState, setEditState] = useState<EditState>({
     itemId: null,
@@ -67,11 +90,13 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
   const [showSummary, setShowSummary] = useState(false);
-  const [sortBy, setSortBy] = useState<SortBy>("date");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  // ✅ Changed default sorting from "date" to "fgCode"
+  const [sortBy, setSortBy] = useState<SortBy>("fgCode");
+  // ✅ Changed default order from "desc" to "asc" for alphabetical sorting
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [isExporting, setIsExporting] = useState(false);
 
-  // ✅ Enhanced filtered and sorted inventory with proper field names
+  // ✅ Enhanced filtered and sorted inventory with F/FG code sorting
   const filteredAndSortedInventory = useMemo(() => {
     let filtered = [...inventory];
 
@@ -114,6 +139,15 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
             new Date(a.lastUpdated).getTime() -
             new Date(b.lastUpdated).getTime();
           break;
+        // ✅ New case for F/FG code sorting
+        case "fgCode":
+          const aFgCode = getFgCode(a);
+          const bFgCode = getFgCode(b);
+          comparison = aFgCode.localeCompare(bFgCode, "th", {
+            numeric: true, // Handle mixed alphanumeric codes like ABC001, ABC002
+            sensitivity: "base", // Case insensitive
+          });
+          break;
       }
 
       return sortOrder === "asc" ? comparison : -comparison;
@@ -128,6 +162,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
     sortBy,
     sortOrder,
     onSearch,
+    getFgCode, // ✅ Added dependency
   ]);
 
   // ✅ Enhanced event handlers

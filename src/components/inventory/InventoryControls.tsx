@@ -1,4 +1,4 @@
-// ./src/components/inventory/InventoryControls.tsx
+// Path: src/components/inventory/InventoryControls.tsx - Added F/FG Code Sort Option
 "use client";
 
 import React from "react";
@@ -26,7 +26,8 @@ interface InventoryControlsProps {
   onCategoryChange: (category: string) => void;
   selectedBrand: string;
   onBrandChange: (brand: string) => void;
-  sortBy: "name" | "quantity" | "date";
+  // ✅ Updated sortBy type to include fgCode
+  sortBy: "name" | "quantity" | "date" | "fgCode";
   sortOrder: "asc" | "desc";
   onSortChange: (sortBy: string, sortOrder: string) => void;
   onClearFilters: () => void;
@@ -264,6 +265,8 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
                     onChange={(e) => onSortChange(e.target.value, sortOrder)}
                     className="flex-1 p-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-fn-green transition-all duration-200 text-sm"
                   >
+                    {/* ✅ Added F/FG Code option as the first option (new default) */}
+                    <option value="fgCode">รหัสสินค้า F/FG</option>
                     <option value="name">ชื่อสินค้า</option>
                     <option value="quantity">จำนวน</option>
                     <option value="date">วันที่เพิ่ม</option>
@@ -273,6 +276,9 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
                       onSortChange(sortBy, sortOrder === "asc" ? "desc" : "asc")
                     }
                     className="px-3 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
+                    title={`เปลี่ยนเป็น ${
+                      sortOrder === "asc" ? "มากไปน้อย" : "น้อยไปมาก"
+                    }`}
                   >
                     {sortOrder === "asc" ? (
                       <ChevronUp size={16} />
