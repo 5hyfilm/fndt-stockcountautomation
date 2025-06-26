@@ -153,7 +153,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
           const aFgCode = getFgCode(a);
           const bFgCode = getFgCode(b);
           comparison = aFgCode.localeCompare(bFgCode, "th", {
-            numeric: true, // Handle mixed alphanumeric codes like ABC001, ABC002
+            numeric: false, // Handle mixed alphanumeric codes like ABC001, ABC002
             sensitivity: "base", // Case insensitive
           });
           break;
