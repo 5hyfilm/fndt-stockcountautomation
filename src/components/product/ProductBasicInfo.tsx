@@ -63,7 +63,7 @@ export const ProductBasicInfo: React.FC<ProductBasicInfoProps> = ({
           <div className="bg-gray-50 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
               <Weight size={16} className="text-gray-500" />
-              <span className="text-sm text-gray-600">ขนาดแพ็ค</span>
+              <span className="text-sm text-gray-600">ขนาดสินค้า</span>
             </div>
             <p className="font-semibold text-gray-900 text-sm leading-tight">
               {sizeDisplay}
@@ -85,7 +85,7 @@ export const ProductBasicInfo: React.FC<ProductBasicInfoProps> = ({
               currentInventoryQuantity > 0 ? "text-green-600" : "text-gray-500"
             }`}
           >
-            {formatQuantity(currentInventoryQuantity, "ชิ้น")}
+            {formatQuantity(currentInventoryQuantity, "units")}
           </p>
         </div>
       </div>
