@@ -321,10 +321,12 @@ export const useInventoryExport = ({
     const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
     const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-"); // HH-MM-SS
 
-    let fileName = `inventory_${dateStr}_${timeStr}`;
+    // ✅ เปลี่ยนรูปแบบชื่อไฟล์ใหม่
+    let fileName = `FN_Stock_${dateStr}_${timeStr}`;
 
     if (employeeContext) {
-      fileName += `_${employeeContext.branchCode}`;
+      // ✅ ใส่ branchCode ไว้หน้า date/time
+      fileName = `FN_Stock_${employeeContext.branchCode}_${dateStr}_${timeStr}`;
     }
 
     return `${fileName}.csv`;
