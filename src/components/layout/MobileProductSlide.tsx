@@ -309,21 +309,33 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
           </div>
         </div>
 
-        {/* 🚫 Removed Scan Next Button - Only show Add New Product button when needed */}
-        {shouldShowAddNewProductButton() && (
+        {/* Action Buttons - Only show when product is NOT found */}
+        {!product && productError && (
           <div
             className="px-4 py-4 border-t border-gray-100 bg-white"
             style={{
               paddingBottom: "max(16px, env(safe-area-inset-bottom))",
             }}
           >
-            <button
-              onClick={handleAddNewProduct}
-              className="w-full bg-fn-green text-white py-3 px-4 rounded-lg font-medium transition-colors hover:bg-fn-green/90 flex items-center justify-center gap-2"
-            >
-              <Plus size={20} />
-              เพิ่มสินค้าใหม่
-            </button>
+            <div className="space-y-3">
+              {/* Show Add New Product button if callback exists */}
+              {shouldShowAddNewProductButton() && (
+                <button
+                  onClick={handleAddNewProduct}
+                  className="w-full bg-fn-green text-white py-3 px-4 rounded-lg font-medium transition-colors hover:bg-fn-green/90 flex items-center justify-center gap-2"
+                >
+                  <Plus size={20} />
+                  เพิ่มสินค้าใหม่
+                </button>
+              )}
+              {/* Always show Scan Again button when product not found */}
+              <button
+                onClick={onClose}
+                className="w-full bg-gray-600 text-white py-3 px-4 rounded-lg font-medium transition-colors hover:bg-gray-700"
+              >
+                สแกนใหม่
+              </button>
+            </div>
           </div>
         )}
       </div>
