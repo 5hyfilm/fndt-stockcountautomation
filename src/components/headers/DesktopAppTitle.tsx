@@ -12,7 +12,7 @@ export const DesktopAppTitle: React.FC = () => {
         {/* F&N Logo */}
         {/* <div className="bg-gray-100 backdrop-blur-sm rounded-xl p-2 border border-gray-300 shadow-sm"> */}
         <Image
-          src="/fn-logo.png"
+          src="/fn-barcode-scanner.png"
           alt="F&N Logo"
           width={48}
           height={48}
