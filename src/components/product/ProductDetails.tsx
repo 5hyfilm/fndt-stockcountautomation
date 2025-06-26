@@ -40,7 +40,7 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
         <div className="space-y-3 border-t pt-4">
           {product.sku && (
             <div className="flex justify-between">
-              <span className="text-sm text-gray-600">SKU:</span>
+              <span className="text-sm text-gray-600">F/FG:</span>
               <span className="text-sm font-mono">{product.sku}</span>
             </div>
           )}

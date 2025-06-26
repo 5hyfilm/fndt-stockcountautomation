@@ -214,15 +214,6 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
     }
   };
 
-  // Dynamic close button text
-  const getCloseButtonText = () => {
-    if (product) {
-      return "สแกนต่อ";
-    } else {
-      return "สแกนใหม่";
-    }
-  };
-
   // Handler สำหรับเพิ่มสินค้าใหม่
   const handleAddNewProduct = () => {
     if (onAddNewProduct && scannedBarcode) {
@@ -318,42 +309,23 @@ export const MobileProductSlide: React.FC<MobileProductSlideProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons - Dynamic based on product status */}
-        <div
-          className="px-4 py-4 border-t border-gray-100 bg-white"
-          style={{
-            paddingBottom: "max(16px, env(safe-area-inset-bottom))",
-          }}
-        >
-          {product ? (
-            // Show "Scan Next" when product is found
+        {/* 🚫 Removed Scan Next Button - Only show Add New Product button when needed */}
+        {shouldShowAddNewProductButton() && (
+          <div
+            className="px-4 py-4 border-t border-gray-100 bg-white"
+            style={{
+              paddingBottom: "max(16px, env(safe-area-inset-bottom))",
+            }}
+          >
             <button
-              onClick={onClose}
-              className="w-full bg-fn-green text-white py-3 px-4 rounded-lg font-medium transition-colors hover:bg-fn-green/90"
+              onClick={handleAddNewProduct}
+              className="w-full bg-fn-green text-white py-3 px-4 rounded-lg font-medium transition-colors hover:bg-fn-green/90 flex items-center justify-center gap-2"
             >
-              {getCloseButtonText()}
+              <Plus size={20} />
+              เพิ่มสินค้าใหม่
             </button>
-          ) : (
-            // Show different options when product is not found
-            <div className="space-y-3">
-              {shouldShowAddNewProductButton() && (
-                <button
-                  onClick={handleAddNewProduct}
-                  className="w-full bg-fn-green text-white py-3 px-4 rounded-lg font-medium transition-colors hover:bg-fn-green/90 flex items-center justify-center gap-2"
-                >
-                  <Plus size={20} />
-                  เพิ่มสินค้าใหม่
-                </button>
-              )}
-              <button
-                onClick={onClose}
-                className="w-full bg-gray-600 text-white py-3 px-4 rounded-lg font-medium transition-colors hover:bg-gray-700"
-              >
-                {getCloseButtonText()}
-              </button>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </>
   );
