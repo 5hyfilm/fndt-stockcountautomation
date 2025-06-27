@@ -160,14 +160,14 @@ export const useInventoryExport = ({
       }
 
       // เก็บบาร์โค้ดที่สแกน
-      if (item.barcode && !groupedItem.scannedBarcodes.includes(item.barcode)) {
-        groupedItem.scannedBarcodes.push(item.barcode);
-      }
+      // if (item.barcode && !groupedItem.scannedBarcodes.includes(item.barcode)) {
+      //   groupedItem.scannedBarcodes.push(item.barcode);
+      // }
 
       // อัพเดทเวลาล่าสุด
-      if (new Date(item.lastUpdated) > new Date(groupedItem.lastUpdated)) {
-        groupedItem.lastUpdated = item.lastUpdated;
-      }
+      // if (new Date(item.lastUpdated) > new Date(groupedItem.lastUpdated)) {
+      //   groupedItem.lastUpdated = item.lastUpdated;
+      // }
     });
 
     return Array.from(grouped.values());
@@ -221,12 +221,10 @@ export const useInventoryExport = ({
           headers.push("จำนวน CS", "จำนวน DSP", "จำนวน EA");
         }
 
-        headers.push(
-          "จำนวนรวม",
-          "สินค้าใหม่",
-          "บาร์โค้ดที่สแกน",
-          "อัพเดทล่าสุด"
-        );
+        headers
+          .push
+          // "จำนวนรวม"
+          ();
 
         csvContent +=
           headers.map(escapeCsvField).join(config.csvDelimiter) + "\n";
@@ -253,12 +251,10 @@ export const useInventoryExport = ({
             );
           }
 
-          row.push(
-            totalQuantity.toString(),
-            item.isNewProduct ? "ใช่" : "ไม่",
-            item.scannedBarcodes.join("; "),
-            new Date(item.lastUpdated).toLocaleDateString("th-TH")
-          );
+          row
+            .push
+            // totalQuantity.toString()
+            ();
 
           csvContent +=
             row.map(escapeCsvField).join(config.csvDelimiter) + "\n";
@@ -277,9 +273,9 @@ export const useInventoryExport = ({
               item.quantities.ea,
             0
           )}\n`;
-          csvContent += `สินค้าใหม่,${
-            groupedData.filter((item) => item.isNewProduct).length
-          }\n`;
+          // csvContent += `สินค้าใหม่,${
+          //   groupedData.filter((item) => item.isNewProduct).length
+          // }\n`;
         }
 
         return csvContent;
