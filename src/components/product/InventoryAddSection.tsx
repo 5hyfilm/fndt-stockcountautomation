@@ -1,10 +1,10 @@
-// src/components/product/InventoryAddSection.tsx - Simplified Version
+// src/components/product/InventoryAddSection.tsx - Phase 2: Integrated with Multi-Unit API
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { Archive, Plus, Minus, Check, Package2, Hash } from "lucide-react";
 import { Product } from "../../types/product";
-import { QuantityInput, QuantityDetail } from "../../hooks/inventory/types";
+import { QuantityInput } from "../../hooks/inventory/types";
 
 interface InventoryAddSectionProps {
   product: Product;
@@ -12,10 +12,10 @@ interface InventoryAddSectionProps {
   onAddToInventory: (
     product: Product,
     quantityInput: QuantityInput,
-    barcodeType?: "ea" | "dsp" | "cs"
+    barcodeType: "cs" | "dsp" | "ea"
   ) => boolean;
   isVisible: boolean;
-  barcodeType?: "ea" | "dsp" | "cs";
+  barcodeType?: "cs" | "dsp" | "ea";
 }
 
 // ✅ Unit configuration for different barcode types
@@ -108,31 +108,21 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
     }
   };
 
-  // ✅ Handle adding to inventory
+  // ✅ Handle adding to inventory with new API
   const handleAddToInventory = async () => {
     setIsAdding(true);
     try {
-      let quantityInput: QuantityInput;
+      // ✅ Use new multi-unit API format
+      const quantityInput: QuantityInput = {
+        quantity: quantity,
+        unit: barcodeType,
+      };
 
-      // ✅ For all barcode types, use simple quantity approach
-      if (barcodeType === "ea") {
-        // For EA, use simple number
-        quantityInput = quantity;
-      } else {
-        // For DSP/CS, create QuantityDetail with no remainder
-        const quantityDetail: QuantityDetail = {
-          major: quantity,
-          remainder: 0, // ✅ No remainder for simplified approach
-          scannedType: barcodeType,
-        };
-        quantityInput = quantityDetail;
-      }
-
-      console.log("🔘 Adding with simplified quantity:", {
+      console.log("🔘 Adding with multi-unit API:", {
         product: product.name,
         quantity: quantity,
-        barcodeType,
-        inputType: barcodeType === "ea" ? "simple" : "detail",
+        unit: barcodeType,
+        materialCode: product.id || product.barcode,
       });
 
       const success = onAddToInventory(product, quantityInput, barcodeType);
@@ -172,9 +162,22 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
             <p className="text-green-800 font-medium">
               เพิ่มใน Inventory สำเร็จ!
             </p>
+            <p className="text-green-600 text-sm">
+              รายการจะถูกรวมตาม SKU เดียวกัน
+            </p>
           </div>
         </div>
       )}
+
+      {/* Product Info Summary */}
+      <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+        <div className="text-sm">
+          <div className="font-medium text-blue-900">{product.name}</div>
+          <div className="text-blue-700 text-xs mt-1">
+            Material Code: {product.id || product.barcode}
+          </div>
+        </div>
+      </div>
 
       {/* Quantity Input Section */}
       <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
@@ -263,12 +266,18 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
         </div>
       </div>
 
-      {/* ✅ Summary display */}
-      <div className="text-xs text-gray-500 text-center">
-        จะเพิ่ม:{" "}
-        <span className="font-medium text-gray-700">
-          {quantity} {unitConfig.label}
-        </span>
+      {/* ✅ Summary display with multi-unit info */}
+      <div className="text-xs text-gray-500 text-center space-y-1">
+        <div>
+          จะเพิ่ม:{" "}
+          <span className="font-medium text-gray-700">
+            {quantity} {unitConfig.label}
+          </span>
+        </div>
+        <div className="flex items-center justify-center gap-1">
+          <span>📦</span>
+          <span>รายการจะรวมตาม Material Code</span>
+        </div>
       </div>
     </div>
   );

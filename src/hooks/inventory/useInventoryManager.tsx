@@ -1,153 +1,274 @@
-// src/hooks/inventory/useInventoryManager.tsx - Fix: Proper Export Integration
+// src/hooks/inventory/useInventoryManager.tsx - Phase 2: Multi-Unit Manager
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useInventoryStorage } from "./useInventoryStorage";
-import { useInventoryOperations } from "./useInventoryOperations";
-import { useInventorySummary } from "./useInventorySummary";
-import { useInventoryExport } from "./useInventoryExport";
+import { useState, useEffect, useMemo } from "react";
 import {
   InventoryItem,
-  EmployeeContext,
+  InventorySummary,
   UseInventoryManagerReturn,
+  QuantityInput,
+  StorageConfig,
+  migrateOldInventoryItem,
 } from "./types";
+import { Product } from "../../types/product";
+import { useInventoryStorage } from "./useInventoryStorage";
+import { useInventoryOperations } from "./useInventoryOperations";
 
-export const useInventoryManager = (
-  employeeContext?: EmployeeContext
-): UseInventoryManagerReturn => {
-  // State
+const STORAGE_CONFIG: StorageConfig = {
+  storageKey: "fn_inventory_data_v2", // ✅ เปลี่ยน key ใหม่
+  versionKey: "fn_inventory_version_v2",
+  currentVersion: "2.0", // ✅ Version ใหม่
+};
+
+export const useInventoryManager = (): UseInventoryManagerReturn => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Sub-hooks
-  const storage = useInventoryStorage();
-  const { summary } = useInventorySummary({ inventory });
-
-  // Destructure storage properties to avoid dependency array warnings
+  // ✅ Storage operations
   const {
-    loadInventory,
+    loadInventory: loadFromStorage,
     saveInventory,
-    isLoading,
-    clearError: clearStorageError,
-    clearStorage,
-  } = storage;
+    isLoading: storageLoading,
+    error: storageError,
+  } = useInventoryStorage(STORAGE_CONFIG);
 
-  const operations = useInventoryOperations({
+  // ✅ Business operations
+  const {
+    addOrUpdateMultiUnitItem,
+    updateUnitQuantity,
+    findItemByMaterialCode,
+    addOrUpdateItem, // legacy
+    updateItemQuantity, // legacy
+    findItemByBarcode, // legacy
+    removeItem,
+    searchItems,
+  } = useInventoryOperations({
     inventory,
     setInventory,
     saveInventory,
-    employeeContext,
     setError,
   });
 
-  // ✅ Fix: Properly use the export hook
-  const exportHook = useInventoryExport({
-    inventory,
-    employeeContext,
-    setError,
-  });
+  // ✅ Data migration helper
+  const migrateOldData = (oldData: any[]): InventoryItem[] => {
+    console.log("🔄 Migrating old inventory data...");
 
-  // Load inventory on mount
-  useEffect(() => {
-    const loadedInventory = loadInventory();
-    setInventory(loadedInventory);
-  }, [loadInventory]);
+    try {
+      return oldData.map((oldItem) => {
+        // ตรวจสอบว่าเป็นข้อมูลเก่าหรือไม่
+        if (oldItem.quantities) {
+          // ข้อมูลใหม่แล้ว ไม่ต้อง migrate
+          return oldItem as InventoryItem;
+        }
 
-  // Auto-save inventory when it changes (debounced)
-  useEffect(() => {
-    if (!isLoading && inventory.length > 0) {
-      const timeoutId = setTimeout(() => {
-        saveInventory(inventory);
-      }, 1000); // Auto-save after 1 second of no changes
-
-      return () => clearTimeout(timeoutId);
+        // Migrate ข้อมูลเก่า
+        const barcodeType = oldItem.barcodeType || "ea";
+        return migrateOldInventoryItem(oldItem, barcodeType);
+      });
+    } catch (error) {
+      console.error("❌ Migration error:", error);
+      return [];
     }
-  }, [inventory, isLoading, saveInventory]);
+  };
 
-  // Clear error (combining all error sources)
+  // ✅ Load inventory on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // ลองโหลดข้อมูลใหม่ก่อน
+        const newData = loadFromStorage();
+
+        if (newData && newData.length > 0) {
+          console.log("📦 Loaded new format data:", newData.length, "items");
+          const migratedData = migrateOldData(newData);
+          setInventory(migratedData);
+        } else {
+          // ถ้าไม่มีข้อมูลใหม่ ลองโหลดข้อมูลเก่า
+          const oldStorageKey = "fn_inventory_data"; // key เก่า
+          const oldDataStr = localStorage.getItem(oldStorageKey);
+
+          if (oldDataStr) {
+            console.log("🔄 Found old format data, migrating...");
+            const oldData = JSON.parse(oldDataStr);
+            const migratedData = migrateOldData(oldData);
+
+            if (migratedData.length > 0) {
+              setInventory(migratedData);
+              // บันทึกข้อมูลใหม่
+              saveInventory(migratedData);
+              console.log(
+                "✅ Migration completed:",
+                migratedData.length,
+                "items"
+              );
+            }
+          } else {
+            console.log("📦 No existing data found, starting fresh");
+            setInventory([]);
+          }
+        }
+      } catch (error) {
+        console.error("❌ Error loading inventory:", error);
+        setError("ไม่สามารถโหลดข้อมูล inventory ได้");
+        setInventory([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [loadFromStorage, saveInventory]);
+
+  // ✅ Update loading state from storage
+  useEffect(() => {
+    setIsLoading(storageLoading);
+  }, [storageLoading]);
+
+  // ✅ Update error state from storage
+  useEffect(() => {
+    if (storageError) {
+      setError(storageError);
+    }
+  }, [storageError]);
+
+  // ✅ Generate inventory summary
+  const summary: InventorySummary = useMemo(() => {
+    const totalItems = inventory.length; // จำนวน SKU
+    const totalProducts = inventory.length; // เหมือนกัน
+
+    const lastUpdate = inventory.reduce((latest, item) => {
+      return item.lastUpdated > latest ? item.lastUpdated : latest;
+    }, inventory[0]?.lastUpdated || new Date().toISOString());
+
+    // Category distribution
+    const categories: Record<string, number> = {};
+    inventory.forEach((item) => {
+      const category = item.category || "ไม่ระบุ";
+      categories[category] = (categories[category] || 0) + 1;
+    });
+
+    // Brand distribution
+    const brands: Record<string, number> = {};
+    inventory.forEach((item) => {
+      const brand = item.brand || "ไม่ระบุ";
+      brands[brand] = (brands[brand] || 0) + 1;
+    });
+
+    // ✅ NEW: Multi-unit quantity breakdown
+    let totalCS = 0;
+    let totalDSP = 0;
+    let totalEA = 0;
+    let itemsWithMultipleUnits = 0;
+
+    inventory.forEach((item) => {
+      const { cs = 0, dsp = 0, ea = 0 } = item.quantities;
+
+      totalCS += cs;
+      totalDSP += dsp;
+      totalEA += ea;
+
+      // นับ SKU ที่มีมากกว่า 1 หน่วย
+      const activeUnits = [cs > 0, dsp > 0, ea > 0].filter(Boolean).length;
+      if (activeUnits > 1) {
+        itemsWithMultipleUnits++;
+      }
+    });
+
+    return {
+      totalItems,
+      totalProducts,
+      lastUpdate,
+      categories,
+      brands,
+      quantityBreakdown: {
+        totalCS,
+        totalDSP,
+        totalEA,
+        itemsWithMultipleUnits,
+      },
+    };
+  }, [inventory]);
+
+  // ✅ Clear inventory
+  const clearInventory = (): boolean => {
+    try {
+      setInventory([]);
+      return saveInventory([]);
+    } catch (error) {
+      console.error("❌ Error clearing inventory:", error);
+      setError("เกิดข้อผิดพลาดในการล้างข้อมูล");
+      return false;
+    }
+  };
+
+  // ✅ Export inventory
+  const exportInventory = (): boolean => {
+    try {
+      // TODO: Implement export logic
+      console.log("📤 Export inventory:", inventory);
+      return true;
+    } catch (error) {
+      console.error("❌ Error exporting inventory:", error);
+      setError("เกิดข้อผิดพลาดในการ export ข้อมูล");
+      return false;
+    }
+  };
+
+  // ✅ Clear error
   const clearError = () => {
     setError(null);
-    clearStorageError();
   };
 
-  // Enhanced load inventory that merges storage and local state
-  const loadInventoryData = () => {
-    const loadedData = loadInventory();
-    setInventory(loadedData);
+  // ✅ Reload inventory
+  const loadInventory = () => {
+    const data = loadFromStorage();
+    const migratedData = migrateOldData(data);
+    setInventory(migratedData);
   };
 
-  // Reset all inventory state (for logout)
-  const resetInventoryState = useCallback(() => {
+  // ✅ Reset inventory state
+  const resetInventoryState = (): boolean => {
     try {
-      console.log("🔄 Resetting inventory state...");
-
-      // Clear inventory state
       setInventory([]);
-
-      // Clear any errors
       setError(null);
-      clearStorageError();
-
-      // Clear storage
-      clearStorage();
-
-      console.log("✅ Inventory state reset successfully");
+      setIsLoading(false);
       return true;
     } catch (error) {
       console.error("❌ Error resetting inventory state:", error);
-
-      // Force reset even if there's an error
-      setInventory([]);
-      setError(null);
-
       return false;
     }
-  }, [clearStorageError, clearStorage]);
-
-  // ✅ Debug logging for export hook
-  console.log("🔍 Export hook result:", {
-    hasExportInventory: !!exportHook?.exportInventory,
-    hookKeys: exportHook ? Object.keys(exportHook) : "hook is undefined",
-  });
+  };
 
   return {
     // State
     inventory,
     isLoading,
-    error: error || storage.error,
+    error,
     summary,
 
-    // CRUD Operations (from operations hook)
-    addOrUpdateItem: operations.addOrUpdateItem,
-    updateItemQuantity: operations.updateItemQuantity,
-    updateItemQuantityDetail: operations.updateItemQuantityDetail, // ✅ Add new method
-    removeItem: operations.removeItem,
-    clearInventory: operations.clearInventory,
+    // ✅ NEW: Multi-unit operations (หลัก)
+    addOrUpdateMultiUnitItem,
+    updateUnitQuantity,
+    findItemByMaterialCode,
 
-    // Search and utilities (from operations hook)
-    findItemByBarcode: operations.findItemByBarcode,
-    searchItems: operations.searchItems,
+    // ✅ LEGACY: Backward compatibility (จะค่อย ๆ เอาออก)
+    addOrUpdateItem,
+    updateItemQuantity,
+    findItemByBarcode,
 
-    // ✅ Fix: Ensure export function is properly available
-    exportInventory:
-      exportHook?.exportInventory ||
-      (() => {
-        console.error("❌ exportInventory function is not available");
-        setError("ฟังก์ชันส่งออกข้อมูลไม่พร้อมใช้งาน");
-        return false;
-      }),
+    // Core operations
+    removeItem,
+    clearInventory,
+    searchItems,
+    exportInventory,
 
-    // Error handling and utilities
+    // Utilities
     clearError,
-    loadInventory: loadInventoryData,
+    loadInventory,
     resetInventoryState,
   };
 };
-
-// Re-export types for convenience
-export type {
-  InventoryItem,
-  InventorySummary,
-  EmployeeContext,
-  UseInventoryManagerReturn,
-} from "./types";
