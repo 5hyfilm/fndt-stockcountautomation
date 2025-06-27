@@ -892,13 +892,13 @@ export default function BarcodeDetectionPage() {
                 summary={summary}
                 isLoading={isLoadingInventory}
                 error={inventoryError}
-                onUpdateQuantity={handleUpdateItemQuantity}
-                onUpdateQuantityDetail={handleUpdateItemQuantityDetail}
-                // ✅ NEW: Add multi-unit update handler
-                onUpdateUnitQuantity={handleUpdateUnitQuantity}
+                // ✅ แก้ไข: ใช้ prop names ที่ถูกต้องตาม interface
+                onAddOrUpdateItem={addOrUpdateItem} // ✅ เพิ่ม prop ที่ขาดหาย
+                onUpdateItemQuantity={updateItemQuantity} // ✅ แก้จาก onUpdateQuantity
+                onUpdateItemQuantityDetail={updateItemQuantityDetail} // ✅ แก้จาก onUpdateQuantityDetail
                 onRemoveItem={removeItem}
                 onClearInventory={clearInventory}
-                onExportInventory={handleExportInventory}
+                onExport={handleExportInventory} // ✅ แก้จาก onExportInventory
                 onClearError={clearInventoryError}
                 onSearch={searchItems}
               />
