@@ -7,7 +7,6 @@ import {
   InventoryItem,
   QuantityInput,
   MultiUnitQuantities,
-  migrateOldInventoryItem,
   getTotalQuantityAllUnits,
 } from "./types";
 

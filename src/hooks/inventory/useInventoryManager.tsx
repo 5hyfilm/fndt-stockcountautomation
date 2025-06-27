@@ -6,12 +6,10 @@ import {
   InventoryItem,
   InventorySummary,
   UseInventoryManagerReturn,
-  QuantityInput,
   QuantityDetail,
   StorageConfig,
   migrateOldInventoryItem,
 } from "./types";
-import { Product } from "../../types/product";
 import { useInventoryStorage } from "./useInventoryStorage";
 import { useInventoryOperations } from "./useInventoryOperations";
 

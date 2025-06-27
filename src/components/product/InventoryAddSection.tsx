@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Archive, Plus, Minus, Check, Package2, Hash } from "lucide-react";
+import { Archive, Plus, Minus, Check, Package2 } from "lucide-react";
 import { Product } from "../../types/product";
 import { QuantityInput } from "../../hooks/inventory/types";
 

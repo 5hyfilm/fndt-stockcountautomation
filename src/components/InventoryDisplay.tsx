@@ -60,7 +60,6 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   isLoading,
   error,
   summary,
-  onAddOrUpdateItem,
   onUpdateItemQuantity,
   onUpdateItemQuantityDetail,
   onRemoveItem,

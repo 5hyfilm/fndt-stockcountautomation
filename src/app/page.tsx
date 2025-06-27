@@ -539,14 +539,6 @@ export default function BarcodeDetectionPage() {
     setNewProductBarcode("");
   };
 
-  // ✅ Enhanced update quantity handler for Phase 2
-  const handleUpdateItemQuantity = (
-    itemId: string,
-    newQuantity: number
-  ): boolean => {
-    return updateItemQuantity(itemId, newQuantity);
-  };
-
   // ✅ FIXED: New handler for updating quantity details (Phase 2)
   const handleUpdateItemQuantityDetail = (
     itemId: string,
