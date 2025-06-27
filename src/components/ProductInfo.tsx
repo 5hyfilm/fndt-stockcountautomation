@@ -1,11 +1,9 @@
-// Path: src/components/ProductInfo.tsx
-// Fix: แก้ไข type compatibility สำหรับ detectedBarcodeType
-
+// src/components/ProductInfo.tsx - Updated with QuantityInput Support
 "use client";
 
 import React, { useState } from "react";
-import { Product, BarcodeType } from "../types/product";
-import { ProductWithMultipleBarcodes } from "../data/types/csvTypes";
+import { Product } from "../types/product";
+import { QuantityInput } from "../hooks/inventory/types"; // ✅ Import QuantityInput
 
 // Import sub-components
 import { ProductHeader } from "./product/ProductHeader";
@@ -23,69 +21,32 @@ import {
 } from "./product/EmptyStates";
 
 interface ProductInfoProps {
-  product: Product | ProductWithMultipleBarcodes | null;
+  product: Product | null;
   barcode?: string;
-  // ✅ FIX: รองรับทั้ง string และ BarcodeType enum
-  detectedBarcodeType?: BarcodeType | "ea" | "dsp" | "cs" | null;
+  barcodeType?: "ea" | "dsp" | "cs";
   isLoading?: boolean;
   error?: string;
   onAddToInventory?: (
     product: Product,
-    quantity: number,
-    barcodeType: BarcodeType
+    quantityInput: QuantityInput, // ✅ Changed from quantity: number to quantityInput: QuantityInput
+    barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
   currentInventoryQuantity?: number;
-
-  // Additional props for enhanced functionality
-  scannedBarcode?: string;
-  fullScreen?: boolean;
-  showHeader?: boolean;
 }
-
-// ✅ NEW: Helper function to convert string to BarcodeType
-const convertToBarcodeType = (
-  type: BarcodeType | "ea" | "dsp" | "cs" | null | undefined
-): BarcodeType | null => {
-  if (!type) return null;
-
-  // ถ้าเป็น string ให้แปลงเป็น enum
-  if (typeof type === "string") {
-    switch (type) {
-      case "ea":
-        return BarcodeType.EA;
-      case "dsp":
-        return BarcodeType.DSP;
-      case "cs":
-        return BarcodeType.CS;
-      default:
-        return null;
-    }
-  }
-
-  // ถ้าเป็น enum อยู่แล้วให้ return ตรงๆ
-  return type;
-};
 
 export const ProductInfo: React.FC<ProductInfoProps> = ({
   product,
   barcode,
-  detectedBarcodeType,
+  barcodeType,
   isLoading,
   error,
   onAddToInventory,
   currentInventoryQuantity = 0,
-  scannedBarcode,
-  fullScreen = false,
-  showHeader = true,
 }) => {
   const [copied, setCopied] = useState(false);
 
-  // ✅ FIX: แปลง detectedBarcodeType ให้เป็น BarcodeType enum
-  const normalizedBarcodeType = convertToBarcodeType(detectedBarcodeType);
-
-  // Enhanced barcode copy function
   const copyBarcode = async () => {
-    const codeToCopy = scannedBarcode || barcode || product?.barcode;
+    const codeToCopy = barcode || product?.barcode;
     if (!codeToCopy) return;
 
     try {
@@ -97,106 +58,68 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
     }
   };
 
-  // ✅ FIX: ใช้ normalizedBarcodeType แทน detectedBarcodeType
-  const shouldShowInventorySection =
-    product && !error && onAddToInventory && normalizedBarcodeType;
+  // Determine if inventory add section should be visible
+  const shouldShowInventorySection = product && !error && onAddToInventory;
 
-  // Enhanced logging for debugging
-  if (process.env.NODE_ENV === "development") {
-    console.log("🔍 ProductInfo Debug:", {
-      hasProduct: !!product,
-      hasError: !!error,
-      hasOnAddToInventory: !!onAddToInventory,
-      originalBarcodeType: detectedBarcodeType,
-      normalizedBarcodeType: normalizedBarcodeType,
-      shouldShowInventorySection,
-    });
-  }
-
-  // Show empty states
+  // Handle different states
   if (isLoading) {
-    return <LoadingState message="กำลังค้นหาข้อมูลสินค้า..." />;
+    return <LoadingState />;
   }
 
-  if (error && !product) {
-    return (
-      <ErrorState
-        error={error}
-        barcode={scannedBarcode || barcode}
-        onRetry={() => window.location.reload()}
-      />
-    );
+  if (error) {
+    return <ErrorState error={error} barcode={barcode} />;
   }
 
-  if (!product && !error && !isLoading) {
+  if (!product && !barcode) {
     return <WaitingScanState />;
   }
 
-  // Handle product not found with scanned barcode
-  if (!product && scannedBarcode) {
+  if (!product && barcode) {
     return (
       <ProductNotFoundState
-        barcode={scannedBarcode}
-        onAddNewProduct={() => {
-          // Handle add new product logic
-          console.log("Add new product for barcode:", scannedBarcode);
-        }}
+        barcode={barcode}
+        onCopyBarcode={copyBarcode}
+        copied={copied}
       />
     );
   }
 
+  // Main product display
   return (
-    <div
-      className={`
-        bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden
-        ${fullScreen ? "h-full" : ""}
-      `}
-    >
-      {/* Header */}
-      {showHeader && (
-        <ProductHeader
-          product={product}
-          detectedBarcodeType={normalizedBarcodeType} // ✅ ใช้ normalized type
-        />
-      )}
+    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+      {/* Product Header */}
+      <ProductHeader product={product!} />
 
       {/* Content */}
-      <div className="p-4 space-y-4">
-        {/* Basic Info */}
+      <div className="p-4 lg:p-6 space-y-4">
+        {/* Basic Product Information */}
         <ProductBasicInfo
-          product={product}
-          detectedBarcodeType={normalizedBarcodeType} // ✅ ใช้ normalized type
-          scannedBarcode={scannedBarcode}
-          onCopyBarcode={copyBarcode}
-          copied={copied}
+          product={product!}
+          currentInventoryQuantity={currentInventoryQuantity}
         />
 
-        {/* ✅ FIX: Inventory Add Section - ใช้ normalizedBarcodeType */}
+        {/* Inventory Add Section */}
         {shouldShowInventorySection && (
           <InventoryAddSection
-            product={product}
-            detectedBarcodeType={normalizedBarcodeType} // ✅ ใช้ normalized type (รับประกันว่าเป็น BarcodeType | null)
-            onAddToInventory={onAddToInventory}
-            isVisible={true}
+            product={product!}
             currentInventoryQuantity={currentInventoryQuantity}
+            onAddToInventory={onAddToInventory!} // ✅ Passes through with new signature
+            isVisible={true}
+            barcodeType={barcodeType}
           />
         )}
 
-        {/* Description */}
-        <ProductDescription product={product} />
+        {/* Product Description */}
+        <ProductDescription product={product!} />
 
         {/* Barcode Information */}
-        <BarcodeInfo
-          product={product}
-          scannedBarcode={scannedBarcode || barcode}
-          detectedBarcodeType={normalizedBarcodeType} // ✅ ใช้ normalized type
-        />
+        <BarcodeInfo product={product!} scannedBarcode={barcode} />
 
-        {/* Product Details */}
-        <ProductDetails product={product} />
+        {/* Additional Product Details */}
+        <ProductDetails product={product!} />
 
         {/* Nutrition Information */}
-        <NutritionInfo product={product} />
+        <NutritionInfo product={product!} />
       </div>
     </div>
   );

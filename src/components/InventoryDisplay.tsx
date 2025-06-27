@@ -1,356 +1,520 @@
-// Path: src/components/InventoryDisplay.tsx
-// Updated to use new table view with grouped inventory items
-
+// Path: src/components/InventoryDisplay.tsx - Added Individual Delete Confirmation Modal
 "use client";
 
 import React, { useState, useMemo, useCallback } from "react";
-import { List, Grid, Table } from "lucide-react";
 import {
   InventoryItem,
-  GroupedInventoryItem,
   InventorySummary,
-  InventoryOperationResult,
-  InventoryUtils,
+  QuantityDetail,
 } from "../hooks/inventory/types";
-import { BarcodeType } from "../types/product";
 import {
   InventoryHeader,
   InventoryControls,
-  InventoryList, // Keep for legacy view
+  InventoryList,
   ConfirmDeleteDialog,
   ErrorAlert,
   LoadingSpinner,
 } from "./inventory";
-import { InventoryTable } from "./inventory/InventoryTable"; // ✅ NEW: Table view
+// ✅ Import the new individual delete confirmation modal
+import { ConfirmDeleteItemDialog } from "./inventory/ConfirmDeleteItemDialog";
 
 interface InventoryDisplayProps {
   inventory: InventoryItem[];
-  groupedInventory: GroupedInventoryItem[]; // ✅ NEW: Grouped data
   summary: InventorySummary;
   isLoading: boolean;
   error: string | null;
-  onUpdateQuantity: (
-    baseProductId: string,
-    barcodeType: BarcodeType,
-    newQuantity: number
-  ) => InventoryOperationResult; // ✅ UPDATED: New signature
-  onRemoveItem: (itemId: string) => boolean; // Keep for individual items
-  onRemoveProduct: (baseProductId: string) => InventoryOperationResult; // ✅ NEW: Remove entire product
+  onUpdateQuantity: (itemId: string, newQuantity: number) => boolean;
+  onUpdateQuantityDetail?: (
+    itemId: string,
+    quantityDetail: QuantityDetail
+  ) => boolean;
+  onRemoveItem: (itemId: string) => boolean;
   onClearInventory: () => boolean;
   onExportInventory: () => boolean;
   onClearError: () => void;
   onSearch: (searchTerm: string) => InventoryItem[];
-  onSearchGrouped: (searchTerm: string) => GroupedInventoryItem[]; // ✅ NEW: Grouped search
 }
 
-// ✅ View mode enum
-type ViewMode = "table" | "list" | "grid";
-type SortBy = "name" | "quantity" | "date" | "materialCode";
+// ✅ Enhanced edit state for detailed quantity support
+interface EditState {
+  itemId: string | null;
+  simpleQuantity: number;
+  quantityDetail?: QuantityDetail;
+}
+
+// ✅ Updated SortBy type to include fgCode
+type SortBy = "name" | "quantity" | "date" | "fgCode";
 type SortOrder = "asc" | "desc";
 
 export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   inventory,
-  groupedInventory,
   summary,
   isLoading,
   error,
   onUpdateQuantity,
+  onUpdateQuantityDetail,
   onRemoveItem,
-  onRemoveProduct,
   onClearInventory,
   onExportInventory,
   onClearError,
   onSearch,
-  onSearchGrouped,
 }) => {
-  // ✅ State management
-  const [viewMode, setViewMode] = useState<ViewMode>("table"); // Default to table view
-  const [showSummary, setShowSummary] = useState(true);
+  // ✅ Helper function to determine if item is a new product
+  const isNewProduct = useCallback((item: InventoryItem): boolean => {
+    return (
+      item.materialCode?.startsWith("new_") ||
+      item.brand === "เพิ่มใหม่" ||
+      item.id?.startsWith("new_") ||
+      !item.materialCode ||
+      item.materialCode === ""
+    );
+  }, []);
+
+  // ✅ Helper function to get F/FG code for sorting
+  const getFgCode = useCallback(
+    (item: InventoryItem): string => {
+      if (isNewProduct(item)) {
+        return item.productName || "NEW";
+      }
+      return item.materialCode || item.barcode || "";
+    },
+    [isNewProduct]
+  );
+
+  // ✅ Enhanced state management - Changed default to fgCode sorting
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedBrand, setSelectedBrand] = useState<string>("");
-  const [sortBy, setSortBy] = useState<SortBy>("materialCode");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+  const [editState, setEditState] = useState<EditState>({
+    itemId: null,
+    simpleQuantity: 0,
+    quantityDetail: undefined,
+  });
+
+  // ✅ State for clear all confirmation modal (existing)
   const [showConfirmClear, setShowConfirmClear] = useState(false);
+
+  // ✅ NEW: State for individual delete confirmation modal
+  const [showConfirmDeleteItem, setShowConfirmDeleteItem] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
+
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedBrand, setSelectedBrand] = useState<string>("all");
+  const [showSummary, setShowSummary] = useState(false);
+  // ✅ Changed default sorting from "date" to "fgCode"
+  const [sortBy, setSortBy] = useState<SortBy>("fgCode");
+  // ✅ Changed default order from "desc" to "asc" for alphabetical sorting
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [isExporting, setIsExporting] = useState(false);
 
-  // ✅ Filter and sort grouped inventory
-  const filteredAndSortedGroupedItems = useMemo(() => {
-    let filtered = groupedInventory;
+  // ✅ Enhanced filtered and sorted inventory with F/FG code sorting
+  const filteredAndSortedInventory = useMemo(() => {
+    let filtered = [...inventory];
 
     // Apply search filter
-    if (searchTerm) {
-      filtered = onSearchGrouped(searchTerm);
+    if (searchTerm.trim()) {
+      const searchResults = onSearch(searchTerm.trim());
+      filtered = searchResults;
     }
 
-    // Apply category filter
-    if (selectedCategory) {
-      filtered = filtered.filter((item) => {
-        // Get category from one of the records
-        const sampleRecord = item.csRecord || item.dspRecord || item.eaRecord;
-        return sampleRecord?.category === selectedCategory;
-      });
+    // Apply category filter - Fixed field name
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter(
+        (item) =>
+          item.category === selectedCategory ||
+          item.productGroup === selectedCategory
+      );
     }
 
     // Apply brand filter
-    if (selectedBrand) {
+    if (selectedBrand !== "all") {
       filtered = filtered.filter((item) => item.brand === selectedBrand);
     }
 
     // Apply sorting
-    const sorted = [...filtered].sort((a, b) => {
-      let valueA: string | number;
-      let valueB: string | number;
+    filtered.sort((a, b) => {
+      let comparison = 0;
 
       switch (sortBy) {
         case "name":
-          valueA = a.baseName.toLowerCase();
-          valueB = b.baseName.toLowerCase();
+          comparison = a.productName.localeCompare(b.productName, "th");
           break;
         case "quantity":
-          valueA = a.csQuantity + a.dspQuantity + a.eaQuantity;
-          valueB = b.csQuantity + b.dspQuantity + b.eaQuantity;
+          // ✅ Enhanced quantity comparison supporting quantityDetail
+          const aQty = a.quantityDetail?.major ?? a.quantity;
+          const bQty = b.quantityDetail?.major ?? b.quantity;
+          comparison = aQty - bQty;
           break;
         case "date":
-          valueA = new Date(a.lastUpdated).getTime();
-          valueB = new Date(b.lastUpdated).getTime();
+          comparison =
+            new Date(a.lastUpdated).getTime() -
+            new Date(b.lastUpdated).getTime();
           break;
-        case "materialCode":
-        default:
-          valueA = a.materialCode.toLowerCase();
-          valueB = b.materialCode.toLowerCase();
+        // ✅ New case for F/FG code sorting
+        case "fgCode":
+          const aFgCode = getFgCode(a);
+          const bFgCode = getFgCode(b);
+          comparison = aFgCode.localeCompare(bFgCode, "th", {
+            numeric: false, // Handle mixed alphanumeric codes like ABC001, ABC002
+            sensitivity: "base", // Case insensitive
+          });
           break;
       }
 
-      if (valueA < valueB) return sortOrder === "asc" ? -1 : 1;
-      if (valueA > valueB) return sortOrder === "asc" ? 1 : -1;
-      return 0;
+      return sortOrder === "asc" ? comparison : -comparison;
     });
 
-    return sorted;
-  }, [
-    groupedInventory,
-    onSearchGrouped,
-    searchTerm,
-    selectedCategory,
-    selectedBrand,
-    sortBy,
-    sortOrder,
-  ]);
-
-  // ✅ Legacy filtered inventory for list/grid view
-  const filteredAndSortedInventory = useMemo(() => {
-    let filtered = inventory;
-
-    if (searchTerm) {
-      filtered = onSearch(searchTerm);
-    }
-
-    if (selectedCategory) {
-      filtered = filtered.filter((item) => item.category === selectedCategory);
-    }
-
-    if (selectedBrand) {
-      filtered = filtered.filter((item) => item.brand === selectedBrand);
-    }
-
-    // Sort inventory items
-    const sorted = [...filtered].sort((a, b) => {
-      let valueA: string | number;
-      let valueB: string | number;
-
-      switch (sortBy) {
-        case "name":
-          valueA = a.productName.toLowerCase();
-          valueB = b.productName.toLowerCase();
-          break;
-        case "quantity":
-          valueA = a.quantity;
-          valueB = b.quantity;
-          break;
-        case "date":
-          valueA = new Date(a.lastUpdated).getTime();
-          valueB = new Date(b.lastUpdated).getTime();
-          break;
-        case "materialCode":
-        default:
-          valueA = (a.materialCode || "").toLowerCase();
-          valueB = (b.materialCode || "").toLowerCase();
-          break;
-      }
-
-      if (valueA < valueB) return sortOrder === "asc" ? -1 : 1;
-      if (valueA > valueB) return sortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    return sorted;
+    return filtered;
   }, [
     inventory,
-    onSearch,
     searchTerm,
     selectedCategory,
     selectedBrand,
     sortBy,
     sortOrder,
+    onSearch,
+    getFgCode, // ✅ Added dependency
   ]);
 
-  // ✅ Handlers
-  const handleSortChange = useCallback(
-    (newSortBy: SortBy) => {
-      if (sortBy === newSortBy) {
-        setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-      } else {
-        setSortBy(newSortBy);
-        setSortOrder("asc");
-      }
-    },
-    [sortBy]
-  );
+  // ✅ Enhanced event handlers
+  const handleEditStart = useCallback((item: InventoryItem) => {
+    console.log("🎯 Starting edit for item:", {
+      id: item.id,
+      quantity: item.quantity,
+      quantityDetail: item.quantityDetail,
+      barcodeType: item.barcodeType,
+    });
 
-  const handleClearFilters = useCallback(() => {
-    setSearchTerm("");
-    setSelectedCategory("");
-    setSelectedBrand("");
-    setSortBy("materialCode");
-    setSortOrder("asc");
+    setEditState({
+      itemId: item.id,
+      simpleQuantity: item.quantityDetail?.major || item.quantity,
+      quantityDetail: item.quantityDetail,
+    });
   }, []);
 
+  // ✅ Fixed edit save handler
+  const handleEditSave = useCallback(() => {
+    if (!editState.itemId) {
+      console.warn("⚠️ No item ID in edit state");
+      return;
+    }
+
+    console.log("💾 Saving edit state:", editState);
+
+    // Find the item being edited
+    const item = inventory.find((i) => i.id === editState.itemId);
+    if (!item) {
+      console.error("❌ Item not found:", editState.itemId);
+      return;
+    }
+
+    const isDetailedUnit = item.barcodeType !== "ea";
+
+    let success = false;
+
+    try {
+      if (
+        isDetailedUnit &&
+        editState.quantityDetail &&
+        onUpdateQuantityDetail
+      ) {
+        // Save detailed quantity for DSP/CS
+        console.log(
+          "💾 Saving as detailed quantity:",
+          editState.quantityDetail
+        );
+        success = onUpdateQuantityDetail(
+          editState.itemId,
+          editState.quantityDetail
+        );
+        console.log("✅ Detailed quantity save result:", success);
+      } else {
+        // Save simple quantity for EA or fallback
+        console.log("💾 Saving as simple quantity:", editState.simpleQuantity);
+        success = onUpdateQuantity(editState.itemId, editState.simpleQuantity);
+        console.log("✅ Simple quantity save result:", success);
+      }
+
+      if (success) {
+        // ✅ Reset edit state after successful save
+        setEditState({
+          itemId: null,
+          simpleQuantity: 0,
+          quantityDetail: undefined,
+        });
+      } else {
+        console.error("❌ Save operation failed");
+      }
+    } catch (error) {
+      console.error("❌ Error during save:", error);
+    }
+  }, [editState, inventory, onUpdateQuantity, onUpdateQuantityDetail]);
+
+  // ✅ Enhanced handler for detailed quantity changes during editing
+  const handleEditQuantityDetailChange = useCallback(
+    (quantityDetail: QuantityDetail) => {
+      console.log("🔄 Updating quantity detail in edit state:", quantityDetail);
+
+      setEditState((prev) => ({
+        ...prev,
+        quantityDetail,
+        simpleQuantity: quantityDetail.major, // Keep simple quantity in sync
+      }));
+    },
+    []
+  );
+
+  // ✅ Fixed handler for direct quantity detail saves (from InventoryListItem)
+  const handleEditQuantityDetailSave = useCallback(
+    (itemId: string, quantityDetail: QuantityDetail): boolean => {
+      console.log("💾 Direct save quantity detail:", {
+        itemId,
+        quantityDetail,
+      });
+
+      try {
+        if (onUpdateQuantityDetail) {
+          const success = onUpdateQuantityDetail(itemId, quantityDetail);
+
+          if (success) {
+            console.log("✅ Direct detailed quantity save successful");
+
+            // ✅ Reset edit state only if this is the item being edited
+            if (editState.itemId === itemId) {
+              setEditState({
+                itemId: null,
+                simpleQuantity: 0,
+                quantityDetail: undefined,
+              });
+            }
+
+            return true;
+          } else {
+            console.error("❌ Direct detailed quantity save failed");
+            return false;
+          }
+        } else {
+          console.warn("⚠️ onUpdateQuantityDetail callback not available");
+          return false;
+        }
+      } catch (error) {
+        console.error("❌ Error during direct detailed quantity save:", error);
+        return false;
+      }
+    },
+    [editState.itemId, onUpdateQuantityDetail]
+  );
+
+  const handleEditCancel = useCallback(() => {
+    console.log("❌ Cancelling edit");
+    setEditState({
+      itemId: null,
+      simpleQuantity: 0,
+      quantityDetail: undefined,
+    });
+  }, []);
+
+  // ✅ Fixed edit quantity change handler
+  const handleEditQuantityChange = useCallback((quantity: number) => {
+    console.log("🔄 Edit quantity change:", quantity);
+    setEditState((prev) => ({
+      ...prev,
+      simpleQuantity: quantity,
+      // ✅ Also update quantityDetail.major if it exists
+      quantityDetail: prev.quantityDetail
+        ? { ...prev.quantityDetail, major: quantity }
+        : undefined,
+    }));
+  }, []);
+
+  const handleQuickAdjust = useCallback(
+    (itemId: string, currentQuantity: number, delta: number) => {
+      const newQuantity = Math.max(0, currentQuantity + delta);
+      console.log("⚡ Quick adjust:", {
+        itemId,
+        currentQuantity,
+        delta,
+        newQuantity,
+      });
+
+      const success = onUpdateQuantity(itemId, newQuantity);
+      if (success) {
+        console.log(
+          `✅ Quick adjusted ${itemId}: ${currentQuantity} -> ${newQuantity}`
+        );
+      }
+    },
+    [onUpdateQuantity]
+  );
+
   const handleExport = useCallback(async () => {
+    if (inventory.length === 0) {
+      return;
+    }
+
     setIsExporting(true);
     try {
       const success = onExportInventory();
-      if (!success) {
-        console.error("Export failed");
+      if (success) {
+        console.log("✅ Export successful");
+        // Show success message briefly
+        setTimeout(() => {
+          setIsExporting(false);
+        }, 2000);
+      } else {
+        setIsExporting(false);
       }
-    } finally {
+    } catch (error) {
+      console.error("❌ Export failed:", error);
       setIsExporting(false);
     }
-  }, [onExportInventory]);
+  }, [onExportInventory, inventory.length]);
 
+  const handleClearFilters = useCallback(() => {
+    setSearchTerm("");
+    setSelectedCategory("all");
+    setSelectedBrand("all");
+  }, []);
+
+  // ✅ Fixed sort change handler with proper typing
+  const handleSortChange = useCallback(
+    (newSortBy: string, newSortOrder: string) => {
+      const validSortBy = newSortBy as SortBy;
+      const validSortOrder = newSortOrder as SortOrder;
+
+      console.log("🔄 Sort change:", {
+        sortBy: validSortBy,
+        sortOrder: validSortOrder,
+      });
+
+      setSortBy(validSortBy);
+      setSortOrder(validSortOrder);
+    },
+    []
+  );
+
+  // ✅ Handler for clear all confirmation (existing)
   const handleConfirmClear = useCallback(() => {
     const success = onClearInventory();
-    setShowConfirmClear(false);
     if (success) {
-      console.log("✅ Inventory cleared successfully");
+      setShowConfirmClear(false);
+      // Also reset edit state
+      setEditState({
+        itemId: null,
+        simpleQuantity: 0,
+        quantityDetail: undefined,
+      });
     }
   }, [onClearInventory]);
 
-  // ✅ Loading state
+  // ✅ NEW: Handlers for individual delete confirmation
+  const handleShowDeleteConfirmation = useCallback(
+    (itemId: string) => {
+      console.log("🗑️ Showing delete confirmation for item:", itemId);
+
+      // Find the item to delete
+      const item = inventory.find((i) => i.id === itemId);
+      if (item) {
+        setItemToDelete(item);
+        setShowConfirmDeleteItem(true);
+      } else {
+        console.error("❌ Item not found for deletion:", itemId);
+      }
+    },
+    [inventory]
+  );
+
+  const handleCancelDeleteItem = useCallback(() => {
+    console.log("❌ Cancelling item deletion");
+    setShowConfirmDeleteItem(false);
+    setItemToDelete(null);
+  }, []);
+
+  const handleConfirmDeleteItem = useCallback(
+    (itemId: string) => {
+      console.log("🗑️ Confirming item deletion:", itemId);
+
+      try {
+        const success = onRemoveItem(itemId);
+        if (success) {
+          console.log("✅ Item deleted successfully:", itemId);
+
+          // Close modal and reset state
+          setShowConfirmDeleteItem(false);
+          setItemToDelete(null);
+
+          // Reset edit state if we're deleting the item being edited
+          if (editState.itemId === itemId) {
+            setEditState({
+              itemId: null,
+              simpleQuantity: 0,
+              quantityDetail: undefined,
+            });
+          }
+        } else {
+          console.error("❌ Failed to delete item:", itemId);
+          // Keep modal open so user can try again
+        }
+      } catch (error) {
+        console.error("❌ Error during item deletion:", error);
+        // Keep modal open so user can try again
+      }
+    },
+    [onRemoveItem, editState.itemId]
+  );
+
+  // ✅ Enhanced loading and error states
   if (isLoading) {
     return <LoadingSpinner message="กำลังโหลดข้อมูล inventory..." size="lg" />;
   }
 
   return (
     <div className="space-y-4">
-      {/* ✅ Error Display */}
+      {/* Error Display */}
       <ErrorAlert error={error} onDismiss={onClearError} />
 
-      {/* ✅ Summary Header */}
+      {/* Summary Header */}
       <InventoryHeader
         summary={summary}
         showSummary={showSummary}
         onToggleSummary={setShowSummary}
       />
 
-      {/* ✅ Enhanced Controls with View Mode Toggle */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            การจัดการสินค้า
-          </h2>
+      {/* Controls */}
+      <InventoryControls
+        inventory={inventory}
+        summary={summary}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
+        selectedBrand={selectedBrand}
+        onBrandChange={setSelectedBrand}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={handleSortChange}
+        onClearFilters={handleClearFilters}
+        onExport={handleExport}
+        onClearAll={() => setShowConfirmClear(true)}
+        isExporting={isExporting}
+        filteredCount={filteredAndSortedInventory.length}
+      />
 
-          {/* ✅ View Mode Toggle */}
-          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode("table")}
-              className={`p-2 rounded-md transition-colors ${
-                viewMode === "table"
-                  ? "bg-white text-fn-green shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-              title="มุมมองตาราง"
-            >
-              <Table size={16} />
-            </button>
-            <button
-              onClick={() => setViewMode("list")}
-              className={`p-2 rounded-md transition-colors ${
-                viewMode === "list"
-                  ? "bg-white text-fn-green shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-              title="มุมมองรายการ"
-            >
-              <List size={16} />
-            </button>
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`p-2 rounded-md transition-colors ${
-                viewMode === "grid"
-                  ? "bg-white text-fn-green shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-              title="มุมมองกริด"
-            >
-              <Grid size={16} />
-            </button>
-          </div>
-        </div>
+      {/* ✅ Enhanced Inventory List with updated remove handler */}
+      <InventoryList
+        items={filteredAndSortedInventory}
+        totalCount={inventory.length}
+        editingItem={editState.itemId}
+        editQuantity={editState.simpleQuantity}
+        onEditStart={handleEditStart}
+        onEditSave={handleEditSave}
+        onEditQuantityDetailSave={handleEditQuantityDetailSave}
+        onEditCancel={handleEditCancel}
+        onEditQuantityChange={handleEditQuantityChange}
+        onEditQuantityDetailChange={handleEditQuantityDetailChange}
+        onQuickAdjust={handleQuickAdjust}
+        onRemoveItem={handleShowDeleteConfirmation} // ✅ Changed to show confirmation instead of direct removal
+      />
 
-        {/* ✅ Search and Filter Controls */}
-        <InventoryControls
-          inventory={inventory}
-          summary={summary}
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-          selectedBrand={selectedBrand}
-          onBrandChange={setSelectedBrand}
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          onSortChange={handleSortChange}
-          onClearFilters={handleClearFilters}
-          onExport={handleExport}
-          onClearAll={() => setShowConfirmClear(true)}
-          isExporting={isExporting}
-          filteredCount={
-            viewMode === "table"
-              ? filteredAndSortedGroupedItems.length
-              : filteredAndSortedInventory.length
-          }
-        />
-      </div>
-
-      {/* ✅ Main Content - Switch between views */}
-      {viewMode === "table" ? (
-        /* ✅ NEW: Table View (Default) */
-        <InventoryTable
-          groupedItems={filteredAndSortedGroupedItems}
-          totalProducts={groupedInventory.length}
-          totalRecords={inventory.length}
-          onUpdateQuantity={onUpdateQuantity}
-          onRemoveProduct={onRemoveProduct}
-          isLoading={isLoading}
-        />
-      ) : (
-        /* ✅ Legacy List/Grid View */
-        <InventoryList
-          items={filteredAndSortedInventory}
-          totalCount={inventory.length}
-          editingItem={null} // Simplified for now
-          editQuantity={0}
-          onEditStart={() => {}} // Simplified
-          onEditSave={() => {}}
-          onEditCancel={() => {}}
-          onEditQuantityChange={() => {}}
-          onQuickAdjust={() => {}}
-          onRemoveItem={(itemId) => onRemoveItem(itemId)}
-        />
-      )}
-
-      {/* ✅ Confirm Clear All Dialog */}
+      {/* Confirm Clear All Dialog (existing) */}
       <ConfirmDeleteDialog
         isOpen={showConfirmClear}
         itemCount={inventory.length}
@@ -358,29 +522,13 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         onCancel={() => setShowConfirmClear(false)}
       />
 
-      {/* ✅ Development Debug Panel */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="bg-gray-100 rounded-lg p-4 border border-gray-300">
-          <details className="text-sm">
-            <summary className="cursor-pointer font-medium mb-2">
-              🔧 Debug Info
-            </summary>
-            <div className="space-y-2 font-mono text-xs">
-              <div>View Mode: {viewMode}</div>
-              <div>Total Records: {inventory.length}</div>
-              <div>Grouped Products: {groupedInventory.length}</div>
-              <div>
-                Filtered (Table): {filteredAndSortedGroupedItems.length}
-              </div>
-              <div>Filtered (List): {filteredAndSortedInventory.length}</div>
-              <div>Search Term: "{searchTerm}"</div>
-              <div>
-                Sort: {sortBy} {sortOrder}
-              </div>
-            </div>
-          </details>
-        </div>
-      )}
+      {/* ✅ NEW: Confirm Delete Individual Item Dialog */}
+      <ConfirmDeleteItemDialog
+        isOpen={showConfirmDeleteItem}
+        item={itemToDelete}
+        onConfirm={handleConfirmDeleteItem}
+        onCancel={handleCancelDeleteItem}
+      />
     </div>
   );
 };
