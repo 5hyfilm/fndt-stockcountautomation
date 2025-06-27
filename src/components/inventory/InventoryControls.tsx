@@ -1,4 +1,4 @@
-// Path: src/components/inventory/InventoryControls.tsx - Added F/FG Code Sort Option
+// Path: src/components/inventory/InventoryControls.tsx - Enhanced with Unit Type Filter
 "use client";
 
 import React from "react";
@@ -16,6 +16,7 @@ import {
   InventoryItem,
   InventorySummary,
 } from "../../hooks/useInventoryManager";
+import { UnitTypeFilter, UnitFilterType } from "./UnitTypeFilter";
 
 interface InventoryControlsProps {
   inventory: InventoryItem[];
@@ -26,6 +27,9 @@ interface InventoryControlsProps {
   onCategoryChange: (category: string) => void;
   selectedBrand: string;
   onBrandChange: (brand: string) => void;
+  // ✅ NEW: Unit type filter props
+  selectedUnitType: UnitFilterType;
+  onUnitTypeChange: (unitType: UnitFilterType) => void;
   // ✅ Updated sortBy type to include fgCode
   sortBy: "name" | "quantity" | "date" | "fgCode";
   sortOrder: "asc" | "desc";
@@ -46,6 +50,8 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
   onCategoryChange,
   selectedBrand,
   onBrandChange,
+  selectedUnitType,
+  onUnitTypeChange,
   sortBy,
   sortOrder,
   onSortChange,
@@ -67,7 +73,10 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
   );
 
   const hasActiveFilters =
-    searchTerm || selectedCategory !== "all" || selectedBrand !== "all";
+    searchTerm ||
+    selectedCategory !== "all" ||
+    selectedBrand !== "all" ||
+    selectedUnitType !== "all";
 
   // State สำหรับการแสดง/ซ่อน filters dropdown
   const [showFilters, setShowFilters] = React.useState(false);
@@ -84,104 +93,83 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
             />
             <input
               type="text"
-              placeholder="ค้นหาสินค้า..."
+              placeholder="ค้นหาสินค้า รหัสสินค้า หรือบาร์โค้ด..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-fn-green transition-all duration-200 text-sm"
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-fn-green transition-all duration-200"
             />
             {searchTerm && (
               <button
                 onClick={() => onSearchChange("")}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             )}
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-3 w-full xl:w-auto">
+        <div className="flex items-center gap-3 w-full xl:w-auto">
           <button
             onClick={onExport}
-            disabled={inventory.length === 0 || isExporting}
-            className={`px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium border shadow-sm transition-all duration-200 ${
-              inventory.length === 0 || isExporting
-                ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                : "bg-fn-green text-white border-fn-green hover:bg-[rgb(142,173,62)] hover:border-[rgb(142,173,62)] hover:shadow-md transform hover:scale-[1.02]"
-            }`}
+            disabled={isExporting || inventory.length === 0}
+            className="flex-1 xl:flex-none px-4 py-3 bg-fn-green text-white rounded-xl hover:bg-fn-green-dark disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center gap-2 text-sm font-medium"
           >
             {isExporting ? (
               <>
-                <RefreshCw className="animate-spin" size={16} />
+                <RefreshCw size={16} className="animate-spin" />
                 กำลังส่งออก...
               </>
             ) : (
               <>
                 <FileText size={16} />
-                ส่งออกเป็นไฟล์ CSV
+                ส่งออก CSV
               </>
             )}
           </button>
 
           <button
             onClick={onClearAll}
-            className="bg-fn-red hover:bg-red-700 hover:border-red-700 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium border border-fn-red shadow-sm hover:shadow-md transition-all duration-200 transform hover:scale-[1.02]"
             disabled={inventory.length === 0}
+            className="px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200 flex items-center gap-2 text-sm font-medium"
           >
             <Trash2 size={16} />
-            ลบทั้งหมด
+            ล้างทั้งหมด
           </button>
         </div>
       </div>
 
-      {/* Export Information */}
-      {inventory.length > 0 && (
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-green-700 text-sm">
-            <div className="bg-green-100 p-1.5 rounded-full">
-              <FileText size={16} />
-            </div>
-            <span className="font-medium">ข้อมูลที่จะส่งออก:</span>
-            <span className="bg-white px-2 py-1 rounded-lg border border-green-200 font-medium">
-              {inventory.length} รายการสินค้า, {summary.totalItems} ชิ้น
-            </span>
-            <span className="text-green-600">•</span>
-            <span className="text-green-600">รูปแบบ CSV</span>
-          </div>
-        </div>
-      )}
+      {/* ✅ NEW: Unit Type Filter Section */}
+      <div className="border-t border-gray-100 pt-6">
+        <UnitTypeFilter
+          selectedUnitType={selectedUnitType}
+          onUnitTypeChange={onUnitTypeChange}
+          inventory={inventory}
+          className="mb-6"
+        />
+      </div>
 
-      {/* Advanced Filters Section */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        {/* Filter Header - Always Visible */}
-        <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors duration-200 group">
-          {/* Left side - clickable area for toggle */}
-          <div
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-3 cursor-pointer flex-1"
-          >
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-2 rounded-lg">
-              <Filter className="text-white" size={18} />
-            </div>
-            <div>
-              <h4 className="text-md font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                ตัวกรอง
-              </h4>
-              <div className="text-sm text-gray-500 flex items-center gap-2">
-                {hasActiveFilters ? (
-                  <>
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      กำลังกรอง
-                    </span>
-                    <span>
-                      แสดง {filteredCount} จาก {inventory.length} รายการ
-                    </span>
-                  </>
-                ) : (
-                  <span>กรองข้อมูล สินค้า หมวดหมู่ แบรนด์</span>
-                )}
-              </div>
+      {/* Advanced Filters Toggle */}
+      <div className="border border-gray-200 rounded-xl overflow-hidden">
+        <div
+          className="flex items-center justify-between p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <div className="flex items-center gap-3">
+            <Filter size={18} className="text-gray-500" />
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-gray-900">ตัวกรองขั้นสูง</span>
+              {hasActiveFilters && (
+                <>
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    กำลังกรอง
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    แสดง {filteredCount} จาก {inventory.length} รายการ
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
@@ -199,10 +187,7 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
                 <X size={14} />
               </button>
             )}
-            <div
-              onClick={() => setShowFilters(!showFilters)}
-              className="cursor-pointer p-1"
-            >
+            <div className="cursor-pointer p-1">
               {showFilters ? (
                 <ChevronUp className="text-gray-400" size={20} />
               ) : (
@@ -254,63 +239,67 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
                 </select>
               </div>
 
-              {/* Sort Filter */}
+              {/* Sort Options */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  เรียงตาม
+                  เรียงลำดับ
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <select
                     value={sortBy}
                     onChange={(e) => onSortChange(e.target.value, sortOrder)}
-                    className="flex-1 p-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-fn-green transition-all duration-200 text-sm"
+                    className="p-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-fn-green transition-all duration-200 text-sm"
                   >
-                    {/* ✅ Added F/FG Code option as the first option (new default) */}
-                    <option value="fgCode">รหัสสินค้า F/FG</option>
+                    <option value="fgCode">รหัส F/FG</option>
                     <option value="name">ชื่อสินค้า</option>
                     <option value="quantity">จำนวน</option>
-                    <option value="date">วันที่เพิ่ม</option>
+                    <option value="date">วันที่อัปเดต</option>
                   </select>
-                  <button
-                    onClick={() =>
-                      onSortChange(sortBy, sortOrder === "asc" ? "desc" : "asc")
-                    }
-                    className="px-3 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
-                    title={`เปลี่ยนเป็น ${
-                      sortOrder === "asc" ? "มากไปน้อย" : "น้อยไปมาก"
-                    }`}
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => onSortChange(sortBy, e.target.value)}
+                    className="p-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-fn-green transition-all duration-200 text-sm"
                   >
-                    {sortOrder === "asc" ? (
-                      <ChevronUp size={16} />
-                    ) : (
-                      <ChevronDown size={16} />
-                    )}
-                  </button>
+                    <option value="asc">จากน้อยไปมาก</option>
+                    <option value="desc">จากมากไปน้อย</option>
+                  </select>
                 </div>
               </div>
             </div>
-
-            {/* Filter Actions */}
-            <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
-              <div className="text-sm text-gray-500">
-                {hasActiveFilters && (
-                  <span>
-                    แสดงผล {filteredCount} จากทั้งหมด {inventory.length} รายการ
-                  </span>
-                )}
-              </div>
-              {hasActiveFilters && (
-                <button
-                  onClick={onClearFilters}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
-                >
-                  <X size={14} />
-                  ล้างตัวกรอง
-                </button>
-              )}
-            </div>
           </div>
         )}
+      </div>
+
+      {/* ✅ Summary Stats */}
+      <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-xl p-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+          <div>
+            <div className="text-2xl font-bold text-blue-600">
+              {summary.totalItems}
+            </div>
+            <div className="text-sm text-blue-700 font-medium">
+              รายการสินค้า
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-green-600">
+              {Object.keys(summary.categories).length}
+            </div>
+            <div className="text-sm text-green-700 font-medium">หมวดหมู่</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-purple-600">
+              {Object.keys(summary.brands).length}
+            </div>
+            <div className="text-sm text-purple-700 font-medium">แบรนด์</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-orange-600">
+              {summary.quantityBreakdown?.itemsWithMultipleUnits || 0}
+            </div>
+            <div className="text-sm text-orange-700 font-medium">หลายหน่วย</div>
+          </div>
+        </div>
       </div>
     </div>
   );
