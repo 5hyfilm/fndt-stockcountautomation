@@ -1,4 +1,4 @@
-// src/hooks/inventory/types.ts - Phase 2: Simplified Multi-Unit Structure
+// Path: src/hooks/inventory/types.ts - Phase 2: Fixed with QuantityDetail interface
 import { Product } from "../../types/product";
 
 // ✅ NEW: Multi-unit quantities interface (ไม่มี remainder แล้ว)
@@ -8,13 +8,53 @@ export interface MultiUnitQuantities {
   ea?: number; // ชิ้น
 }
 
+// ✅ NEW: QuantityDetail interface for detailed quantity tracking
+export interface QuantityDetail {
+  cs: number; // ลัง
+  dsp: number; // แพ็ค
+  ea: number; // ชิ้น
+  scannedType?: "cs" | "dsp" | "ea"; // ประเภทบาร์โค้ดที่สแกน
+  isManualEdit?: boolean; // แก้ไขด้วยมือหรือไม่
+  lastModified?: string; // เวลาที่แก้ไขล่าสุด
+}
+
 // ✅ NEW: Simplified quantity input (รองรับทั้งแบบเก่าและใหม่)
 export type QuantityInput =
   | number
   | {
       quantity: number;
       unit: "cs" | "dsp" | "ea";
-    };
+    }
+  | QuantityDetail;
+
+// ✅ Type guards for quantity input validation
+export const isQuantityDetail = (
+  input: QuantityInput
+): input is QuantityDetail => {
+  return (
+    typeof input === "object" &&
+    input !== null &&
+    "cs" in input &&
+    "dsp" in input &&
+    "ea" in input
+  );
+};
+
+export const isSimpleQuantity = (input: QuantityInput): input is number => {
+  return typeof input === "number";
+};
+
+export const isUnitQuantity = (
+  input: QuantityInput
+): input is { quantity: number; unit: "cs" | "dsp" | "ea" } => {
+  return (
+    typeof input === "object" &&
+    input !== null &&
+    "quantity" in input &&
+    "unit" in input &&
+    !("cs" in input)
+  );
+};
 
 // ✅ UPDATED: InventoryItem with multi-unit support
 export interface InventoryItem {
@@ -35,6 +75,9 @@ export interface InventoryItem {
   // ✅ NEW: Multi-unit quantities (ไม่มี remainder)
   quantities: MultiUnitQuantities;
 
+  // ✅ NEW: Optional detailed quantity tracking
+  quantityDetail?: QuantityDetail;
+
   // ✅ Metadata
   lastUpdated: string;
   productData?: Product;
@@ -50,6 +93,9 @@ export interface InventoryItem {
     dsp?: string;
     ea?: string;
   };
+
+  // ✅ Legacy support
+  barcodeType?: "cs" | "dsp" | "ea";
 }
 
 // ✅ UPDATED: Summary with multi-unit breakdown
@@ -66,6 +112,8 @@ export interface InventorySummary {
     totalDSP: number; // แพ็ครวม
     totalEA: number; // ชิ้นรวม
     itemsWithMultipleUnits: number; // SKU ที่มีหลายหน่วย
+    itemsWithDetail: number; // SKU ที่มี quantityDetail
+    totalRemainderItems?: number; // สำหรับ backward compatibility
   };
 }
 
@@ -97,6 +145,46 @@ export interface ExportConfig {
   includeTotalColumn?: boolean; // รวม column จำนวนรวม
 }
 
+// ✅ Helper function: Get total quantity across all units
+export const getTotalQuantityAllUnits = (item: InventoryItem): number => {
+  if (!item.quantities) {
+    return item.quantity || 0;
+  }
+
+  const { cs = 0, dsp = 0, ea = 0 } = item.quantities;
+  return cs + dsp + ea;
+};
+
+// ✅ Helper function: Migrate old inventory item to new structure
+export const migrateOldInventoryItem = (
+  oldItem: any,
+  barcodeType: "cs" | "dsp" | "ea" = "ea"
+): InventoryItem => {
+  // If already migrated, return as is
+  if (oldItem.quantities) {
+    return oldItem as InventoryItem;
+  }
+
+  // Create new quantities structure
+  const quantities: MultiUnitQuantities = {
+    cs: 0,
+    dsp: 0,
+    ea: 0,
+  };
+
+  // Migrate based on barcode type
+  const quantity = oldItem.quantity || 0;
+  quantities[barcodeType] = quantity;
+
+  return {
+    ...oldItem,
+    materialCode: oldItem.materialCode || oldItem.id || oldItem.barcode,
+    quantities,
+    barcodeType, // Keep for reference
+    lastUpdated: oldItem.lastUpdated || new Date().toISOString(),
+  };
+};
+
 // ✅ UPDATED: Hook interface with new methods
 export interface UseInventoryManagerReturn {
   // State
@@ -120,6 +208,12 @@ export interface UseInventoryManagerReturn {
     newQuantity: number
   ) => boolean;
 
+  // ✅ NEW: Update quantity detail
+  updateQuantityDetail: (
+    materialCode: string,
+    quantityDetail: QuantityDetail
+  ) => boolean;
+
   // ✅ Legacy support (อาจจะเอาออกในอนาคต)
   addOrUpdateItem: (
     product: Product,
@@ -129,92 +223,9 @@ export interface UseInventoryManagerReturn {
   ) => boolean;
 
   updateItemQuantity: (itemId: string, newQuantity: number) => boolean;
-
-  // ✅ Core operations (ไม่เปลี่ยน)
   removeItem: (itemId: string) => boolean;
   clearInventory: () => boolean;
-
-  // ✅ Search and utilities
-  findItemByMaterialCode: (materialCode: string) => InventoryItem | undefined;
-  findItemByBarcode: (barcode: string) => InventoryItem | undefined;
   searchItems: (searchTerm: string) => InventoryItem[];
-
-  // ✅ Export functionality
-  exportInventory: () => boolean;
-
-  // ✅ Error handling
+  exportData: () => Promise<void>;
   clearError: () => void;
-  loadInventory: () => void;
-  resetInventoryState: () => boolean;
-}
-
-// ✅ NEW: Utility functions
-export const getTotalQuantityByUnit = (
-  item: InventoryItem,
-  unit: "cs" | "dsp" | "ea"
-): number => {
-  return item.quantities[unit] || 0;
-};
-
-export const getTotalQuantityAllUnits = (item: InventoryItem): number => {
-  const { cs = 0, dsp = 0, ea = 0 } = item.quantities;
-  return cs + dsp + ea;
-};
-
-export const hasMultipleUnits = (item: InventoryItem): boolean => {
-  const units = Object.keys(item.quantities).filter(
-    (unit) => (item.quantities as any)[unit] > 0
-  );
-  return units.length > 1;
-};
-
-export const getActiveUnits = (
-  item: InventoryItem
-): Array<"cs" | "dsp" | "ea"> => {
-  return (Object.keys(item.quantities) as Array<"cs" | "dsp" | "ea">).filter(
-    (unit) => (item.quantities[unit] || 0) > 0
-  );
-};
-
-// ✅ Migration helper (แปลงข้อมูลเก่าเป็นใหม่)
-export const migrateOldInventoryItem = (
-  oldItem: any,
-  barcodeType: "cs" | "dsp" | "ea" = "ea"
-): InventoryItem => {
-  const quantities: MultiUnitQuantities = {};
-  quantities[barcodeType] = oldItem.quantity || 0;
-
-  return {
-    id: oldItem.id,
-    materialCode: oldItem.materialCode || oldItem.barcode,
-    productName: oldItem.productName,
-    brand: oldItem.brand || "ไม่ระบุ",
-    category: oldItem.category || "ไม่ระบุ",
-    size: oldItem.size || "",
-    unit: oldItem.unit || "",
-    barcode: oldItem.barcode,
-    quantity: oldItem.quantity || 0,
-    quantities,
-    lastUpdated: oldItem.lastUpdated || new Date().toISOString(),
-    productData: oldItem.productData,
-    addedBy: oldItem.addedBy,
-    branchCode: oldItem.branchCode,
-    branchName: oldItem.branchName,
-    productGroup: oldItem.productGroup,
-    thaiDescription: oldItem.thaiDescription,
-    scannedBarcodes: {
-      [barcodeType]: oldItem.barcode,
-    },
-  };
-};
-
-// ✅ Error types (ไม่เปลี่ยน)
-export interface InventoryError extends Error {
-  code?:
-    | "STORAGE_ERROR"
-    | "VALIDATION_ERROR"
-    | "EXPORT_ERROR"
-    | "QUANTITY_ERROR"
-    | "MIGRATION_ERROR"; // ใหม่
-  context?: Record<string, unknown>;
 }

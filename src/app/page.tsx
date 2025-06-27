@@ -1,4 +1,4 @@
-// Path: src/app/page.tsx - Phase 2: Updated with Multi-Unit API Integration
+// Path: src/app/page.tsx - Phase 2: Fixed with Updated QuantityDetail Interface
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -362,14 +362,20 @@ export default function BarcodeDetectionPage() {
         const unitMap = { ea: "ชิ้น", dsp: "แพ็ค", cs: "ลัง" };
         logMessage = `${quantityInput.quantity} ${unitMap[quantityInput.unit]}`;
       } else {
-        // Legacy QuantityDetail format
-        const { major, remainder, scannedType } =
-          quantityInput as QuantityDetail;
+        // ✅ FIXED: QuantityDetail format - use new structure
+        const quantityDetail = quantityInput as QuantityDetail;
         const unitMap = { ea: "ชิ้น", dsp: "แพ็ค", cs: "ลัง" };
-        logMessage = `${major} ${unitMap[scannedType]}`;
-        if (remainder > 0) {
-          logMessage += ` + ${remainder} ชิ้น`;
-        }
+
+        // สร้าง log message จาก quantities ที่มีค่า > 0
+        const activeParts: string[] = [];
+        if (quantityDetail.cs > 0)
+          activeParts.push(`${quantityDetail.cs} ${unitMap.cs}`);
+        if (quantityDetail.dsp > 0)
+          activeParts.push(`${quantityDetail.dsp} ${unitMap.dsp}`);
+        if (quantityDetail.ea > 0)
+          activeParts.push(`${quantityDetail.ea} ${unitMap.ea}`);
+
+        logMessage = activeParts.join(" + ") || "0 ชิ้น";
       }
 
       console.log(
@@ -481,14 +487,17 @@ export default function BarcodeDetectionPage() {
           }
         }
       } else {
-        // ✅ Fallback to legacy method if Multi-Unit API not available
+        // ✅ FIXED: Fallback to legacy method with correct QuantityDetail structure
         console.log("🔄 Multi-Unit API not available, using legacy method...");
 
         if (productData.countCs > 0 || productData.countPieces > 0) {
           const quantityDetail: QuantityDetail = {
-            major: productData.countCs,
-            remainder: productData.countPieces,
+            cs: productData.countCs,
+            dsp: 0, // ไม่มี DSP ในกรณีนี้
+            ea: productData.countPieces,
             scannedType: productData.countCs > 0 ? "cs" : "ea",
+            isManualEdit: true,
+            lastModified: new Date().toISOString(),
           };
 
           success = addOrUpdateItem(
@@ -538,7 +547,7 @@ export default function BarcodeDetectionPage() {
     return updateItemQuantity(itemId, newQuantity);
   };
 
-  // ✅ New handler for updating quantity details (Phase 2)
+  // ✅ FIXED: New handler for updating quantity details (Phase 2)
   const handleUpdateItemQuantityDetail = (
     itemId: string,
     quantityDetail: QuantityDetail
@@ -546,8 +555,10 @@ export default function BarcodeDetectionPage() {
     if (updateItemQuantityDetail) {
       return updateItemQuantityDetail(itemId, quantityDetail);
     }
-    // Fallback to simple quantity update for backward compatibility
-    return updateItemQuantity(itemId, quantityDetail.major);
+    // ✅ FIXED: Fallback using new QuantityDetail structure
+    const totalQuantity =
+      quantityDetail.cs + quantityDetail.dsp + quantityDetail.ea;
+    return updateItemQuantity(itemId, totalQuantity);
   };
 
   // ✅ NEW: Handler for updating specific unit quantity
