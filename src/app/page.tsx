@@ -1,10 +1,12 @@
-// Path: src/app/page.tsx - Phase 2: Fixed with Updated QuantityDetail Interface
+// Path: src/app/page.tsx - Phase 2: Fixed with Real Export Function
 "use client";
 
 import React, { useEffect, useState } from "react";
 import { useBarcodeDetection } from "../hooks/useBarcodeDetection";
 import { useInventoryManager } from "../hooks/useInventoryManager";
 import { useEmployeeAuth } from "../hooks/useEmployeeAuth";
+// ✅ เพิ่ม import สำหรับ useInventoryExport - ใช้ direct import เพื่อหลีกเลี่ยง conflict
+import { useInventoryExport } from "../hooks/inventory/useInventoryExport";
 import {
   EmployeeBranchForm,
   EmployeeInfo,
@@ -55,6 +57,9 @@ export default function BarcodeDetectionPage() {
   // ✅ State สำหรับ AddNewProductForm
   const [showAddProductForm, setShowAddProductForm] = useState(false);
   const [newProductBarcode, setNewProductBarcode] = useState<string>("");
+
+  // ✅ State สำหรับ Export Error
+  const [exportError, setExportError] = useState<string | null>(null);
 
   // Detect mobile viewport and set full screen mode
   useEffect(() => {
@@ -158,7 +163,7 @@ export default function BarcodeDetectionPage() {
     clearInventory,
     findItemByBarcode,
     searchItems,
-    exportInventory,
+    exportInventory: dummyExportInventory, // ✅ เปลี่ยนชื่อ เพราะจะไม่ใช้
     clearError: clearInventoryError,
     resetInventoryState,
     summary,
@@ -171,6 +176,19 @@ export default function BarcodeDetectionPage() {
         }
       : undefined
   );
+
+  // ✅ เพิ่ม useInventoryExport hook สำหรับ export จริง
+  const { exportInventory: performRealExport } = useInventoryExport({
+    inventory,
+    employeeContext: employee
+      ? {
+          employeeName: employee.employeeName,
+          branchCode: employee.branchCode,
+          branchName: employee.branchName,
+        }
+      : undefined,
+    setError: setExportError, // ใช้ exportError state
+  });
 
   // Functions to check unsaved data for logout confirmation
   const hasUnsavedData = (): boolean => {
@@ -571,36 +589,41 @@ export default function BarcodeDetectionPage() {
     return false;
   };
 
-  // Handle export with employee info
+  // ✅ FIXED: Handle export with real export function
   const handleExportInventory = async (): Promise<boolean> => {
     if (!employee) {
       console.warn("⚠️ No employee data available for export");
       return false;
     }
 
-    console.log("📤 Starting export process...");
-    console.log(`👤 Employee: ${employeeName}`);
-    console.log(`🏢 Branch: ${branchName} (${branchCode})`);
+    console.log("📤 Starting REAL export process...");
+    console.log(`👤 Employee: ${employee.employeeName}`);
+    console.log(`🏢 Branch: ${employee.branchName} (${employee.branchCode})`);
     console.log(`📦 Inventory items: ${inventory.length}`);
 
     try {
-      // ✅ Await the async exportInventory function
-      const success = await exportInventory();
+      // ✅ ใช้ performRealExport แทน exportInventory
+      const success = await performRealExport();
 
       if (success) {
         // Generate filename with employee and branch info
         const now = new Date();
         const dateStr = now.toISOString().split("T")[0];
         const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-");
-        const fileName = `FN_Stock_Wide_${branchCode}_${dateStr}_${timeStr}.csv`;
+        const fileName = `FN_Stock_Wide_${employee.branchCode}_${dateStr}_${timeStr}.csv`;
 
         setExportFileName(fileName);
         setShowExportSuccess(true);
 
-        console.log(`✅ ${employeeName} exported inventory for ${branchName}`);
+        console.log(
+          `✅ ${employee.employeeName} exported inventory for ${employee.branchName}`
+        );
         console.log(`📁 File generated: ${fileName}`);
       } else {
         console.error("❌ Export failed");
+        if (exportError) {
+          console.error("❌ Export error:", exportError);
+        }
       }
 
       return success;
@@ -614,6 +637,7 @@ export default function BarcodeDetectionPage() {
   const clearAllErrors = () => {
     clearError();
     clearInventoryError();
+    setExportError(null); // ✅ เพิ่ม clear export error
   };
 
   // Show login form if not authenticated
@@ -803,10 +827,16 @@ export default function BarcodeDetectionPage() {
               /* Desktop Layout - Side by Side */
               <div className="container mx-auto px-4 py-4 sm:py-6">
                 {/* Error Display - Desktop Only */}
-                {(errors || productError || inventoryError) && (
+                {(errors || productError || inventoryError || exportError) && (
                   <div className="mb-4">
                     <ErrorDisplay
-                      error={errors || productError || inventoryError || ""}
+                      error={
+                        errors ||
+                        productError ||
+                        inventoryError ||
+                        exportError ||
+                        ""
+                      }
                       onDismiss={clearAllErrors}
                       onRetry={() => {
                         clearAllErrors();
@@ -879,12 +909,18 @@ export default function BarcodeDetectionPage() {
             }`}
           >
             {/* Error Display for Inventory */}
-            {inventoryError && !isMobile && (
+            {(inventoryError || exportError) && !isMobile && (
               <div className="mb-4">
                 <ErrorDisplay
-                  error={inventoryError}
-                  onDismiss={clearInventoryError}
-                  onRetry={clearInventoryError}
+                  error={inventoryError || exportError || ""}
+                  onDismiss={() => {
+                    clearInventoryError();
+                    setExportError(null);
+                  }}
+                  onRetry={() => {
+                    clearInventoryError();
+                    setExportError(null);
+                  }}
                 />
               </div>
             )}
@@ -894,15 +930,18 @@ export default function BarcodeDetectionPage() {
                 inventory={inventory}
                 summary={summary}
                 isLoading={isLoadingInventory}
-                error={inventoryError}
+                error={inventoryError || exportError}
                 // ✅ แก้ไข: ใช้ prop names ที่ถูกต้องตาม interface
                 onAddOrUpdateItem={addOrUpdateItem} // ✅ เพิ่ม prop ที่ขาดหาย
                 onUpdateItemQuantity={updateItemQuantity} // ✅ แก้จาก onUpdateQuantity
                 onUpdateItemQuantityDetail={updateItemQuantityDetail} // ✅ แก้จาก onUpdateQuantityDetail
                 onRemoveItem={removeItem}
                 onClearInventory={clearInventory}
-                onExport={handleExportInventory} // ✅ แก้จาก onExportInventory
-                onClearError={clearInventoryError}
+                onExport={handleExportInventory} // ✅ ใช้ function ที่แก้ไขแล้ว
+                onClearError={() => {
+                  clearInventoryError();
+                  setExportError(null);
+                }}
                 onSearch={searchItems}
               />
             </div>

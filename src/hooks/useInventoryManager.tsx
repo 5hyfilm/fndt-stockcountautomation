@@ -1,4 +1,4 @@
-// src/hooks/useInventoryManager.tsx - Main Export for Backward Compatibility
+// src/hooks/useInventoryManager.tsx - แก้ไข conflict
 "use client";
 
 // Re-export everything from the inventory module
@@ -10,10 +10,10 @@ export {
   type UseInventoryManagerReturn,
 } from "./inventory/useInventoryManager";
 
-// Additional exports for advanced usage
+// Additional exports for advanced usage - ✅ ลบ useInventoryExport ออกชั่วคราว
 export {
   useInventoryStorage,
   useInventoryOperations,
   useInventorySummary,
-  useInventoryExport,
+  // useInventoryExport, // ✅ Comment ออกชั่วคราว
 } from "./inventory";

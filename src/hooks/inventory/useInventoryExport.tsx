@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { useInventoryExport } from "../hooks/inventory/useInventoryExport"; // ✅ เพิ่ม import
 
 // ✅ FIX: Import from correct path
 interface InventoryItem {
@@ -348,133 +349,214 @@ export const useInventoryExport = ({
   }, [employeeContext]);
 
   // ✅ FIXED: Download CSV with proper async handling and fallback methods
+  // Debug Real Export - เพิ่มใน useInventoryExport.tsx
+  // แทนที่ downloadCSV function เดิมด้วยโค้ดนี้
+
   const downloadCSV = useCallback(
     (csvContent: string, fileName: string): Promise<boolean> => {
       return new Promise((resolve) => {
-        console.log("🚀🚀🚀 downloadCSV CALLED - NEW VERSION 🚀🚀🚀");
+        console.log("🚀🚀🚀 REAL EXPORT DEBUG VERSION 🚀🚀🚀");
         console.log("📁 fileName:", fileName);
         console.log("📊 csvContent length:", csvContent.length);
-        console.log("🔍 First 100 chars:", csvContent.substring(0, 100));
+
+        // ✅ DEBUG: Show first 300 characters of CSV
+        console.log("📄 CSV Preview (first 300 chars):");
+        console.log("─".repeat(50));
+        console.log(csvContent.substring(0, 300));
+        console.log("─".repeat(50));
+
+        // ✅ DEBUG: Check for common issues
+        const debugChecks = {
+          hasContent: csvContent && csvContent.length > 0,
+          hasValidFileName: fileName && fileName.includes(".csv"),
+          contentType: typeof csvContent,
+          fileNameType: typeof fileName,
+          contentStartsWithBOM: csvContent.startsWith("\uFEFF"),
+          hasCommas: csvContent.includes(","),
+          hasNewlines: csvContent.includes("\n"),
+          estimatedRows: csvContent.split("\n").length,
+        };
+
+        console.log("🔍 DEBUG CHECKS:");
+        console.table(debugChecks);
+
+        // ✅ DEBUG: Validate inputs
+        if (!csvContent || csvContent.length === 0) {
+          console.error("❌ CRITICAL: CSV content is empty or null!");
+          setError("CSV content is empty");
+          resolve(false);
+          return;
+        }
+
+        if (!fileName || !fileName.includes(".csv")) {
+          console.error("❌ CRITICAL: Invalid filename:", fileName);
+          setError("Invalid filename");
+          resolve(false);
+          return;
+        }
 
         try {
-          console.log("📤 Starting CSV download...");
+          console.log("💾 Creating blob...");
+          const BOM = "\uFEFF";
+          const finalContent = csvContent.startsWith(BOM)
+            ? csvContent
+            : BOM + csvContent;
 
-          // ✅ METHOD 1: Try Blob download
-          try {
-            console.log("🔄 Trying Method 1: Blob download");
-            const BOM = "\uFEFF";
-            const blob = new Blob([BOM + csvContent], {
-              type: "text/csv;charset=utf-8;",
-            });
+          const blob = new Blob([finalContent], {
+            type: "text/csv;charset=utf-8;",
+          });
 
-            console.log(`💾 Blob created successfully: ${blob.size} bytes`);
+          console.log(`✅ Blob created successfully:`);
+          console.log(`   Size: ${blob.size} bytes`);
+          console.log(`   Type: ${blob.type}`);
+          console.log(`   Expected size: ~${finalContent.length} bytes`);
 
-            const url = URL.createObjectURL(blob);
-            console.log("🔗 URL created:", url.substring(0, 50) + "...");
+          if (blob.size === 0) {
+            console.error("❌ CRITICAL: Blob size is 0!");
+            resolve(false);
+            return;
+          }
 
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = fileName;
-            link.style.display = "none";
+          const url = URL.createObjectURL(blob);
+          console.log("🔗 Object URL created:", url.substring(0, 60) + "...");
 
-            console.log("📎 Link element created with:", {
-              href: link.href.substring(0, 50) + "...",
-              download: link.download,
-              display: link.style.display,
-            });
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = fileName;
+          link.style.display = "none";
 
-            document.body.appendChild(link);
-            console.log("📌 Link added to document.body");
+          console.log("🔗 Link element properties:");
+          console.log(`   href: ${link.href.substring(0, 60)}...`);
+          console.log(`   download: ${link.download}`);
+          console.log(`   display: ${link.style.display}`);
 
-            // ✅ Add click event listener for debugging
-            link.addEventListener("click", (event) => {
-              console.log("🖱️ CLICK EVENT FIRED!");
-              console.log("Event details:", event);
-            });
+          // ✅ Check download support again
+          const downloadSupported = "download" in link;
+          console.log(`✅ Download attribute supported: ${downloadSupported}`);
 
-            // ✅ Trigger download
-            console.log("⚡ About to trigger click...");
-            link.click();
-            console.log("✅ Click triggered!");
+          if (!downloadSupported) {
+            console.error("❌ CRITICAL: Download attribute not supported!");
+            URL.revokeObjectURL(url);
+            resolve(false);
+            return;
+          }
 
-            // ✅ Check if download attribute is supported
-            if ("download" in link) {
-              console.log("✅ Download attribute is supported");
-            } else {
-              console.warn("⚠️ Download attribute is NOT supported");
-            }
+          // ✅ Enhanced event listeners with detailed logging
+          let clickFired = false;
+          let resolved = false;
 
-            // ✅ Delay cleanup
-            setTimeout(() => {
+          const cleanup = () => {
+            if (!resolved) {
+              resolved = true;
               try {
                 if (document.body.contains(link)) {
                   document.body.removeChild(link);
                   console.log("🧹 Link removed from DOM");
-                } else {
-                  console.log("ℹ️ Link was already removed from DOM");
                 }
                 URL.revokeObjectURL(url);
-                console.log("🧹 URL revoked");
-                console.log("✅ Method 1 completed successfully");
-                resolve(true);
+                console.log("🧹 Object URL revoked");
               } catch (cleanupError) {
-                console.warn("⚠️ Cleanup error (non-critical):", cleanupError);
+                console.warn("⚠️ Cleanup warning:", cleanupError);
+              }
+            }
+          };
+
+          link.addEventListener("click", (event) => {
+            console.log("🖱️ CLICK EVENT FIRED! Event details:");
+            console.log(`   type: ${event.type}`);
+            console.log(`   target: ${event.target}`);
+            console.log(`   currentTarget: ${event.currentTarget}`);
+            console.log(`   defaultPrevented: ${event.defaultPrevented}`);
+            console.log(`   cancelBubble: ${event.cancelBubble}`);
+
+            clickFired = true;
+
+            // ✅ Immediate feedback
+            console.log("⏱️ Waiting for download to complete...");
+
+            // ✅ Progressive timeout with status updates
+            setTimeout(() => {
+              if (!resolved) {
+                console.log(
+                  "⏱️ 1 second passed, checking browser downloads..."
+                );
+                console.log(
+                  "💡 TIP: Check browser downloads (Ctrl+J) to see if file appeared"
+                );
+              }
+            }, 1000);
+
+            setTimeout(() => {
+              if (!resolved) {
+                console.log("⏱️ 3 seconds passed, assuming success");
+                console.log(
+                  "✅ Download process completed (assumed successful)"
+                );
+                cleanup();
                 resolve(true);
               }
-            }, 2000); // Increased to 2 seconds
-          } catch (blobError) {
-            console.error("❌ Method 1 (Blob) failed:", blobError);
+            }, 3000);
+          });
 
-            // ✅ FALLBACK METHOD 2: Data URL
-            console.log("🔄 Trying Method 2: Data URL");
-            try {
-              const BOM = "\uFEFF";
-              const dataUrl = `data:text/csv;charset=utf-8,${BOM}${encodeURIComponent(
-                csvContent
-              )}`;
+          link.addEventListener("error", (event) => {
+            console.error("❌ LINK ERROR EVENT FIRED:");
+            console.error("   Event:", event);
+            console.error(
+              "   Error details:",
+              event.error || "No error details"
+            );
 
-              console.log("📄 Data URL created, length:", dataUrl.length);
-
-              const link = document.createElement("a");
-              link.href = dataUrl;
-              link.download = fileName;
-              link.style.display = "none";
-
-              document.body.appendChild(link);
-              console.log("📌 Data URL link added to DOM");
-
-              link.click();
-              console.log("⚡ Data URL click triggered");
-
-              setTimeout(() => {
-                if (document.body.contains(link)) {
-                  document.body.removeChild(link);
-                }
-                console.log("✅ Method 2 completed successfully");
-                resolve(true);
-              }, 1000);
-            } catch (dataUrlError) {
-              console.error("❌ Method 2 (Data URL) failed:", dataUrlError);
-
-              // ✅ FALLBACK METHOD 3: Force user action
-              console.log("🔄 Trying Method 3: Manual copy");
-
-              // Show alert with instructions
-              alert(
-                `ไม่สามารถดาวน์โหลดไฟล์อัตโนมัติได้\n\nกรุณา:\n1. เปิด Developer Tools (F12)\n2. ไปที่ Console tab\n3. คัดลอกข้อมูลด้านล่าง\n4. บันทึกเป็นไฟล์ ${fileName}\n\nหรือลองใช้ browser อื่น`
-              );
-
-              console.log("📋 CSV DATA TO COPY:");
-              console.log("=".repeat(50));
-              console.log(csvContent);
-              console.log("=".repeat(50));
-
+            if (!resolved) {
+              cleanup();
               resolve(false);
             }
+          });
+
+          // ✅ Safety timeout
+          setTimeout(() => {
+            if (!clickFired && !resolved) {
+              console.error("❌ TIMEOUT: Click event never fired!");
+              console.error(
+                "This indicates a serious browser compatibility issue"
+              );
+              cleanup();
+              resolve(false);
+            }
+          }, 5000);
+
+          // ✅ Add to DOM with logging
+          console.log("📌 Adding link to document.body...");
+          document.body.appendChild(link);
+          console.log("✅ Link added to DOM");
+
+          // ✅ Verify link was added
+          const linkInDOM = document.body.contains(link);
+          console.log(`🔍 Link in DOM verification: ${linkInDOM}`);
+
+          if (!linkInDOM) {
+            console.error("❌ CRITICAL: Link was not added to DOM!");
+            resolve(false);
+            return;
+          }
+
+          // ✅ Trigger click with detailed logging
+          console.log("⚡ About to trigger click...");
+          console.log("🎯 Current timestamp:", new Date().toISOString());
+
+          try {
+            link.click();
+            console.log("✅ link.click() executed successfully");
+            console.log("⏳ Waiting for click event and download to start...");
+          } catch (clickError) {
+            console.error("❌ CRITICAL: link.click() threw an error:");
+            console.error(clickError);
+            cleanup();
+            resolve(false);
           }
         } catch (error: unknown) {
-          console.error("❌ Complete download failure:", error);
-          setError("เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์");
+          console.error("❌ CRITICAL: Unexpected error in downloadCSV:");
+          console.error(error);
+          setError("Critical error in download process");
           resolve(false);
         }
       });
