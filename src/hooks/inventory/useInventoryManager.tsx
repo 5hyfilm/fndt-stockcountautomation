@@ -1,4 +1,4 @@
-// src/hooks/inventory/useInventoryManager.tsx - Phase 2: Multi-Unit Manager
+// Path: src/hooks/inventory/useInventoryManager.tsx - Phase 2: Fixed with Complete Implementation
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -7,6 +7,7 @@ import {
   InventorySummary,
   UseInventoryManagerReturn,
   QuantityInput,
+  QuantityDetail,
   StorageConfig,
   migrateOldInventoryItem,
 } from "./types";
@@ -95,25 +96,20 @@ export const useInventoryManager = (): UseInventoryManagerReturn => {
             console.log("🔄 Found old format data, migrating...");
             const oldData = JSON.parse(oldDataStr);
             const migratedData = migrateOldData(oldData);
+            setInventory(migratedData);
 
-            if (migratedData.length > 0) {
-              setInventory(migratedData);
-              // บันทึกข้อมูลใหม่
-              saveInventory(migratedData);
-              console.log(
-                "✅ Migration completed:",
-                migratedData.length,
-                "items"
-              );
-            }
+            // บันทึกข้อมูลใหม่และลบข้อมูลเก่า
+            saveInventory(migratedData);
+            localStorage.removeItem(oldStorageKey);
+            console.log("✅ Migration completed and old data cleaned up");
           } else {
-            console.log("📦 No existing data found, starting fresh");
+            console.log("📭 No existing inventory data found");
             setInventory([]);
           }
         }
       } catch (error) {
         console.error("❌ Error loading inventory:", error);
-        setError("ไม่สามารถโหลดข้อมูล inventory ได้");
+        setError("เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า");
         setInventory([]);
       } finally {
         setIsLoading(false);
@@ -123,23 +119,15 @@ export const useInventoryManager = (): UseInventoryManagerReturn => {
     loadData();
   }, [loadFromStorage, saveInventory]);
 
-  // ✅ Update loading state from storage
-  useEffect(() => {
-    setIsLoading(storageLoading);
-  }, [storageLoading]);
-
-  // ✅ Update error state from storage
-  useEffect(() => {
-    if (storageError) {
-      setError(storageError);
-    }
-  }, [storageError]);
-
-  // ✅ Generate inventory summary
+  // ✅ Calculate summary
   const summary: InventorySummary = useMemo(() => {
-    const totalItems = inventory.length; // จำนวน SKU
-    const totalProducts = inventory.length; // เหมือนกัน
+    const totalItems = inventory.length;
+    const totalProducts = inventory.reduce(
+      (total, item) => total + (item.quantity || 0),
+      0
+    );
 
+    // Latest update time
     const lastUpdate = inventory.reduce((latest, item) => {
       return item.lastUpdated > latest ? item.lastUpdated : latest;
     }, inventory[0]?.lastUpdated || new Date().toISOString());
@@ -193,6 +181,45 @@ export const useInventoryManager = (): UseInventoryManagerReturn => {
     };
   }, [inventory]);
 
+  // ✅ FIXED: Add missing updateItemQuantityDetail method
+  const updateItemQuantityDetail = (
+    materialCode: string,
+    quantityDetail: QuantityDetail
+  ): boolean => {
+    try {
+      setError(null);
+
+      const existingItem = findItemByMaterialCode(materialCode);
+      if (!existingItem) {
+        setError("ไม่พบสินค้าที่ต้องการแก้ไข");
+        return false;
+      }
+
+      const updatedItem: InventoryItem = {
+        ...existingItem,
+        quantities: {
+          cs: quantityDetail.cs,
+          dsp: quantityDetail.dsp,
+          ea: quantityDetail.ea,
+        },
+        quantityDetail,
+        quantity: quantityDetail.cs + quantityDetail.dsp + quantityDetail.ea,
+        lastUpdated: new Date().toISOString(),
+      };
+
+      const updatedInventory = inventory.map((item) =>
+        item.materialCode === materialCode ? updatedItem : item
+      );
+
+      setInventory(updatedInventory);
+      return saveInventory(updatedInventory);
+    } catch (error) {
+      console.error("❌ Error updating item quantity detail:", error);
+      setError("เกิดข้อผิดพลาดในการแก้ไขจำนวนสินค้า");
+      return false;
+    }
+  };
+
   // ✅ Clear inventory
   const clearInventory = (): boolean => {
     try {
@@ -205,7 +232,7 @@ export const useInventoryManager = (): UseInventoryManagerReturn => {
     }
   };
 
-  // ✅ Export inventory
+  // ✅ FIXED: Export inventory (return boolean, not void)
   const exportInventory = (): boolean => {
     try {
       // TODO: Implement export logic
@@ -254,6 +281,9 @@ export const useInventoryManager = (): UseInventoryManagerReturn => {
     addOrUpdateMultiUnitItem,
     updateUnitQuantity,
     findItemByMaterialCode,
+
+    // ✅ FIXED: Add the missing method
+    updateItemQuantityDetail,
 
     // ✅ LEGACY: Backward compatibility (จะค่อย ๆ เอาออก)
     addOrUpdateItem,

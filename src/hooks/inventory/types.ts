@@ -1,4 +1,4 @@
-// Path: src/hooks/inventory/types.ts - Phase 2: Fixed with QuantityDetail interface
+// Path: src/hooks/inventory/types.ts - Phase 2: Fixed Interface Definition
 import { Product } from "../../types/product";
 
 // ✅ NEW: Multi-unit quantities interface (ไม่มี remainder แล้ว)
@@ -98,48 +98,42 @@ export interface InventoryItem {
   barcodeType?: "cs" | "dsp" | "ea";
 }
 
-// ✅ UPDATED: Summary with multi-unit breakdown
+// ✅ Inventory summary interface
 export interface InventorySummary {
-  totalItems: number; // จำนวน SKU ทั้งหมด
-  totalProducts: number; // เหมือนเดิม
+  totalItems: number;
+  totalProducts: number;
   lastUpdate: string;
   categories: Record<string, number>;
   brands: Record<string, number>;
-
-  // ✅ NEW: Multi-unit summary
-  quantityBreakdown: {
-    totalCS: number; // ลังรวม
-    totalDSP: number; // แพ็ครวม
-    totalEA: number; // ชิ้นรวม
-    itemsWithMultipleUnits: number; // SKU ที่มีหลายหน่วย
-    itemsWithDetail: number; // SKU ที่มี quantityDetail
-    totalRemainderItems?: number; // สำหรับ backward compatibility
+  quantityBreakdown?: {
+    totalCS: number;
+    totalDSP: number;
+    totalEA: number;
+    itemsWithMultipleUnits: number;
   };
 }
 
-// ✅ Employee context (ไม่เปลี่ยน)
+// ✅ Employee context interface
 export interface EmployeeContext {
-  employeeName: string;
+  id: string;
+  name: string;
   branchCode: string;
   branchName: string;
 }
 
-// ✅ Storage configuration (อัปเดต version)
+// ✅ Storage configuration
 export interface StorageConfig {
   storageKey: string;
   versionKey: string;
-  currentVersion: string; // เปลี่ยนเป็น "2.0"
+  currentVersion: string;
 }
 
-// ✅ UPDATED: Export configuration with Wide Format support
-export interface ExportConfig {
-  includeEmployeeInfo: boolean;
-  includeTimestamp: boolean;
-  includeStats: boolean;
-  csvDelimiter: string;
-  dateFormat: string;
-  // ✅ NEW: Wide format options
-  includeUnitBreakdown?: boolean; // แสดงรายละเอียดหน่วยแยก columns
+// ✅ Export options
+export interface ExportOptions {
+  format: "csv" | "excel";
+  includeMetadata: boolean;
+  includeSummary: boolean;
+  showUnitBreakdown?: boolean; // แสดงรายละเอียดหน่วยแยก columns
   exportFormat?: "wide" | "long"; // รูปแบบการ export (default: "wide")
   includeBrandInfo?: boolean; // รวมข้อมูล brand/category
   includeTotalColumn?: boolean; // รวม column จำนวนรวม
@@ -185,7 +179,7 @@ export const migrateOldInventoryItem = (
   };
 };
 
-// ✅ UPDATED: Hook interface with new methods
+// ✅ FIXED: Complete UseInventoryManagerReturn interface with all required methods
 export interface UseInventoryManagerReturn {
   // State
   inventory: InventoryItem[];
@@ -193,7 +187,7 @@ export interface UseInventoryManagerReturn {
   error: string | null;
   summary: InventorySummary;
 
-  // ✅ NEW: Multi-unit operations
+  // ✅ NEW: Multi-unit operations (หลัก)
   addOrUpdateMultiUnitItem: (
     product: Product,
     quantityInput: QuantityInput,
@@ -208,11 +202,17 @@ export interface UseInventoryManagerReturn {
     newQuantity: number
   ) => boolean;
 
-  // ✅ NEW: Update quantity detail
-  updateQuantityDetail: (
+  // ✅ FIXED: Update quantity detail method (ชื่อใหม่ที่ถูกต้อง)
+  updateItemQuantityDetail: (
     materialCode: string,
     quantityDetail: QuantityDetail
   ) => boolean;
+
+  // ✅ FIXED: Add findItemByMaterialCode method
+  findItemByMaterialCode: (materialCode: string) => InventoryItem | undefined;
+
+  // ✅ FIXED: Add findItemByBarcode method
+  findItemByBarcode: (barcode: string) => InventoryItem | undefined;
 
   // ✅ Legacy support (อาจจะเอาออกในอนาคต)
   addOrUpdateItem: (
@@ -226,6 +226,14 @@ export interface UseInventoryManagerReturn {
   removeItem: (itemId: string) => boolean;
   clearInventory: () => boolean;
   searchItems: (searchTerm: string) => InventoryItem[];
-  exportData: () => Promise<void>;
+
+  // ✅ FIXED: exportInventory method (return boolean, not Promise<void>)
+  exportInventory: () => boolean;
+
+  // ✅ FIXED: Add resetInventoryState method
+  resetInventoryState: () => boolean;
+
+  // Utilities
   clearError: () => void;
+  loadInventory: () => void;
 }
