@@ -1,10 +1,16 @@
 // Path: src/hooks/product/useProductLookup.tsx
+// Updated with enhanced barcode type detection
+
 "use client";
 
 import { useState, useCallback } from "react";
-import { Product } from "../../types/product";
-import { findProductByBarcode } from "../../data/services/productServices";
-import { normalizeBarcode } from "../../data/utils/csvUtils";
+import { Product, BarcodeType } from "../../types/product";
+import {
+  ProductWithMultipleBarcodes,
+  BarcodeSearchResult,
+} from "../../data/types/csvTypes";
+import { loadCSVProducts } from "../../data/loaders/csvLoader";
+import { CSVUtils, normalizeBarcode } from "../../data/utils/csvUtils";
 
 interface UseProductLookupProps {
   onProductFound?: () => void;
@@ -24,16 +30,22 @@ const getErrorMessage = (error: unknown): string => {
 export const useProductLookup = (props?: UseProductLookupProps) => {
   const { onProductFound } = props || {};
 
-  // State - แก้ไข syntax error
-  const [product, setProduct] = useState<Product | null>(null);
-  const [detectedBarcodeType, setDetectedBarcodeType] = useState<
-    "ea" | "dsp" | "cs" | null
-  >(null);
+  // ✅ UPDATED: State with enhanced barcode type support
+  const [product, setProduct] = useState<ProductWithMultipleBarcodes | null>(
+    null
+  );
+  const [detectedBarcodeType, setDetectedBarcodeType] =
+    useState<BarcodeType | null>(null);
   const [isLoadingProduct, setIsLoadingProduct] = useState<boolean>(false);
   const [productError, setProductError] = useState<string | null>(null);
   const [lastDetectedCode, setLastDetectedCode] = useState<string>("");
 
-  // Update barcode and fetch product info
+  // ✅ NEW: Enhanced search result state
+  const [searchResult, setSearchResult] = useState<BarcodeSearchResult | null>(
+    null
+  );
+
+  // ✅ MAJOR UPDATE: Enhanced barcode lookup with type detection
   const updateBarcode = useCallback(
     async (barcode: string) => {
       const normalizedBarcode = normalizeBarcode(barcode);
@@ -44,42 +56,64 @@ export const useProductLookup = (props?: UseProductLookupProps) => {
         return;
       }
 
-      console.log("🔄 Barcode changed:", {
-        old: normalizeBarcode(lastDetectedCode),
-        new: normalizedBarcode,
+      console.log("🔄 Barcode detection started:", {
+        original: barcode,
+        normalized: normalizedBarcode,
+        previous: normalizeBarcode(lastDetectedCode),
       });
 
       setIsLoadingProduct(true);
       setProductError(null);
-
-      // ✅ Set lastDetectedCode ทันทีเมื่อมี barcode detection
       setLastDetectedCode(normalizedBarcode);
 
       try {
-        // ใช้ findProductByBarcode ที่ return barcode type
-        const result = await findProductByBarcode(normalizedBarcode);
-        if (result) {
+        // ✅ NEW: Load products and search with type detection
+        const products = await loadCSVProducts();
+        console.log(`📋 Loaded ${products.length} products from CSV`);
+
+        // ✅ Use enhanced search with barcode type detection
+        const result = CSVUtils.searchByBarcode(products, normalizedBarcode);
+        setSearchResult(result);
+
+        if (result.found && result.product && result.detectedType) {
+          // ✅ Product found with detected barcode type
           setProduct(result.product);
-          setDetectedBarcodeType(result.barcodeType);
+          setDetectedBarcodeType(result.detectedType);
+
+          console.log("✅ Product found with type detection:", {
+            name: result.product.name,
+            materialCode: result.product.materialCode,
+            detectedType: result.detectedType,
+            scannedBarcode: result.scannedBarcode,
+            matchedBarcode: result.matchedBarcode,
+          });
+
+          // Log available barcode types for this product
+          const availableTypes = CSVUtils.getAvailableBarcodeTypes(
+            result.product
+          );
           console.log(
-            `✅ Product found: ${
-              result.product.name
-            } (${result.barcodeType.toUpperCase()})`
+            `📦 Available barcode types: ${availableTypes.join(", ")}`
           );
 
-          // 🔥 เรียก callback เพื่อปิดกล้องเมื่อเจอสินค้า
+          // 🔥 Notify parent component about successful detection
           if (onProductFound) {
             console.log("📷 Stopping camera after product found");
             onProductFound();
           }
         } else {
-          // ✅ ไม่เจอสินค้า - แต่ยัง keep lastDetectedCode เพื่อแสดงใน error state
+          // ✅ Product not found
           setProduct(null);
           setDetectedBarcodeType(null);
-          setProductError("ไม่พบข้อมูลสินค้าในระบบ");
-          console.log("❌ Product not found for barcode:", normalizedBarcode);
+          setProductError(`ไม่พบข้อมูลสินค้าสำหรับบาร์โค้ด: ${barcode}`);
 
-          // 🔥 เรียก callback เพื่อปิดกล้องแม้ไม่เจอสินค้า (เพื่อแสดง slide)
+          console.log("❌ Product not found:", {
+            scannedBarcode: result.scannedBarcode,
+            normalizedBarcode: result.normalizedBarcode,
+            totalProducts: products.length,
+          });
+
+          // 🔥 Still notify parent to show error state
           if (onProductFound) {
             console.log(
               "📷 Stopping camera after barcode detection (not found)"
@@ -88,14 +122,15 @@ export const useProductLookup = (props?: UseProductLookupProps) => {
           }
         }
       } catch (error: unknown) {
-        // ✅ Fixed: Changed from 'any' to 'unknown'
         const errorMessage = getErrorMessage(error);
-        console.error("❌ Error fetching product:", error);
+        console.error("❌ Error during product lookup:", error);
+
         setProduct(null);
         setDetectedBarcodeType(null);
-        setProductError(errorMessage);
+        setSearchResult(null);
+        setProductError(`เกิดข้อผิดพลาด: ${errorMessage}`);
 
-        // 🔥 เรียก callback แม้เกิด error
+        // 🔥 Notify parent even on error
         if (onProductFound) {
           console.log("📷 Stopping camera after error");
           onProductFound();
@@ -104,33 +139,123 @@ export const useProductLookup = (props?: UseProductLookupProps) => {
         setIsLoadingProduct(false);
       }
     },
-    [lastDetectedCode, onProductFound] // เพิ่ม onProductFound ใน dependency
+    [lastDetectedCode, onProductFound]
   );
 
-  // Clear product
+  // ✅ UPDATED: Clear product with enhanced state
   const clearProduct = useCallback(() => {
+    console.log("🧹 Clearing product data");
     setProduct(null);
     setDetectedBarcodeType(null);
     setProductError(null);
+    setSearchResult(null);
   }, []);
 
-  // Clear current detection
+  // ✅ UPDATED: Clear current detection session
   const clearCurrentDetection = useCallback(() => {
-    console.log("🔄 Clearing current detection");
+    console.log("🔄 Clearing current detection session");
     setLastDetectedCode("");
     clearProduct();
   }, [clearProduct]);
 
+  // ✅ NEW: Get unit label for detected barcode type
+  const getDetectedUnitLabel = useCallback((): string => {
+    if (!detectedBarcodeType) return "หน่วย";
+
+    switch (detectedBarcodeType) {
+      case BarcodeType.EA:
+        return "ชิ้น";
+      case BarcodeType.DSP:
+        return "แพ็ค";
+      case BarcodeType.CS:
+        return "ลัง";
+      default:
+        return "หน่วย";
+    }
+  }, [detectedBarcodeType]);
+
+  // ✅ NEW: Get detected unit abbreviation
+  const getDetectedUnitAbbr = useCallback((): string => {
+    if (!detectedBarcodeType) return "UN";
+    return detectedBarcodeType.toUpperCase();
+  }, [detectedBarcodeType]);
+
+  // ✅ NEW: Check if product has multiple barcode types
+  const hasMultipleBarcodeTypes = useCallback((): boolean => {
+    if (!product) return false;
+    const availableTypes = CSVUtils.getAvailableBarcodeTypes(product);
+    return availableTypes.length > 1;
+  }, [product]);
+
+  // ✅ NEW: Get all available barcode types for current product
+  const getAvailableBarcodeTypes = useCallback((): BarcodeType[] => {
+    if (!product) return [];
+    return CSVUtils.getAvailableBarcodeTypes(product);
+  }, [product]);
+
+  // ✅ NEW: Debug information getter
+  const getDebugInfo = useCallback(() => {
+    return {
+      lastDetectedCode,
+      product: product
+        ? {
+            name: product.name,
+            materialCode: product.materialCode,
+            productGroup: product.productGroup,
+          }
+        : null,
+      detectedBarcodeType,
+      searchResult: searchResult
+        ? {
+            found: searchResult.found,
+            detectedType: searchResult.detectedType,
+            matchedBarcode: searchResult.matchedBarcode,
+          }
+        : null,
+      availableBarcodeTypes: getAvailableBarcodeTypes(),
+      isLoading: isLoadingProduct,
+      error: productError,
+    };
+  }, [
+    lastDetectedCode,
+    product,
+    detectedBarcodeType,
+    searchResult,
+    getAvailableBarcodeTypes,
+    isLoadingProduct,
+    productError,
+  ]);
+
   return {
-    // State
+    // ✅ Core state
     product,
     detectedBarcodeType,
     isLoadingProduct,
     productError,
     lastDetectedCode,
-    // Actions
+
+    // ✅ Enhanced state
+    searchResult,
+
+    // ✅ Core actions
     updateBarcode,
     clearProduct,
     clearCurrentDetection,
+
+    // ✅ NEW: Enhanced utility functions
+    getDetectedUnitLabel,
+    getDetectedUnitAbbr,
+    hasMultipleBarcodeTypes,
+    getAvailableBarcodeTypes,
+    getDebugInfo,
+
+    // ✅ NEW: Backward compatibility helpers
+    // For components that expect the old Product type
+    productCompat: product as Product | null,
+    detectedBarcodeTypeCompat: detectedBarcodeType as
+      | "ea"
+      | "dsp"
+      | "cs"
+      | null,
   };
 };
