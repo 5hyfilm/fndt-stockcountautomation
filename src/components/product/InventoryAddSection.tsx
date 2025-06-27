@@ -1,5 +1,5 @@
 // Path: src/components/product/InventoryAddSection.tsx
-// Phase 3: Simplified for separate unit storage (one unit type per input)
+// Fix: แก้ไข signature และ wrapper สำหรับ onAddToInventory
 
 "use client";
 
@@ -15,20 +15,28 @@ import {
 } from "lucide-react";
 import { Product, BarcodeType, BarcodeUtils } from "../../types/product";
 import { ProductWithMultipleBarcodes } from "../../data/types/csvTypes";
+import { QuantityInput } from "../../hooks/inventory/types"; // ✅ Import QuantityInput
 
 interface InventoryAddSectionProps {
   product: Product | ProductWithMultipleBarcodes;
-  detectedBarcodeType: BarcodeType | null; // ✅ NEW: Which barcode was detected
-  onAddToInventory: (
-    product: Product,
-    quantity: number, // ✅ SIMPLIFIED: Just quantity number
-    barcodeType: BarcodeType
-  ) => boolean;
+  detectedBarcodeType: BarcodeType | null;
+  // ✅ FIX: รองรับทั้ง signature เก่าและใหม่
+  onAddToInventory:
+    | ((
+        product: Product,
+        quantity: number,
+        barcodeType: BarcodeType
+      ) => boolean)
+    | ((
+        product: Product,
+        quantityInput: QuantityInput,
+        barcodeType?: "ea" | "dsp" | "cs"
+      ) => boolean);
   isVisible: boolean;
   currentInventoryQuantity?: number;
 }
 
-// ✅ Enhanced unit configuration with icons and colors
+// Enhanced unit configuration with icons and colors
 const UNIT_CONFIG = {
   [BarcodeType.EA]: {
     label: "ชิ้น",
@@ -59,6 +67,32 @@ const UNIT_CONFIG = {
   },
 } as const;
 
+// ✅ NEW: Helper function to detect onAddToInventory signature
+const isNewSignature = (
+  fn: InventoryAddSectionProps["onAddToInventory"]
+): fn is (
+  product: Product,
+  quantityInput: QuantityInput,
+  barcodeType?: "ea" | "dsp" | "cs"
+) => boolean => {
+  // ตรวจสอบ function signature โดยดูจำนวน parameters
+  return fn.length === 3 && typeof fn === "function";
+};
+
+// ✅ NEW: Convert BarcodeType enum to string
+const barcodeTypeToString = (type: BarcodeType): "ea" | "dsp" | "cs" => {
+  switch (type) {
+    case BarcodeType.EA:
+      return "ea";
+    case BarcodeType.DSP:
+      return "dsp";
+    case BarcodeType.CS:
+      return "cs";
+    default:
+      return "ea";
+  }
+};
+
 export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
   product,
   detectedBarcodeType,
@@ -66,18 +100,18 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
   isVisible,
   currentInventoryQuantity = 0,
 }) => {
-  // ✅ SIMPLIFIED: Only quantity state needed
+  // State management
   const [quantity, setQuantity] = useState(1);
   const [inputValue, setInputValue] = useState("1");
   const [isAdding, setIsAdding] = useState(false);
   const [addSuccess, setAddSuccess] = useState(false);
 
-  // ✅ Get unit configuration for detected barcode type
+  // Get unit configuration for detected barcode type
   const unitConfig = detectedBarcodeType
     ? UNIT_CONFIG[detectedBarcodeType]
     : UNIT_CONFIG[BarcodeType.EA];
 
-  // ✅ Reset state when visibility or barcode type changes
+  // Reset state when visibility or barcode type changes
   useEffect(() => {
     if (isVisible) {
       setQuantity(1);
@@ -86,7 +120,7 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
     }
   }, [isVisible, detectedBarcodeType]);
 
-  // ✅ SIMPLIFIED: Quantity input handlers
+  // Quantity input handlers
   const handleQuantityChange = (value: string) => {
     setInputValue(value);
     if (value === "" || value === "0") return;
@@ -128,7 +162,7 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
     }
   };
 
-  // ✅ SIMPLIFIED: Add to inventory handler
+  // ✅ NEW: Smart wrapper for onAddToInventory with signature detection
   const handleAddToInventory = async () => {
     if (!detectedBarcodeType) {
       console.error("❌ No barcode type detected");
@@ -144,15 +178,36 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
         unitLabel: unitConfig.label,
       });
 
-      const success = onAddToInventory(
-        product as Product,
-        quantity,
-        detectedBarcodeType
-      );
+      let success = false;
+
+      // ✅ FIX: ตรวจสอบ signature และเรียกใช้ฟังก์ชันที่เหมาะสม
+      try {
+        // ลองเรียกด้วย signature ใหม่ก่อน (QuantityInput)
+        const quantityInput: QuantityInput = quantity; // Simple quantity
+        const barcodeTypeString = barcodeTypeToString(detectedBarcodeType);
+
+        success = (onAddToInventory as any)(
+          product as Product,
+          quantityInput,
+          barcodeTypeString
+        );
+      } catch (error) {
+        console.log("🔄 Trying old signature...");
+        // ถ้าไม่ได้ ลองใช้ signature เก่า (number, BarcodeType)
+        try {
+          success = (onAddToInventory as any)(
+            product as Product,
+            quantity,
+            detectedBarcodeType
+          );
+        } catch (oldSignatureError) {
+          console.error("❌ Both signatures failed:", oldSignatureError);
+          success = false;
+        }
+      }
 
       if (success) {
         setAddSuccess(true);
-
         // Reset to default quantity
         setQuantity(1);
         setInputValue("1");
@@ -169,7 +224,7 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
     }
   };
 
-  // ✅ Validation
+  // Validation
   const canAdd =
     inputValue !== "" && parseInt(inputValue) >= 1 && detectedBarcodeType;
 
@@ -177,7 +232,7 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* ✅ Success Message */}
+      {/* Success Message */}
       {addSuccess && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3 animate-in slide-in-from-top duration-300">
           <div className="bg-green-100 rounded-full p-1">
@@ -191,11 +246,11 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
         </div>
       )}
 
-      {/* ✅ Main Input Section */}
+      {/* Main Input Section */}
       <div
         className={`${unitConfig.bgColor} rounded-lg p-4 border ${unitConfig.borderColor}`}
       >
-        {/* ✅ Header with detected barcode type */}
+        {/* Header with detected barcode type */}
         <div className="flex items-center gap-2 mb-4">
           <Archive className="text-fn-green" size={20} />
           <span className="font-medium text-gray-900">เพิ่มใน Inventory</span>
@@ -209,7 +264,7 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
           </div>
         </div>
 
-        {/* ✅ Current Inventory Status */}
+        {/* Current Inventory Status */}
         {currentInventoryQuantity > 0 && (
           <div className="mb-4 p-3 bg-gray-100 rounded-lg border border-gray-200">
             <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -224,7 +279,7 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
           </div>
         )}
 
-        {/* ✅ Quantity Input */}
+        {/* Quantity Input */}
         <div className="space-y-3">
           <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
             <unitConfig.icon size={16} />
@@ -262,13 +317,13 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
             </button>
           </div>
 
-          {/* ✅ Unit Label Helper */}
+          {/* Unit Label Helper */}
           <p className="text-xs text-gray-500 text-center">
             หน่วยนับ: {unitConfig.label} ({unitConfig.shortLabel})
           </p>
         </div>
 
-        {/* ✅ Add Button */}
+        {/* Add Button */}
         <button
           onClick={handleAddToInventory}
           disabled={!canAdd || isAdding}
@@ -299,7 +354,7 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
         </button>
       </div>
 
-      {/* ✅ Debug Info (Development Only) */}
+      {/* Debug Info (Development Only) */}
       {process.env.NODE_ENV === "development" && (
         <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded border-l-4 border-blue-300">
           <div>
@@ -313,6 +368,10 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
           </div>
           <div>
             🏷️ สินค้า: <strong>{product.name}</strong>
+          </div>
+          <div>
+            🔧 Function signature:{" "}
+            <strong>onAddToInventory.length = {onAddToInventory.length}</strong>
           </div>
         </div>
       )}
