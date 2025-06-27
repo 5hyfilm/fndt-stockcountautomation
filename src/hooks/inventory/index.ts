@@ -1,9 +1,9 @@
-// src/hooks/inventory/index.ts - แก้ไข conflict
-// ✅ แก้: ลบ useInventoryExport ออกจาก re-export ชั่วคราว
+// Path: ./src/hooks/inventory/index.ts
+// ✅ แก้ไข: เปิดใช้งาน useInventoryExport อีกครั้งหลังจากแก้ conflict แล้ว
 
 export * from "./types";
 export * from "./useInventoryStorage";
 export * from "./useInventoryOperations";
 export * from "./useInventorySummary";
-// export * from "./useInventoryExport"; // ✅ Comment ออกชั่วคราว
+export * from "./useInventoryExport"; // ✅ เปิดใช้งานอีกครั้ง
 export * from "./useInventoryManager";

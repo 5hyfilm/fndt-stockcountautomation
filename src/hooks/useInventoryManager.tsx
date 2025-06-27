@@ -1,4 +1,4 @@
-// src/hooks/useInventoryManager.tsx - แก้ไข conflict
+// Path: ./src/hooks/useInventoryManager.tsx
 "use client";
 
 // Re-export everything from the inventory module
@@ -10,10 +10,10 @@ export {
   type UseInventoryManagerReturn,
 } from "./inventory/useInventoryManager";
 
-// Additional exports for advanced usage - ✅ ลบ useInventoryExport ออกชั่วคราว
+// Additional exports for advanced usage - ✅ เปิดใช้งาน useInventoryExport อีกครั้ง
 export {
   useInventoryStorage,
   useInventoryOperations,
   useInventorySummary,
-  // useInventoryExport, // ✅ Comment ออกชั่วคราว
+  useInventoryExport, // ✅ เปิดใช้งานอีกครั้งหลังจากแก้ conflict แล้ว
 } from "./inventory";

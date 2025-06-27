@@ -1,10 +1,11 @@
-// src/hooks/inventory/useInventoryExport.tsx - Fixed Version
+// Path: ./src/hooks/inventory/useInventoryExport.tsx
 "use client";
 
 import { useCallback } from "react";
-import { useInventoryExport } from "../hooks/inventory/useInventoryExport"; // ✅ เพิ่ม import
 
-// ✅ FIX: Import from correct path
+// ✅ FIX: ลบ circular import ที่ทำให้เกิด duplicate definition
+// import { useInventoryExport } from "../hooks/inventory/useInventoryExport"; // ❌ ลบบรรทัดนี้ออก
+
 interface InventoryItem {
   id: string;
   materialCode: string;
@@ -120,567 +121,264 @@ export const useInventoryExport = ({
   }, []);
 
   // ✅ Group inventory by Material Code (Wide Format)
-  const groupInventoryByMaterialCode = useCallback((): Map<
-    string,
-    GroupedInventoryData
-  > => {
-    const groupedData = new Map<string, GroupedInventoryData>();
-
-    console.log(
-      "🔄 Grouping inventory data by Material Code for Wide Format export..."
-    );
+  const groupInventoryByMaterialCode = useCallback(() => {
+    const grouped = new Map<string, GroupedInventoryData>();
 
     inventory.forEach((item) => {
-      const isNew = isNewProduct(item);
-      const materialCode =
-        item.materialCode || item.barcode || `UNKNOWN_${item.id}`;
+      const materialCode = item.materialCode || item.id;
 
-      console.log(`📦 Processing item: ${item.productName} (${materialCode})`);
-
-      const existing = groupedData.get(materialCode);
-
-      // Extract quantities from multi-unit or legacy format
-      let quantities: { cs: number; dsp: number; ea: number };
-
-      if (item.quantities) {
-        // ✅ New multi-unit format
-        quantities = {
-          cs: item.quantities.cs || 0,
-          dsp: item.quantities.dsp || 0,
-          ea: item.quantities.ea || 0,
-        };
-        console.log(`  📊 Multi-unit quantities:`, quantities);
-      } else {
-        // ✅ Legacy format conversion
-        const barcodeType = item.barcodeType || "ea";
-        quantities = { cs: 0, dsp: 0, ea: 0 };
-        quantities[barcodeType] = item.quantity || 0;
-        console.log(`  📊 Legacy quantity: ${item.quantity} ${barcodeType}`);
-      }
-
-      if (existing) {
-        // ✅ Merge quantities
-        existing.quantities.cs += quantities.cs;
-        existing.quantities.dsp += quantities.dsp;
-        existing.quantities.ea += quantities.ea;
-
-        // Update metadata
-        existing.scannedBarcodes.push(item.barcode);
-        if (item.lastUpdated > existing.lastUpdated) {
-          existing.lastUpdated = item.lastUpdated;
-        }
-
-        console.log(
-          `  ✅ Merged with existing: CS=${existing.quantities.cs}, DSP=${existing.quantities.dsp}, EA=${existing.quantities.ea}`
-        );
-      } else {
-        // ✅ Create new group
-        const newGroup: GroupedInventoryData = {
+      if (!grouped.has(materialCode)) {
+        grouped.set(materialCode, {
           materialCode,
           productName: item.productName,
           description: item.thaiDescription || item.productName,
-          productGroup: item.productGroup || "ไม่ระบุ",
-          brand: item.brand || "ไม่ระบุ",
-          category: item.category || "ไม่ระบุ",
-          quantities: { ...quantities },
-          isNewProduct: isNew,
-          scannedBarcodes: [item.barcode],
+          productGroup: item.productGroup || "",
+          brand: item.brand,
+          category: item.category,
+          quantities: {
+            cs: 0,
+            dsp: 0,
+            ea: 0,
+          },
+          isNewProduct: isNewProduct(item),
+          scannedBarcodes: [],
           lastUpdated: item.lastUpdated,
-        };
+        });
+      }
 
-        groupedData.set(materialCode, newGroup);
-        console.log(
-          `  🆕 Created new group: CS=${quantities.cs}, DSP=${quantities.dsp}, EA=${quantities.ea}`
-        );
+      const groupedItem = grouped.get(materialCode)!;
+
+      // รวมจำนวนสินค้า
+      if (item.quantities) {
+        groupedItem.quantities.cs += item.quantities.cs || 0;
+        groupedItem.quantities.dsp += item.quantities.dsp || 0;
+        groupedItem.quantities.ea += item.quantities.ea || 0;
+      } else {
+        // Legacy support
+        const barcodeType = item.barcodeType || "ea";
+        groupedItem.quantities[barcodeType] += item.quantity || 0;
+      }
+
+      // เก็บบาร์โค้ดที่สแกน
+      if (item.barcode && !groupedItem.scannedBarcodes.includes(item.barcode)) {
+        groupedItem.scannedBarcodes.push(item.barcode);
+      }
+
+      // อัพเดทเวลาล่าสุด
+      if (new Date(item.lastUpdated) > new Date(groupedItem.lastUpdated)) {
+        groupedItem.lastUpdated = item.lastUpdated;
       }
     });
 
-    console.log(
-      `📊 Grouped ${inventory.length} items into ${groupedData.size} SKUs`
-    );
-    return groupedData;
+    return Array.from(grouped.values());
   }, [inventory, isNewProduct]);
 
-  // ✅ Generate Wide Format CSV content
-  const generateWideFormatCSV = useCallback(
-    (config: ExportConfig = DEFAULT_EXPORT_CONFIG): string => {
-      const now = new Date();
-      const thaiDate = now.toLocaleDateString(config.dateFormat, {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
-      const thaiTime = now.toLocaleTimeString(config.dateFormat, {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
+  // ✅ Generate CSV content with Wide Format (หลัก)
+  const generateCsvContent = useCallback(
+    (config: ExportConfig = DEFAULT_EXPORT_CONFIG) => {
+      try {
+        const groupedData = groupInventoryByMaterialCode();
+        let csvContent = "";
 
-      const branchCode = employeeContext?.branchCode || "XXX";
-      const branchName = employeeContext?.branchName || "ไม่ระบุสาขา";
-
-      const csvRows: string[] = [];
-
-      // ✅ Header section
-      if (config.includeTimestamp) {
-        csvRows.push(
-          escapeCsvField(
-            `สถานะคลังล่าสุด ${thaiDate} ${thaiTime} สำหรับ ${branchCode} - ${branchName}`
-          )
-        );
-      }
-
-      if (config.includeEmployeeInfo && employeeContext) {
-        csvRows.push(
-          `ตรวจนับโดย,${escapeCsvField(employeeContext.employeeName)}`
-        );
-      }
-
-      // เว้น 1 row
-      csvRows.push("");
-
-      // ✅ Wide Format Column headers
-      const headers = [
-        "Material Code",
-        "Product Name",
-        "Description",
-        "Product Group",
-        "Brand",
-        "CS (ลัง)",
-        "DSP (แพ็ค)",
-        "EA (ชิ้น)",
-        "Total Units",
-        "Last Updated",
-      ];
-
-      csvRows.push(headers.map((header) => escapeCsvField(header)).join(","));
-
-      // ✅ Group and process data
-      const groupedData = groupInventoryByMaterialCode();
-
-      // ✅ Sort by Material Code for consistent output
-      const sortedGroups = Array.from(groupedData.values()).sort((a, b) =>
-        a.materialCode.localeCompare(b.materialCode)
-      );
-
-      // ✅ Generate data rows
-      sortedGroups.forEach((group) => {
-        const { cs, dsp, ea } = group.quantities;
-        const totalUnits = cs + dsp + ea;
-
-        // Skip groups with no quantities
-        if (totalUnits === 0) {
-          console.log(`⚠️ Skipping ${group.materialCode} - no quantities`);
-          return;
+        // Header with employee info
+        if (config.includeEmployeeInfo && employeeContext) {
+          csvContent += `ผู้นับสต็อก,${escapeCsvField(
+            employeeContext.employeeName
+          )}\n`;
+          csvContent += `รหัสสาขา,${escapeCsvField(
+            employeeContext.branchCode
+          )}\n`;
+          csvContent += `ชื่อสาขา,${escapeCsvField(
+            employeeContext.branchName
+          )}\n`;
+          csvContent += `\n`;
         }
 
-        const row = [
-          escapeCsvField(group.materialCode),
-          escapeCsvField(group.productName),
-          escapeCsvField(group.description),
-          escapeCsvField(group.productGroup),
-          escapeCsvField(group.brand),
-          cs > 0 ? cs.toString() : "0",
-          dsp > 0 ? dsp.toString() : "0",
-          ea > 0 ? ea.toString() : "0",
-          totalUnits.toString(),
-          escapeCsvField(
-            new Date(group.lastUpdated).toLocaleDateString("th-TH", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          ),
+        if (config.includeTimestamp) {
+          const now = new Date();
+          const thaiDate = now.toLocaleDateString("th-TH", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          csvContent += `วันที่ส่งออก,${thaiDate}\n`;
+          csvContent += `\n`;
+        }
+
+        // Column headers
+        const headers = [
+          "รหัสสินค้า",
+          "ชื่อสินค้า",
+          "คำอธิบาย",
+          "กลุ่มสินค้า",
+          "แบรนด์",
+          "หมวดหมู่",
         ];
 
-        csvRows.push(row.join(","));
+        if (config.includeUnitBreakdown) {
+          headers.push("จำนวน CS", "จำนวน DSP", "จำนวน EA");
+        }
 
-        console.log(
-          `📝 Exported: ${group.materialCode} - CS:${cs}, DSP:${dsp}, EA:${ea}`
+        headers.push(
+          "จำนวนรวม",
+          "สินค้าใหม่",
+          "บาร์โค้ดที่สแกน",
+          "อัพเดทล่าสุด"
         );
-      });
 
-      // ✅ Add summary footer
-      csvRows.push("");
-      csvRows.push(
-        `สรุป,${sortedGroups.length} รายการ,${inventory.length} entries รวม`
-      );
+        csvContent +=
+          headers.map(escapeCsvField).join(config.csvDelimiter) + "\n";
 
-      const totalCS = sortedGroups.reduce((sum, g) => sum + g.quantities.cs, 0);
-      const totalDSP = sortedGroups.reduce(
-        (sum, g) => sum + g.quantities.dsp,
-        0
-      );
-      const totalEA = sortedGroups.reduce((sum, g) => sum + g.quantities.ea, 0);
+        // Data rows
+        groupedData.forEach((item) => {
+          const totalQuantity =
+            item.quantities.cs + item.quantities.dsp + item.quantities.ea;
 
-      csvRows.push(`รวมทั้งหมด,,,,,${totalCS},${totalDSP},${totalEA}`);
+          const row = [
+            item.materialCode,
+            item.productName,
+            item.description,
+            item.productGroup,
+            item.brand,
+            item.category,
+          ];
 
-      console.log(`📊 Export Summary:`);
-      console.log(`   SKUs: ${sortedGroups.length}`);
-      console.log(`   Total CS: ${totalCS}`);
-      console.log(`   Total DSP: ${totalDSP}`);
-      console.log(`   Total EA: ${totalEA}`);
-
-      return csvRows.join("\n");
-    },
-    [
-      employeeContext,
-      escapeCsvField,
-      groupInventoryByMaterialCode,
-      inventory.length,
-    ]
-  );
-
-  // ✅ Generate filename
-  const generateFileName = useCallback((): string => {
-    const now = new Date();
-    const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
-    const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-"); // HH-MM-SS
-
-    let fileName = `FN_Stock_Wide_${dateStr}_${timeStr}`;
-
-    if (employeeContext) {
-      fileName = `FN_Stock_Wide_${employeeContext.branchCode}_${dateStr}_${timeStr}`;
-    }
-
-    return `${fileName}.csv`;
-  }, [employeeContext]);
-
-  // ✅ FIXED: Download CSV with proper async handling and fallback methods
-  // Debug Real Export - เพิ่มใน useInventoryExport.tsx
-  // แทนที่ downloadCSV function เดิมด้วยโค้ดนี้
-
-  const downloadCSV = useCallback(
-    (csvContent: string, fileName: string): Promise<boolean> => {
-      return new Promise((resolve) => {
-        console.log("🚀🚀🚀 REAL EXPORT DEBUG VERSION 🚀🚀🚀");
-        console.log("📁 fileName:", fileName);
-        console.log("📊 csvContent length:", csvContent.length);
-
-        // ✅ DEBUG: Show first 300 characters of CSV
-        console.log("📄 CSV Preview (first 300 chars):");
-        console.log("─".repeat(50));
-        console.log(csvContent.substring(0, 300));
-        console.log("─".repeat(50));
-
-        // ✅ DEBUG: Check for common issues
-        const debugChecks = {
-          hasContent: csvContent && csvContent.length > 0,
-          hasValidFileName: fileName && fileName.includes(".csv"),
-          contentType: typeof csvContent,
-          fileNameType: typeof fileName,
-          contentStartsWithBOM: csvContent.startsWith("\uFEFF"),
-          hasCommas: csvContent.includes(","),
-          hasNewlines: csvContent.includes("\n"),
-          estimatedRows: csvContent.split("\n").length,
-        };
-
-        console.log("🔍 DEBUG CHECKS:");
-        console.table(debugChecks);
-
-        // ✅ DEBUG: Validate inputs
-        if (!csvContent || csvContent.length === 0) {
-          console.error("❌ CRITICAL: CSV content is empty or null!");
-          setError("CSV content is empty");
-          resolve(false);
-          return;
-        }
-
-        if (!fileName || !fileName.includes(".csv")) {
-          console.error("❌ CRITICAL: Invalid filename:", fileName);
-          setError("Invalid filename");
-          resolve(false);
-          return;
-        }
-
-        try {
-          console.log("💾 Creating blob...");
-          const BOM = "\uFEFF";
-          const finalContent = csvContent.startsWith(BOM)
-            ? csvContent
-            : BOM + csvContent;
-
-          const blob = new Blob([finalContent], {
-            type: "text/csv;charset=utf-8;",
-          });
-
-          console.log(`✅ Blob created successfully:`);
-          console.log(`   Size: ${blob.size} bytes`);
-          console.log(`   Type: ${blob.type}`);
-          console.log(`   Expected size: ~${finalContent.length} bytes`);
-
-          if (blob.size === 0) {
-            console.error("❌ CRITICAL: Blob size is 0!");
-            resolve(false);
-            return;
-          }
-
-          const url = URL.createObjectURL(blob);
-          console.log("🔗 Object URL created:", url.substring(0, 60) + "...");
-
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = fileName;
-          link.style.display = "none";
-
-          console.log("🔗 Link element properties:");
-          console.log(`   href: ${link.href.substring(0, 60)}...`);
-          console.log(`   download: ${link.download}`);
-          console.log(`   display: ${link.style.display}`);
-
-          // ✅ Check download support again
-          const downloadSupported = "download" in link;
-          console.log(`✅ Download attribute supported: ${downloadSupported}`);
-
-          if (!downloadSupported) {
-            console.error("❌ CRITICAL: Download attribute not supported!");
-            URL.revokeObjectURL(url);
-            resolve(false);
-            return;
-          }
-
-          // ✅ Enhanced event listeners with detailed logging
-          let clickFired = false;
-          let resolved = false;
-
-          const cleanup = () => {
-            if (!resolved) {
-              resolved = true;
-              try {
-                if (document.body.contains(link)) {
-                  document.body.removeChild(link);
-                  console.log("🧹 Link removed from DOM");
-                }
-                URL.revokeObjectURL(url);
-                console.log("🧹 Object URL revoked");
-              } catch (cleanupError) {
-                console.warn("⚠️ Cleanup warning:", cleanupError);
-              }
-            }
-          };
-
-          link.addEventListener("click", (event) => {
-            console.log("🖱️ CLICK EVENT FIRED! Event details:");
-            console.log(`   type: ${event.type}`);
-            console.log(`   target: ${event.target}`);
-            console.log(`   currentTarget: ${event.currentTarget}`);
-            console.log(`   defaultPrevented: ${event.defaultPrevented}`);
-            console.log(`   cancelBubble: ${event.cancelBubble}`);
-
-            clickFired = true;
-
-            // ✅ Immediate feedback
-            console.log("⏱️ Waiting for download to complete...");
-
-            // ✅ Progressive timeout with status updates
-            setTimeout(() => {
-              if (!resolved) {
-                console.log(
-                  "⏱️ 1 second passed, checking browser downloads..."
-                );
-                console.log(
-                  "💡 TIP: Check browser downloads (Ctrl+J) to see if file appeared"
-                );
-              }
-            }, 1000);
-
-            setTimeout(() => {
-              if (!resolved) {
-                console.log("⏱️ 3 seconds passed, assuming success");
-                console.log(
-                  "✅ Download process completed (assumed successful)"
-                );
-                cleanup();
-                resolve(true);
-              }
-            }, 3000);
-          });
-
-          link.addEventListener("error", (event) => {
-            console.error("❌ LINK ERROR EVENT FIRED:");
-            console.error("   Event:", event);
-            console.error(
-              "   Error details:",
-              event.error || "No error details"
+          if (config.includeUnitBreakdown) {
+            row.push(
+              item.quantities.cs.toString(),
+              item.quantities.dsp.toString(),
+              item.quantities.ea.toString()
             );
-
-            if (!resolved) {
-              cleanup();
-              resolve(false);
-            }
-          });
-
-          // ✅ Safety timeout
-          setTimeout(() => {
-            if (!clickFired && !resolved) {
-              console.error("❌ TIMEOUT: Click event never fired!");
-              console.error(
-                "This indicates a serious browser compatibility issue"
-              );
-              cleanup();
-              resolve(false);
-            }
-          }, 5000);
-
-          // ✅ Add to DOM with logging
-          console.log("📌 Adding link to document.body...");
-          document.body.appendChild(link);
-          console.log("✅ Link added to DOM");
-
-          // ✅ Verify link was added
-          const linkInDOM = document.body.contains(link);
-          console.log(`🔍 Link in DOM verification: ${linkInDOM}`);
-
-          if (!linkInDOM) {
-            console.error("❌ CRITICAL: Link was not added to DOM!");
-            resolve(false);
-            return;
           }
 
-          // ✅ Trigger click with detailed logging
-          console.log("⚡ About to trigger click...");
-          console.log("🎯 Current timestamp:", new Date().toISOString());
+          row.push(
+            totalQuantity.toString(),
+            item.isNewProduct ? "ใช่" : "ไม่",
+            item.scannedBarcodes.join("; "),
+            new Date(item.lastUpdated).toLocaleDateString("th-TH")
+          );
 
-          try {
-            link.click();
-            console.log("✅ link.click() executed successfully");
-            console.log("⏳ Waiting for click event and download to start...");
-          } catch (clickError) {
-            console.error("❌ CRITICAL: link.click() threw an error:");
-            console.error(clickError);
-            cleanup();
-            resolve(false);
-          }
-        } catch (error: unknown) {
-          console.error("❌ CRITICAL: Unexpected error in downloadCSV:");
-          console.error(error);
-          setError("Critical error in download process");
-          resolve(false);
+          csvContent +=
+            row.map(escapeCsvField).join(config.csvDelimiter) + "\n";
+        });
+
+        // Summary
+        if (config.includeStats) {
+          csvContent += "\n";
+          csvContent += "สรุปข้อมูล\n";
+          csvContent += `จำนวนรายการสินค้า,${groupedData.length}\n`;
+          csvContent += `จำนวนรวมทั้งหมด,${groupedData.reduce(
+            (sum, item) =>
+              sum +
+              item.quantities.cs +
+              item.quantities.dsp +
+              item.quantities.ea,
+            0
+          )}\n`;
+          csvContent += `สินค้าใหม่,${
+            groupedData.filter((item) => item.isNewProduct).length
+          }\n`;
         }
-      });
+
+        return csvContent;
+      } catch (error) {
+        console.error("Error generating CSV:", error);
+        setError(`เกิดข้อผิดพลาดในการสร้างไฟล์ CSV: ${error}`);
+        return null;
+      }
     },
-    [setError]
+    [groupInventoryByMaterialCode, employeeContext, escapeCsvField, setError]
   );
 
-  // ✅ Main export function
+  // ✅ Export to CSV file
   const exportInventory = useCallback(
-    async (config: ExportConfig = DEFAULT_EXPORT_CONFIG): Promise<boolean> => {
+    (config?: Partial<ExportConfig>) => {
       try {
-        if (inventory.length === 0) {
-          setError("ไม่มีข้อมูลสินค้าให้ส่งออก");
+        const finalConfig = { ...DEFAULT_EXPORT_CONFIG, ...config };
+        const csvContent = generateCsvContent(finalConfig);
+
+        if (!csvContent) {
           return false;
         }
 
-        setError(null);
+        // Create and download file
+        const blob = new Blob(["\uFEFF" + csvContent], {
+          type: "text/csv;charset=utf-8;",
+        });
 
-        console.log("📤 Starting Wide Format CSV export...");
-        console.log(`📦 Total items: ${inventory.length}`);
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
 
-        const csvContent = generateWideFormatCSV(config);
-        const fileName = generateFileName();
+        // Generate filename
+        const timestamp = new Date()
+          .toISOString()
+          .slice(0, 19)
+          .replace(/:/g, "-");
+        const branchCode = employeeContext?.branchCode || "UNKNOWN";
+        const filename = `inventory_${branchCode}_${timestamp}.csv`;
 
-        // ✅ Validate content
-        if (!csvContent || csvContent.length === 0) {
-          console.error("❌ Empty CSV content generated");
-          setError("ไม่สามารถสร้างเนื้อหา CSV ได้");
-          return false;
-        }
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = "hidden";
 
-        console.log(
-          "📝 CSV content preview:",
-          csvContent.substring(0, 200) + "..."
-        );
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
 
-        // ✅ Start download
-        const success = await downloadCSV(csvContent, fileName);
+        URL.revokeObjectURL(url);
 
-        if (success) {
-          console.log("✅ Wide Format CSV export completed successfully");
-          console.log(`📁 File: ${fileName}`);
-          console.log(`👤 Exported by: ${employeeContext?.employeeName}`);
-        } else {
-          console.error("❌ CSV export failed");
-          setError("ไม่สามารถดาวน์โหลดไฟล์ได้ กรุณาลองใหม่อีกครั้ง");
-        }
-
-        return success;
-      } catch (error: unknown) {
-        console.error("❌ Error exporting inventory:", error);
-        setError("เกิดข้อผิดพลาดในการส่งออกข้อมูล");
+        console.log(`✅ Inventory exported successfully: ${filename}`);
+        return true;
+      } catch (error) {
+        console.error("❌ Export failed:", error);
+        setError(`การส่งออกล้มเหลว: ${error}`);
         return false;
       }
     },
-    [
-      inventory,
-      employeeContext,
-      generateWideFormatCSV,
-      generateFileName,
-      downloadCSV,
-      setError,
-    ]
+    [generateCsvContent, employeeContext, setError]
   );
 
-  // ✅ Export as JSON
-  const exportAsJSON = useCallback((): boolean => {
-    try {
-      if (inventory.length === 0) {
-        setError("ไม่มีข้อมูลสินค้าให้ส่งออก");
-        return false;
-      }
+  // ✅ Get export preview
+  const getExportPreview = useCallback(
+    (config?: Partial<ExportConfig>) => {
+      const finalConfig = { ...DEFAULT_EXPORT_CONFIG, ...config };
+      return generateCsvContent(finalConfig);
+    },
+    [generateCsvContent]
+  );
 
-      const groupedData = groupInventoryByMaterialCode();
+  // ✅ Get export statistics
+  const getExportStats = useCallback(() => {
+    const groupedData = groupInventoryByMaterialCode();
 
-      const exportData = {
-        metadata: {
-          exportedAt: new Date().toISOString(),
-          exportedBy: employeeContext?.employeeName,
-          branchCode: employeeContext?.branchCode,
-          branchName: employeeContext?.branchName,
-          format: "wide_format_multi_unit",
-          totalSKUs: groupedData.size,
-          totalItems: inventory.length,
-        },
-        data: Array.from(groupedData.values()),
-      };
-
-      const jsonContent = JSON.stringify(exportData, null, 2);
-      const blob = new Blob([jsonContent], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-
-      const fileName = `FN_Stock_Data_${employeeContext?.branchCode || "XXX"}_${
-        new Date().toISOString().split("T")[0]
-      }.json`;
-
-      link.href = url;
-      link.download = fileName;
-      link.style.display = "none";
-
-      document.body.appendChild(link);
-      link.click();
-
-      setTimeout(() => {
-        if (document.body.contains(link)) {
-          document.body.removeChild(link);
-        }
-        URL.revokeObjectURL(url);
-      }, 1000);
-
-      console.log("📤 JSON export completed:", fileName);
-      return true;
-    } catch (error: unknown) {
-      console.error("❌ Error exporting JSON:", error);
-      setError("เกิดข้อผิดพลาดในการส่งออกข้อมูล JSON");
-      return false;
-    }
-  }, [inventory, employeeContext, groupInventoryByMaterialCode, setError]);
+    return {
+      totalProducts: groupedData.length,
+      totalQuantity: groupedData.reduce(
+        (sum, item) =>
+          sum + item.quantities.cs + item.quantities.dsp + item.quantities.ea,
+        0
+      ),
+      newProducts: groupedData.filter((item) => item.isNewProduct).length,
+      quantityBreakdown: {
+        cs: groupedData.reduce((sum, item) => sum + item.quantities.cs, 0),
+        dsp: groupedData.reduce((sum, item) => sum + item.quantities.dsp, 0),
+        ea: groupedData.reduce((sum, item) => sum + item.quantities.ea, 0),
+      },
+      lastUpdate:
+        inventory.length > 0
+          ? Math.max(
+              ...inventory.map((item) => new Date(item.lastUpdated).getTime())
+            )
+          : null,
+    };
+  }, [groupInventoryByMaterialCode, inventory]);
 
   return {
     exportInventory,
-    exportAsJSON,
-    generateFileName,
+    getExportPreview,
+    getExportStats,
     groupInventoryByMaterialCode,
   };
 };
