@@ -1,13 +1,53 @@
-// src/hooks/inventory/useInventoryExport.tsx - Phase 2: Wide Format Export
+// src/hooks/inventory/useInventoryExport.tsx - Fixed Version
 "use client";
 
 import { useCallback } from "react";
-import {
-  InventoryItem,
-  EmployeeContext,
-  ExportConfig,
-  MultiUnitQuantities,
-} from "./types";
+
+// ✅ FIX: Import from correct path
+interface InventoryItem {
+  id: string;
+  materialCode: string;
+  productName: string;
+  brand: string;
+  category: string;
+  size: string;
+  unit: string;
+  barcode: string;
+  quantity: number;
+  quantities: {
+    cs?: number;
+    dsp?: number;
+    ea?: number;
+  };
+  lastUpdated: string;
+  productData?: any;
+  addedBy?: string;
+  branchCode?: string;
+  branchName?: string;
+  productGroup?: string;
+  thaiDescription?: string;
+  barcodeType?: "cs" | "dsp" | "ea";
+  scannedBarcodes?: {
+    cs?: string;
+    dsp?: string;
+    ea?: string;
+  };
+}
+
+interface EmployeeContext {
+  employeeName: string;
+  branchCode: string;
+  branchName: string;
+}
+
+interface ExportConfig {
+  includeEmployeeInfo: boolean;
+  includeTimestamp: boolean;
+  includeStats: boolean;
+  csvDelimiter: string;
+  dateFormat: string;
+  includeUnitBreakdown?: boolean;
+}
 
 interface UseInventoryExportProps {
   inventory: InventoryItem[];
@@ -21,11 +61,10 @@ const DEFAULT_EXPORT_CONFIG: ExportConfig = {
   includeStats: false,
   csvDelimiter: ",",
   dateFormat: "th-TH",
-  // ✅ NEW: Wide format options
   includeUnitBreakdown: true,
 };
 
-// ✅ NEW: Interface for grouped inventory data (Wide Format)
+// ✅ Interface for grouped inventory data (Wide Format)
 interface GroupedInventoryData {
   materialCode: string;
   productName: string;
@@ -33,13 +72,11 @@ interface GroupedInventoryData {
   productGroup: string;
   brand: string;
   category: string;
-  // ✅ Wide format quantities
   quantities: {
     cs: number;
     dsp: number;
     ea: number;
   };
-  // Metadata
   isNewProduct: boolean;
   scannedBarcodes: string[];
   lastUpdated: string;
@@ -81,7 +118,7 @@ export const useInventoryExport = ({
     );
   }, []);
 
-  // ✅ NEW: Group inventory by Material Code (Wide Format)
+  // ✅ Group inventory by Material Code (Wide Format)
   const groupInventoryByMaterialCode = useCallback((): Map<
     string,
     GroupedInventoryData
@@ -163,7 +200,7 @@ export const useInventoryExport = ({
     return groupedData;
   }, [inventory, isNewProduct]);
 
-  // ✅ NEW: Generate Wide Format CSV content
+  // ✅ Generate Wide Format CSV content
   const generateWideFormatCSV = useCallback(
     (config: ExportConfig = DEFAULT_EXPORT_CONFIG): string => {
       const now = new Date();
@@ -201,18 +238,18 @@ export const useInventoryExport = ({
       // เว้น 1 row
       csvRows.push("");
 
-      // ✅ NEW: Wide Format Column headers
+      // ✅ Wide Format Column headers
       const headers = [
-        "Material Code", // รหัสวัตถุดิบ
-        "Product Name", // ชื่อสินค้า
-        "Description", // รายละเอียด
-        "Product Group", // กลุ่มสินค้า
-        "Brand", // แบรนด์
-        "CS (ลัง)", // จำนวนลัง
-        "DSP (แพ็ค)", // จำนวนแพ็ค
-        "EA (ชิ้น)", // จำนวนชิ้น
-        "Total Units", // จำนวนรวม (ทุกหน่วย)
-        "Last Updated", // อัปเดตล่าสุด
+        "Material Code",
+        "Product Name",
+        "Description",
+        "Product Group",
+        "Brand",
+        "CS (ลัง)",
+        "DSP (แพ็ค)",
+        "EA (ชิ้น)",
+        "Total Units",
+        "Last Updated",
       ];
 
       csvRows.push(headers.map((header) => escapeCsvField(header)).join(","));
@@ -242,10 +279,10 @@ export const useInventoryExport = ({
           escapeCsvField(group.description),
           escapeCsvField(group.productGroup),
           escapeCsvField(group.brand),
-          cs > 0 ? cs.toString() : "0", // CS column
-          dsp > 0 ? dsp.toString() : "0", // DSP column
-          ea > 0 ? ea.toString() : "0", // EA column
-          totalUnits.toString(), // Total
+          cs > 0 ? cs.toString() : "0",
+          dsp > 0 ? dsp.toString() : "0",
+          ea > 0 ? ea.toString() : "0",
+          totalUnits.toString(),
           escapeCsvField(
             new Date(group.lastUpdated).toLocaleDateString("th-TH", {
               day: "2-digit",
@@ -277,7 +314,7 @@ export const useInventoryExport = ({
       );
       const totalEA = sortedGroups.reduce((sum, g) => sum + g.quantities.ea, 0);
 
-      csvRows.push(`รวมทั้งหมด,,,"",""${totalCS},${totalDSP},${totalEA}`);
+      csvRows.push(`รวมทั้งหมด,,,,,${totalCS},${totalDSP},${totalEA}`);
 
       console.log(`📊 Export Summary:`);
       console.log(`   SKUs: ${sortedGroups.length}`);
@@ -295,7 +332,7 @@ export const useInventoryExport = ({
     ]
   );
 
-  // ✅ Generate filename (updated for wide format)
+  // ✅ Generate filename
   const generateFileName = useCallback((): string => {
     const now = new Date();
     const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
@@ -310,41 +347,144 @@ export const useInventoryExport = ({
     return `${fileName}.csv`;
   }, [employeeContext]);
 
-  // Download CSV file
+  // ✅ FIXED: Download CSV with proper async handling and fallback methods
   const downloadCSV = useCallback(
-    (csvContent: string, fileName: string): boolean => {
-      try {
-        // Add BOM for proper Unicode handling in Excel
-        const BOM = "\uFEFF";
-        const blob = new Blob([BOM + csvContent], {
-          type: "text/csv;charset=utf-8;",
-        });
+    (csvContent: string, fileName: string): Promise<boolean> => {
+      return new Promise((resolve) => {
+        console.log("🚀🚀🚀 downloadCSV CALLED - NEW VERSION 🚀🚀🚀");
+        console.log("📁 fileName:", fileName);
+        console.log("📊 csvContent length:", csvContent.length);
+        console.log("🔍 First 100 chars:", csvContent.substring(0, 100));
 
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
+        try {
+          console.log("📤 Starting CSV download...");
 
-        link.href = url;
-        link.download = fileName;
-        link.style.display = "none";
+          // ✅ METHOD 1: Try Blob download
+          try {
+            console.log("🔄 Trying Method 1: Blob download");
+            const BOM = "\uFEFF";
+            const blob = new Blob([BOM + csvContent], {
+              type: "text/csv;charset=utf-8;",
+            });
 
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+            console.log(`💾 Blob created successfully: ${blob.size} bytes`);
 
-        URL.revokeObjectURL(url);
-        return true;
-      } catch (error: unknown) {
-        console.error("❌ Error downloading CSV:", error);
-        setError("เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์");
-        return false;
-      }
+            const url = URL.createObjectURL(blob);
+            console.log("🔗 URL created:", url.substring(0, 50) + "...");
+
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = fileName;
+            link.style.display = "none";
+
+            console.log("📎 Link element created with:", {
+              href: link.href.substring(0, 50) + "...",
+              download: link.download,
+              display: link.style.display,
+            });
+
+            document.body.appendChild(link);
+            console.log("📌 Link added to document.body");
+
+            // ✅ Add click event listener for debugging
+            link.addEventListener("click", (event) => {
+              console.log("🖱️ CLICK EVENT FIRED!");
+              console.log("Event details:", event);
+            });
+
+            // ✅ Trigger download
+            console.log("⚡ About to trigger click...");
+            link.click();
+            console.log("✅ Click triggered!");
+
+            // ✅ Check if download attribute is supported
+            if ("download" in link) {
+              console.log("✅ Download attribute is supported");
+            } else {
+              console.warn("⚠️ Download attribute is NOT supported");
+            }
+
+            // ✅ Delay cleanup
+            setTimeout(() => {
+              try {
+                if (document.body.contains(link)) {
+                  document.body.removeChild(link);
+                  console.log("🧹 Link removed from DOM");
+                } else {
+                  console.log("ℹ️ Link was already removed from DOM");
+                }
+                URL.revokeObjectURL(url);
+                console.log("🧹 URL revoked");
+                console.log("✅ Method 1 completed successfully");
+                resolve(true);
+              } catch (cleanupError) {
+                console.warn("⚠️ Cleanup error (non-critical):", cleanupError);
+                resolve(true);
+              }
+            }, 2000); // Increased to 2 seconds
+          } catch (blobError) {
+            console.error("❌ Method 1 (Blob) failed:", blobError);
+
+            // ✅ FALLBACK METHOD 2: Data URL
+            console.log("🔄 Trying Method 2: Data URL");
+            try {
+              const BOM = "\uFEFF";
+              const dataUrl = `data:text/csv;charset=utf-8,${BOM}${encodeURIComponent(
+                csvContent
+              )}`;
+
+              console.log("📄 Data URL created, length:", dataUrl.length);
+
+              const link = document.createElement("a");
+              link.href = dataUrl;
+              link.download = fileName;
+              link.style.display = "none";
+
+              document.body.appendChild(link);
+              console.log("📌 Data URL link added to DOM");
+
+              link.click();
+              console.log("⚡ Data URL click triggered");
+
+              setTimeout(() => {
+                if (document.body.contains(link)) {
+                  document.body.removeChild(link);
+                }
+                console.log("✅ Method 2 completed successfully");
+                resolve(true);
+              }, 1000);
+            } catch (dataUrlError) {
+              console.error("❌ Method 2 (Data URL) failed:", dataUrlError);
+
+              // ✅ FALLBACK METHOD 3: Force user action
+              console.log("🔄 Trying Method 3: Manual copy");
+
+              // Show alert with instructions
+              alert(
+                `ไม่สามารถดาวน์โหลดไฟล์อัตโนมัติได้\n\nกรุณา:\n1. เปิด Developer Tools (F12)\n2. ไปที่ Console tab\n3. คัดลอกข้อมูลด้านล่าง\n4. บันทึกเป็นไฟล์ ${fileName}\n\nหรือลองใช้ browser อื่น`
+              );
+
+              console.log("📋 CSV DATA TO COPY:");
+              console.log("=".repeat(50));
+              console.log(csvContent);
+              console.log("=".repeat(50));
+
+              resolve(false);
+            }
+          }
+        } catch (error: unknown) {
+          console.error("❌ Complete download failure:", error);
+          setError("เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์");
+          resolve(false);
+        }
+      });
     },
     [setError]
   );
 
-  // ✅ MAIN: Export function (Wide Format)
+  // ✅ Main export function
   const exportInventory = useCallback(
-    (config: ExportConfig = DEFAULT_EXPORT_CONFIG): boolean => {
+    async (config: ExportConfig = DEFAULT_EXPORT_CONFIG): Promise<boolean> => {
       try {
         if (inventory.length === 0) {
           setError("ไม่มีข้อมูลสินค้าให้ส่งออก");
@@ -359,12 +499,28 @@ export const useInventoryExport = ({
         const csvContent = generateWideFormatCSV(config);
         const fileName = generateFileName();
 
-        const success = downloadCSV(csvContent, fileName);
+        // ✅ Validate content
+        if (!csvContent || csvContent.length === 0) {
+          console.error("❌ Empty CSV content generated");
+          setError("ไม่สามารถสร้างเนื้อหา CSV ได้");
+          return false;
+        }
+
+        console.log(
+          "📝 CSV content preview:",
+          csvContent.substring(0, 200) + "..."
+        );
+
+        // ✅ Start download
+        const success = await downloadCSV(csvContent, fileName);
 
         if (success) {
           console.log("✅ Wide Format CSV export completed successfully");
           console.log(`📁 File: ${fileName}`);
           console.log(`👤 Exported by: ${employeeContext?.employeeName}`);
+        } else {
+          console.error("❌ CSV export failed");
+          setError("ไม่สามารถดาวน์โหลดไฟล์ได้ กรุณาลองใหม่อีกครั้ง");
         }
 
         return success;
@@ -384,7 +540,7 @@ export const useInventoryExport = ({
     ]
   );
 
-  // ✅ Export as JSON (updated with wide format data)
+  // ✅ Export as JSON
   const exportAsJSON = useCallback((): boolean => {
     try {
       if (inventory.length === 0) {
@@ -422,9 +578,13 @@ export const useInventoryExport = ({
 
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
 
-      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        if (document.body.contains(link)) {
+          document.body.removeChild(link);
+        }
+        URL.revokeObjectURL(url);
+      }, 1000);
 
       console.log("📤 JSON export completed:", fileName);
       return true;
@@ -439,6 +599,6 @@ export const useInventoryExport = ({
     exportInventory,
     exportAsJSON,
     generateFileName,
-    groupInventoryByMaterialCode, // ✅ Expose for testing/debugging
+    groupInventoryByMaterialCode,
   };
 };

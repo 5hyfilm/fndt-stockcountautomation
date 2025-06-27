@@ -28,9 +28,16 @@ interface InventoryDisplayProps {
     itemId: string,
     quantityDetail: QuantityDetail
   ) => boolean;
+  // ✅ NEW: Multi-unit update handler
+  onUpdateUnitQuantity?: (
+    materialCode: string,
+    unit: "cs" | "dsp" | "ea",
+    newQuantity: number
+  ) => boolean;
   onRemoveItem: (itemId: string) => boolean;
   onClearInventory: () => boolean;
-  onExportInventory: () => boolean;
+  // ✅ FIXED: Support both sync and async export functions
+  onExportInventory: () => boolean | Promise<boolean>;
   onClearError: () => void;
   onSearch: (searchTerm: string) => InventoryItem[];
 }
@@ -347,23 +354,41 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
 
   const handleExport = useCallback(async () => {
     if (inventory.length === 0) {
+      console.warn("⚠️ No inventory items to export");
       return;
     }
 
+    console.log("📤 Starting export from InventoryDisplay...");
     setIsExporting(true);
+
     try {
-      const success = onExportInventory();
+      // ✅ Check if onExportInventory is async (returns Promise) or sync (returns boolean)
+      const result = onExportInventory();
+
+      let success: boolean;
+
+      if (result instanceof Promise) {
+        // ✅ Async function - await the result
+        console.log("🔄 Export function is async, awaiting result...");
+        success = await result;
+      } else {
+        // ✅ Sync function - use result directly
+        console.log("🔄 Export function is sync, using result directly...");
+        success = result;
+      }
+
       if (success) {
-        console.log("✅ Export successful");
+        console.log("✅ Export successful from InventoryDisplay");
         // Show success message briefly
         setTimeout(() => {
           setIsExporting(false);
         }, 2000);
       } else {
+        console.error("❌ Export failed from InventoryDisplay");
         setIsExporting(false);
       }
     } catch (error) {
-      console.error("❌ Export failed:", error);
+      console.error("❌ Export error in InventoryDisplay:", error);
       setIsExporting(false);
     }
   }, [onExportInventory, inventory.length]);

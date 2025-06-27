@@ -569,23 +569,42 @@ export default function BarcodeDetectionPage() {
   };
 
   // Handle export with employee info
-  const handleExportInventory = () => {
-    if (!employee) return false;
-
-    const success = exportInventory();
-    if (success) {
-      // Generate filename with employee and branch info
-      const now = new Date();
-      const dateStr = now.toISOString().split("T")[0];
-      const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-");
-      const fileName = `FN_Stock_${branchCode}_${dateStr}_${timeStr}.csv`;
-
-      setExportFileName(fileName);
-      setShowExportSuccess(true);
-
-      console.log(`📤 ${employeeName} exported inventory for ${branchName}`);
+  const handleExportInventory = async (): Promise<boolean> => {
+    if (!employee) {
+      console.warn("⚠️ No employee data available for export");
+      return false;
     }
-    return success;
+
+    console.log("📤 Starting export process...");
+    console.log(`👤 Employee: ${employeeName}`);
+    console.log(`🏢 Branch: ${branchName} (${branchCode})`);
+    console.log(`📦 Inventory items: ${inventory.length}`);
+
+    try {
+      // ✅ Await the async exportInventory function
+      const success = await exportInventory();
+
+      if (success) {
+        // Generate filename with employee and branch info
+        const now = new Date();
+        const dateStr = now.toISOString().split("T")[0];
+        const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-");
+        const fileName = `FN_Stock_Wide_${branchCode}_${dateStr}_${timeStr}.csv`;
+
+        setExportFileName(fileName);
+        setShowExportSuccess(true);
+
+        console.log(`✅ ${employeeName} exported inventory for ${branchName}`);
+        console.log(`📁 File generated: ${fileName}`);
+      } else {
+        console.error("❌ Export failed");
+      }
+
+      return success;
+    } catch (error) {
+      console.error("❌ Export error:", error);
+      return false;
+    }
   };
 
   // Clear all errors
