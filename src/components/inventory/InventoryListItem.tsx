@@ -1,4 +1,4 @@
-// Path: src/components/inventory/InventoryListItem.tsx - Complete Fixed Version
+// Path: src/components/inventory/InventoryListItem.tsx - Remove Quick Adjust Buttons (Layer 1)
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -102,33 +102,19 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     );
   };
 
-  // ✅ Get primary unit (the one with highest priority that has quantity > 0)
-  const getPrimaryUnit = (): "cs" | "dsp" | "ea" => {
-    const activeUnits = getActiveUnits();
+  // ✅ Check if item has multiple units
+  const isMultiUnit = getActiveUnits().length > 1;
 
-    if (activeUnits.length === 0) return "ea";
-    if (activeUnits.length === 1) return activeUnits[0];
-
-    // Sort by priority (lower number = higher priority)
-    return activeUnits.sort(
+  // ✅ Get primary unit for display
+  const primaryUnit =
+    getActiveUnits().sort(
       (a, b) => UNIT_CONFIG[a].priority - UNIT_CONFIG[b].priority
-    )[0];
-  };
+    )[0] || "ea";
 
-  // ✅ Calculate total quantity across all units
-  const getTotalQuantity = (): number => {
-    if (!item.quantities) return item.quantity || 0;
-
-    const { cs = 0, dsp = 0, ea = 0 } = item.quantities;
-    return cs + dsp + ea;
-  };
-
-  const activeUnits = getActiveUnits();
-  const primaryUnit = getPrimaryUnit();
   const primaryUnitConfig = UNIT_CONFIG[primaryUnit];
-  const isMultiUnit = activeUnits.length > 1;
+  const activeUnits = getActiveUnits();
 
-  // ✅ Sync edit state when editing starts
+  // ✅ Update edit state when editing starts
   useEffect(() => {
     if (isEditing) {
       setEditState({
@@ -137,52 +123,45 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
         dspQuantity: item.quantities?.dsp || 0,
         eaQuantity: item.quantities?.ea || 0,
       });
+
+      // Focus input after a short delay
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select();
+        }
+      }, 100);
     }
   }, [isEditing, editQuantity, item.quantities]);
 
-  // ✅ Focus input when editing starts
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isEditing]);
-
-  // ✅ Handle multi-unit quantity changes
+  // ✅ Handle unit quantity changes for multi-unit editing
   const handleUnitQuantityChange = (
     unit: "cs" | "dsp" | "ea",
-    value: number
+    newQuantity: number
   ) => {
+    const validQuantity = Math.max(0, newQuantity);
     const newEditState = {
       ...editState,
-      [unit + "Quantity"]: Math.max(0, value),
+      [`${unit}Quantity`]: validQuantity,
     };
     setEditState(newEditState);
 
-    // Update total simple quantity for compatibility
-    const newTotal =
-      newEditState.csQuantity +
-      newEditState.dspQuantity +
-      newEditState.eaQuantity;
-    onEditQuantityChange(newTotal);
-
-    // Notify parent of quantity detail changes
+    // Update the quantityDetail for multi-unit items
     if (onEditQuantityDetailChange) {
-      const quantityDetail: QuantityDetail = {
+      const newQuantityDetail: QuantityDetail = {
         cs: newEditState.csQuantity,
         dsp: newEditState.dspQuantity,
         ea: newEditState.eaQuantity,
-        scannedType: unit,
         isManualEdit: true,
         lastModified: new Date().toISOString(),
       };
-      onEditQuantityDetailChange(quantityDetail);
+      onEditQuantityDetailChange(newQuantityDetail);
     }
   };
 
-  // ✅ Handle save with quantity detail support
+  // ✅ Handle save for both single and multi-unit
   const handleSave = () => {
-    if (onEditQuantityDetailSave && isMultiUnit) {
+    if (isMultiUnit && onEditQuantityDetailSave) {
       const quantityDetail: QuantityDetail = {
         cs: editState.csQuantity,
         dsp: editState.dspQuantity,
@@ -193,57 +172,35 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
 
       const success = onEditQuantityDetailSave(item.id, quantityDetail);
       if (success) {
-        onEditSave();
+        onEditSave(); // Call this only after successful save
       }
     } else {
       onEditSave();
     }
   };
 
-  // ✅ Enhanced quantity display component
+  // ✅ Render quantity display based on single/multi-unit
   const renderQuantityDisplay = () => {
     if (isMultiUnit) {
-      // Show breakdown for multiple units
       return (
-        <div className="text-right min-w-0">
-          <div className="space-y-1">
-            {activeUnits.map((unit) => {
-              const config = UNIT_CONFIG[unit];
-              const quantity = item.quantities?.[unit] || 0;
-              const isPrimary = unit === primaryUnit;
+        <div className="space-y-1">
+          {activeUnits.map((unit) => {
+            const config = UNIT_CONFIG[unit];
+            const quantity = item.quantities?.[unit] || 0;
 
-              return (
-                <div
-                  key={unit}
-                  className={`flex items-center justify-end gap-2 ${
-                    isPrimary ? "" : "opacity-75"
-                  }`}
+            return (
+              <div key={unit} className="flex items-center gap-2 justify-end">
+                <span
+                  className={`text-xs px-1.5 py-0.5 rounded font-medium ${config.color}`}
                 >
-                  <span
-                    className={`text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${config.color}`}
-                  >
-                    {config.shortLabel}
-                  </span>
-                  <div className="flex items-baseline gap-1">
-                    <span
-                      className={`font-bold ${
-                        isPrimary ? "text-gray-900" : "text-gray-600"
-                      }`}
-                    >
-                      {quantity.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Total quantity for multi-unit items */}
-          <div className="mt-1 pt-1 border-t border-gray-200">
-            <div className="text-xs text-gray-500">
-              รวม {getTotalQuantity().toLocaleString()}
-            </div>
-          </div>
+                  {config.shortLabel}
+                </span>
+                <span className="font-bold text-gray-900 min-w-[3rem] text-right">
+                  {quantity.toLocaleString()}
+                </span>
+              </div>
+            );
+          })}
         </div>
       );
     } else {
@@ -424,30 +381,13 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
         </div>
       </div>
 
-      {/* Editing Interface or Actions */}
+      {/* ✅ UPDATED: Remove Quick Adjust Buttons - Only show Edit and Delete */}
       {isEditing ? (
         <div className="mt-3 pt-3 border-t border-gray-200">
           {renderEditingInterface()}
         </div>
       ) : (
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200">
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => onQuickAdjust(-1)}
-              className="w-8 h-8 flex items-center justify-center rounded border border-gray-300 hover:bg-gray-50 text-gray-600"
-            >
-              <Minus size={14} />
-            </button>
-            <button
-              type="button"
-              onClick={() => onQuickAdjust(1)}
-              className="w-8 h-8 flex items-center justify-center rounded border border-gray-300 hover:bg-gray-50 text-gray-600"
-            >
-              <Plus size={14} />
-            </button>
-          </div>
-
+        <div className="flex items-center justify-end mt-3 pt-3 border-t border-gray-200">
           <div className="flex gap-2">
             <button
               type="button"
