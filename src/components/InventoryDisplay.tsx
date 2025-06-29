@@ -280,13 +280,6 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
       {/* Error Alert */}
       {error && <ErrorAlert message={error} onDismiss={onClearError} />}
 
-      {/* Header */}
-      <InventoryHeader
-        summary={summary}
-        showSummary={showSummary}
-        onToggleSummary={() => setShowSummary(!showSummary)}
-      />
-
       {/* Controls */}
       <InventoryControls
         inventory={inventory}
