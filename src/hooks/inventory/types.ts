@@ -98,6 +98,28 @@ export interface InventoryItem {
   barcodeType?: "cs" | "dsp" | "ea";
 }
 
+// ✅ NEW: Legacy inventory item interface for migration purposes
+export interface LegacyInventoryItem {
+  id: string;
+  materialCode?: string;
+  productName: string;
+  brand: string;
+  category: string;
+  size: string;
+  unit: string;
+  barcode: string;
+  quantity: number;
+  lastUpdated?: string;
+  productData?: Product;
+  addedBy?: string;
+  branchCode?: string;
+  branchName?: string;
+  productGroup?: string;
+  thaiDescription?: string;
+  barcodeType?: "cs" | "dsp" | "ea";
+  // Note: quantities field will be missing in legacy items
+}
+
 // ✅ Inventory summary interface
 export interface InventorySummary {
   totalItems: number;
@@ -149,15 +171,18 @@ export const getTotalQuantityAllUnits = (item: InventoryItem): number => {
   return cs + dsp + ea;
 };
 
-// ✅ Helper function: Migrate old inventory item to new structure
+// ✅ FIXED: Helper function with proper typing - no more 'any'
 export const migrateOldInventoryItem = (
-  oldItem: any,
+  oldItem: LegacyInventoryItem | InventoryItem,
   barcodeType: "cs" | "dsp" | "ea" = "ea"
 ): InventoryItem => {
-  // If already migrated, return as is
-  if (oldItem.quantities) {
+  // Type guard: If already migrated (has quantities), return as is
+  if ("quantities" in oldItem && oldItem.quantities) {
     return oldItem as InventoryItem;
   }
+
+  // Cast to legacy item for migration
+  const legacyItem = oldItem as LegacyInventoryItem;
 
   // Create new quantities structure
   const quantities: MultiUnitQuantities = {
@@ -167,16 +192,42 @@ export const migrateOldInventoryItem = (
   };
 
   // Migrate based on barcode type
-  const quantity = oldItem.quantity || 0;
+  const quantity = legacyItem.quantity || 0;
   quantities[barcodeType] = quantity;
 
   return {
-    ...oldItem,
-    materialCode: oldItem.materialCode || oldItem.id || oldItem.barcode,
+    ...legacyItem,
+    materialCode:
+      legacyItem.materialCode || legacyItem.id || legacyItem.barcode,
     quantities,
     barcodeType, // Keep for reference
-    lastUpdated: oldItem.lastUpdated || new Date().toISOString(),
+    lastUpdated: legacyItem.lastUpdated || new Date().toISOString(),
   };
+};
+
+// ✅ Type guard to check if item is legacy format
+export const isLegacyInventoryItem = (
+  item: unknown
+): item is LegacyInventoryItem => {
+  return (
+    typeof item === "object" &&
+    item !== null &&
+    "id" in item &&
+    "barcode" in item &&
+    "quantity" in item &&
+    !("quantities" in item)
+  );
+};
+
+// ✅ Type guard to check if item is modern format
+export const isModernInventoryItem = (item: unknown): item is InventoryItem => {
+  return (
+    typeof item === "object" &&
+    item !== null &&
+    "id" in item &&
+    "barcode" in item &&
+    "quantities" in item
+  );
 };
 
 // ✅ FIXED: Complete UseInventoryManagerReturn interface with all required methods
