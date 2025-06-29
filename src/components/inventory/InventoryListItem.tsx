@@ -1,4 +1,4 @@
-// Path: src/components/inventory/InventoryListItem.tsx - Remove Quick Adjust Buttons (Layer 1)
+// Path: src/components/inventory/InventoryListItem.tsx - Fixed Multi-Unit Display Complete
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -114,6 +114,15 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
   const primaryUnitConfig = UNIT_CONFIG[primaryUnit];
   const activeUnits = getActiveUnits();
 
+  // ✅ Helper function to get total quantity
+  const getTotalQuantity = (): number => {
+    if (!item.quantities) {
+      return item.quantity || 0;
+    }
+    const { cs = 0, dsp = 0, ea = 0 } = item.quantities;
+    return cs + dsp + ea;
+  };
+
   // ✅ Update edit state when editing starts
   useEffect(() => {
     if (isEditing) {
@@ -179,43 +188,96 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     }
   };
 
-  // ✅ Render quantity display based on single/multi-unit
+  // ✅ FIXED: Complete renderQuantityDisplay function
   const renderQuantityDisplay = () => {
-    if (isMultiUnit) {
-      return (
-        <div className="space-y-1">
-          {activeUnits.map((unit) => {
-            const config = UNIT_CONFIG[unit];
-            const quantity = item.quantities?.[unit] || 0;
+    // Debug logging
+    console.log("🔍 renderQuantityDisplay debug:", {
+      itemId: item.id,
+      materialCode: item.materialCode,
+      quantities: item.quantities,
+      isMultiUnit,
+      activeUnits,
+      primaryUnit,
+    });
 
-            return (
-              <div key={unit} className="flex items-center gap-2 justify-end">
-                <span
-                  className={`text-xs px-1.5 py-0.5 rounded font-medium ${config.color}`}
+    if (isMultiUnit) {
+      // ✅ Show breakdown for multiple units
+      return (
+        <div className="text-right min-w-0">
+          <div className="space-y-1">
+            {activeUnits.map((unit) => {
+              const config = UNIT_CONFIG[unit];
+              const quantity = item.quantities?.[unit] || 0;
+              const isPrimary = unit === primaryUnit;
+
+              console.log(`📊 Unit ${unit}:`, {
+                quantity,
+                config: config.shortLabel,
+                isPrimary,
+              });
+
+              return (
+                <div
+                  key={unit}
+                  className={`flex items-center justify-end gap-2 ${
+                    isPrimary ? "" : "opacity-75"
+                  }`}
                 >
-                  {config.shortLabel}
-                </span>
-                <span className="font-bold text-gray-900 min-w-[3rem] text-right">
-                  {quantity.toLocaleString()}
-                </span>
-              </div>
-            );
-          })}
+                  <span
+                    className={`text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${config.color}`}
+                  >
+                    {config.shortLabel}
+                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span
+                      className={`font-bold ${
+                        isPrimary ? "text-gray-900" : "text-gray-600"
+                      }`}
+                    >
+                      {quantity.toLocaleString()}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {config.label}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Total quantity for multi-unit items */}
+          <div className="mt-1 pt-1 border-t border-gray-200">
+            <div className="text-xs text-gray-500">
+              รวม {getTotalQuantity().toLocaleString()} ชิ้น
+            </div>
+          </div>
         </div>
       );
     } else {
-      // Single unit display
+      // ✅ Single unit display - Fixed complete implementation
       const quantity = item.quantities?.[primaryUnit] || item.quantity || 0;
+      const config = primaryUnitConfig;
+
+      console.log(`📊 Single unit ${primaryUnit}:`, {
+        quantity,
+        config: config.shortLabel,
+      });
+
       return (
-        <div className="flex items-center gap-2">
-          <span
-            className={`text-xs px-1.5 py-0.5 rounded font-medium ${primaryUnitConfig.color}`}
-          >
-            {primaryUnitConfig.shortLabel}
-          </span>
-          <span className="font-bold text-gray-900">
-            {quantity.toLocaleString()}
-          </span>
+        <div className="text-right">
+          <div className="flex items-center justify-end gap-2">
+            <span
+              className={`text-xs px-1.5 py-0.5 rounded font-medium ${config.color}`}
+            >
+              {config.shortLabel}
+            </span>
+            <div className="flex items-baseline gap-1">
+              <span className="font-bold text-gray-900">
+                {quantity.toLocaleString()}
+              </span>
+              <span className="text-xs text-gray-500">{config.label}</span>
+            </div>
+          </div>
         </div>
       );
     }
@@ -381,7 +443,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
         </div>
       </div>
 
-      {/* ✅ UPDATED: Remove Quick Adjust Buttons - Only show Edit and Delete */}
+      {/* ✅ Actions: Edit and Delete only */}
       {isEditing ? (
         <div className="mt-3 pt-3 border-t border-gray-200">
           {renderEditingInterface()}

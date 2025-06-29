@@ -1,4 +1,4 @@
-// src/hooks/inventory/useInventoryOperations.tsx - Phase 2: Multi-Unit Operations
+// Path: src/hooks/inventory/useInventoryOperations.tsx - Fixed with QuantityDetail Support
 "use client";
 
 import { useCallback } from "react";
@@ -6,8 +6,10 @@ import { Product } from "../../types/product";
 import {
   InventoryItem,
   QuantityInput,
+  QuantityDetail,
   MultiUnitQuantities,
   getTotalQuantityAllUnits,
+  isQuantityDetail,
 } from "./types";
 
 interface UseInventoryOperationsProps {
@@ -51,7 +53,7 @@ export const useInventoryOperations = ({
     [inventory]
   );
 
-  // ✅ NEW: Add or update multi-unit item (หลัก)
+  // ✅ FIXED: Add or update multi-unit item with QuantityDetail support
   const addOrUpdateMultiUnitItem = useCallback(
     (
       product: Product,
@@ -62,22 +64,59 @@ export const useInventoryOperations = ({
       try {
         setError(null);
 
-        // Parse quantity input
-        let quantity: number;
+        // ✅ FIXED: Parse quantity input with QuantityDetail support
+        let quantities: MultiUnitQuantities = {};
+
         if (typeof quantityInput === "number") {
-          quantity = quantityInput;
-        } else {
-          quantity = quantityInput.quantity;
+          // Simple number input
+          quantities[barcodeType] = quantityInput;
+          console.log(
+            "📝 Simple quantity input:",
+            quantityInput,
+            "for",
+            barcodeType
+          );
+        } else if ("quantity" in quantityInput && "unit" in quantityInput) {
+          // Unit-specific input: { quantity: number, unit: string }
+          const unitInput = quantityInput as {
+            quantity: number;
+            unit: "cs" | "dsp" | "ea";
+          };
+          quantities[unitInput.unit] = unitInput.quantity;
+          console.log("📝 Unit-specific input:", unitInput);
+
           // ตรวจสอบว่า unit ตรงกับ barcodeType หรือไม่
-          if (quantityInput.unit !== barcodeType) {
+          if (unitInput.unit !== barcodeType) {
             console.warn(
-              `Unit mismatch: input=${quantityInput.unit}, barcode=${barcodeType}`
+              `Unit mismatch: input=${unitInput.unit}, barcode=${barcodeType}`
             );
           }
+        } else if (isQuantityDetail(quantityInput)) {
+          // ✅ NEW: QuantityDetail input - รองรับครบ 3 หน่วย
+          const quantityDetail = quantityInput as QuantityDetail;
+          quantities = {
+            cs: quantityDetail.cs,
+            dsp: quantityDetail.dsp,
+            ea: quantityDetail.ea,
+          };
+          // ลบหน่วยที่เป็น 0 ออก
+          if (quantities.cs === 0) delete quantities.cs;
+          if (quantities.dsp === 0) delete quantities.dsp;
+          if (quantities.ea === 0) delete quantities.ea;
+
+          console.log("📝 QuantityDetail input (3-unit):", quantities);
+        } else {
+          console.error("❌ Invalid quantityInput format:", quantityInput);
+          setError("รูปแบบข้อมูลจำนวนไม่ถูกต้อง");
+          return false;
         }
 
-        // Validate quantity
-        if (quantity <= 0) {
+        // ✅ Validate quantities
+        const totalQuantity = Object.values(quantities).reduce(
+          (sum, qty) => sum + (qty || 0),
+          0
+        );
+        if (totalQuantity <= 0) {
           setError("จำนวนสินค้าต้องมากกว่า 0");
           return false;
         }
@@ -89,6 +128,7 @@ export const useInventoryOperations = ({
           "🔍 Looking for existing item with materialCode:",
           materialCode
         );
+        console.log("📦 New quantities to add:", quantities);
 
         // Find existing item by material code
         const existingItem = findItemByMaterialCode(materialCode);
@@ -97,28 +137,41 @@ export const useInventoryOperations = ({
           // ✅ UPDATE: เพิ่มจำนวนเข้ากับรายการเดิม
           console.log("📦 Found existing item, updating quantities:", {
             current: existingItem.quantities,
-            adding: { [barcodeType]: quantity },
+            adding: quantities,
           });
 
           const updatedQuantities: MultiUnitQuantities = {
-            ...existingItem.quantities,
-            [barcodeType]:
-              (existingItem.quantities[barcodeType] || 0) + quantity,
+            cs: (existingItem.quantities.cs || 0) + (quantities.cs || 0),
+            dsp: (existingItem.quantities.dsp || 0) + (quantities.dsp || 0),
+            ea: (existingItem.quantities.ea || 0) + (quantities.ea || 0),
           };
+
+          // ลบหน่วยที่เป็น 0 ออก
+          if (updatedQuantities.cs === 0) delete updatedQuantities.cs;
+          if (updatedQuantities.dsp === 0) delete updatedQuantities.dsp;
+          if (updatedQuantities.ea === 0) delete updatedQuantities.ea;
 
           // อัปเดต scanned barcodes
           const updatedScannedBarcodes = {
             ...existingItem.scannedBarcodes,
-            [barcodeType]: product.barcode,
           };
+
+          // เพิ่มบาร์โค้ดใหม่สำหรับหน่วยที่มีการเพิ่ม
+          Object.keys(quantities).forEach((unit) => {
+            if (quantities[unit as keyof MultiUnitQuantities]! > 0) {
+              updatedScannedBarcodes[
+                unit as keyof typeof updatedScannedBarcodes
+              ] = product.barcode;
+            }
+          });
 
           const updatedItem: InventoryItem = {
             ...existingItem,
             quantities: updatedQuantities,
-            quantity: getTotalQuantityAllUnits({
-              ...existingItem,
-              quantities: updatedQuantities,
-            }), // อัปเดต total
+            quantity: Object.values(updatedQuantities).reduce(
+              (sum, qty) => sum + (qty || 0),
+              0
+            ),
             scannedBarcodes: updatedScannedBarcodes,
             lastUpdated: new Date().toISOString(),
             // อัปเดต product group ถ้ามี
@@ -136,9 +189,15 @@ export const useInventoryOperations = ({
           // ✅ CREATE: สร้างรายการใหม่
           console.log("🆕 Creating new item with materialCode:", materialCode);
 
-          const quantities: MultiUnitQuantities = {
-            [barcodeType]: quantity,
-          };
+          // สร้าง scannedBarcodes สำหรับหน่วยที่มีจำนวน
+          const scannedBarcodes: { cs?: string; dsp?: string; ea?: string } =
+            {};
+          Object.keys(quantities).forEach((unit) => {
+            if (quantities[unit as keyof MultiUnitQuantities]! > 0) {
+              scannedBarcodes[unit as keyof typeof scannedBarcodes] =
+                product.barcode;
+            }
+          });
 
           const newItem: InventoryItem = {
             id: `inv_${materialCode}_${Date.now()}`,
@@ -149,15 +208,13 @@ export const useInventoryOperations = ({
             size: product.size?.toString() || "",
             unit: product.unit || "",
             barcode: product.barcode, // บาร์โค้ดหลัก
-            quantity: quantity, // จำนวนรวม
+            quantity: totalQuantity, // จำนวนรวม
             quantities,
             lastUpdated: new Date().toISOString(),
             productData: product,
             productGroup: directProductGroup || product.category,
             thaiDescription: product.name,
-            scannedBarcodes: {
-              [barcodeType]: product.barcode,
-            },
+            scannedBarcodes,
           };
 
           const updatedInventory = [...inventory, newItem];
@@ -246,7 +303,7 @@ export const useInventoryOperations = ({
   const addOrUpdateItem = useCallback(
     (
       product: Product,
-      quantityInput: number,
+      quantityInput: number | QuantityDetail,
       barcodeType: "cs" | "dsp" | "ea" = "ea",
       directProductGroup?: string
     ): boolean => {
