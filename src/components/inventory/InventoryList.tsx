@@ -1,4 +1,4 @@
-// src/components/inventory/InventoryList.tsx - Enhanced Version with Individual Delete Confirmation Support
+// Path: src/components/inventory/InventoryList.tsx - Fixed materialCode Support
 "use client";
 
 import React from "react";
@@ -14,7 +14,7 @@ interface InventoryListProps {
   onEditStart: (item: InventoryItem) => void;
   onEditSave: () => void;
   onEditQuantityDetailSave?: (
-    itemId: string,
+    materialCode: string, // ✅ FIXED: Change from itemId to materialCode
     quantityDetail: QuantityDetail
   ) => boolean;
   onEditCancel: () => void;
@@ -25,7 +25,6 @@ interface InventoryListProps {
     currentQuantity: number,
     delta: number
   ) => void;
-  // ✅ UPDATED: Changed return type from boolean to void for confirmation flow
   onRemoveItem: (itemId: string) => void;
 }
 
@@ -78,14 +77,13 @@ export const InventoryList: React.FC<InventoryListProps> = ({
             editQuantity={editQuantity}
             onEditStart={() => onEditStart(item)}
             onEditSave={onEditSave}
-            onEditQuantityDetailSave={onEditQuantityDetailSave}
+            onEditQuantityDetailSave={onEditQuantityDetailSave} // ✅ Pass through correctly
             onEditCancel={onEditCancel}
             onEditQuantityChange={onEditQuantityChange}
             onEditQuantityDetailChange={onEditQuantityDetailChange}
             onQuickAdjust={(delta) =>
               onQuickAdjust(item.id, item.quantity, delta)
             }
-            // ✅ UPDATED: Pass itemId to onRemoveItem (now triggers confirmation modal)
             onRemove={() => onRemoveItem(item.id)}
           />
         ))}

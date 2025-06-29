@@ -1,4 +1,4 @@
-// Path: src/components/InventoryDisplay.tsx - Updated with Unit Type Filter Support
+// Path: src/components/InventoryDisplay.tsx - Fixed materialCode Support
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -24,15 +24,15 @@ interface InventoryDisplayProps {
   inventory: InventoryItem[];
   isLoading: boolean;
   error: string | null;
-  summary: InventorySummary; // ✅ แก้ไขจาก any เป็น InventorySummary
+  summary: InventorySummary;
   onAddOrUpdateItem: (
-    product: Product, // ✅ แก้ไขจาก any เป็น Product
+    product: Product,
     quantityInput: number,
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
   onUpdateItemQuantity: (itemId: string, newQuantity: number) => boolean;
   onUpdateItemQuantityDetail?: (
-    itemId: string,
+    materialCode: string, // ✅ FIXED: Use materialCode instead of itemId
     quantityDetail: QuantityDetail
   ) => boolean;
   onRemoveItem: (itemId: string) => boolean;
@@ -54,7 +54,6 @@ interface EditState {
 
 // ✅ Helper function to extract F/FG code for sorting
 const getFgCode = (item: InventoryItem): string => {
-  // Try materialCode first, then barcode, then fallback
   const code = item.materialCode || item.barcode || item.id;
   return code.toString().toUpperCase();
 };
@@ -98,6 +97,42 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   const [sortBy, setSortBy] = useState<SortBy>("fgCode");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [isExporting, setIsExporting] = useState(false);
+
+  // ✅ Helper function to find item by itemId
+  const findItemById = (itemId: string): InventoryItem | undefined => {
+    return inventory.find((item) => item.id === itemId);
+  };
+
+  // ✅ FIXED: Wrapper function to handle materialCode conversion
+  const handleEditQuantityDetailSave = (
+    materialCode: string,
+    quantityDetail: QuantityDetail
+  ): boolean => {
+    console.log("🔧 handleEditQuantityDetailSave:", {
+      materialCode,
+      quantityDetail,
+      functionExists: !!onUpdateItemQuantityDetail,
+    });
+
+    if (!onUpdateItemQuantityDetail) {
+      console.error("❌ onUpdateItemQuantityDetail function not provided");
+      return false;
+    }
+
+    // Call the actual function with materialCode
+    const success = onUpdateItemQuantityDetail(materialCode, quantityDetail);
+
+    if (success) {
+      // Clear edit state
+      setEditState({
+        itemId: null,
+        simpleQuantity: 0,
+        quantityDetail: undefined,
+      });
+    }
+
+    return success;
+  };
 
   // ✅ Enhanced filtered and sorted inventory with Unit Type filter
   const filteredAndSortedInventory = useMemo(() => {
@@ -156,16 +191,13 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
             new Date(b.lastUpdated).getTime();
           break;
         case "fgCode":
-          const aFgCode = getFgCode(a);
-          const bFgCode = getFgCode(b);
-          comparison = aFgCode.localeCompare(bFgCode, "th", {
-            numeric: true,
-            sensitivity: "base",
-          });
+          comparison = getFgCode(a).localeCompare(getFgCode(b));
           break;
+        default:
+          comparison = 0;
       }
 
-      return sortOrder === "asc" ? comparison : -comparison;
+      return sortOrder === "desc" ? -comparison : comparison;
     });
 
     return filtered;
@@ -174,45 +206,85 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
     searchTerm,
     selectedCategory,
     selectedBrand,
-    selectedUnitType, // ✅ NEW dependency
+    selectedUnitType,
     sortBy,
     sortOrder,
     onSearch,
   ]);
 
-  // ✅ Event handlers
+  // ✅ Edit handlers
   const handleEditStart = (item: InventoryItem) => {
+    console.log("✏️ Starting edit for item:", item.id, item.materialCode);
+
+    const totalQuantity = item.quantities
+      ? Object.values(item.quantities).reduce((sum, qty) => sum + (qty || 0), 0)
+      : item.quantity || 0;
+
     setEditState({
       itemId: item.id,
-      simpleQuantity: item.quantity,
-      quantityDetail: item.quantityDetail,
+      simpleQuantity: totalQuantity,
+      quantityDetail: item.quantities
+        ? {
+            cs: item.quantities.cs || 0,
+            dsp: item.quantities.dsp || 0,
+            ea: item.quantities.ea || 0,
+            isManualEdit: true,
+            lastModified: new Date().toISOString(),
+          }
+        : undefined,
     });
   };
 
   const handleEditSave = () => {
     if (!editState.itemId) return;
 
-    let success = false;
-
-    if (editState.quantityDetail && onUpdateItemQuantityDetail) {
-      success = onUpdateItemQuantityDetail(
-        editState.itemId,
-        editState.quantityDetail
-      );
-    } else {
-      success = onUpdateItemQuantity(
-        editState.itemId,
-        editState.simpleQuantity
-      );
+    const item = findItemById(editState.itemId);
+    if (!item) {
+      console.error("❌ Item not found for saving:", editState.itemId);
+      return;
     }
 
+    console.log("💾 Saving edit for item:", {
+      itemId: item.id,
+      materialCode: item.materialCode,
+      simpleQuantity: editState.simpleQuantity,
+    });
+
+    // For simple quantity updates (legacy items)
+    const success = onUpdateItemQuantity(
+      editState.itemId,
+      editState.simpleQuantity
+    );
+
     if (success) {
-      setEditState({ itemId: null, simpleQuantity: 0 });
+      setEditState({
+        itemId: null,
+        simpleQuantity: 0,
+        quantityDetail: undefined,
+      });
     }
   };
 
   const handleEditCancel = () => {
-    setEditState({ itemId: null, simpleQuantity: 0 });
+    setEditState({
+      itemId: null,
+      simpleQuantity: 0,
+      quantityDetail: undefined,
+    });
+  };
+
+  const handleEditQuantityChange = (quantity: number) => {
+    setEditState((prev) => ({
+      ...prev,
+      simpleQuantity: quantity,
+    }));
+  };
+
+  const handleEditQuantityDetailChange = (quantityDetail: QuantityDetail) => {
+    setEditState((prev) => ({
+      ...prev,
+      quantityDetail,
+    }));
   };
 
   const handleQuickAdjust = (
@@ -224,64 +296,54 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
     onUpdateItemQuantity(itemId, newQuantity);
   };
 
-  // ✅ UPDATED: Individual item delete with confirmation
-  const handleRemoveItem = (itemId: string) => {
-    const item = inventory.find((i) => i.id === itemId);
+  // ✅ Individual delete handlers
+  const handleRequestDeleteItem = (itemId: string) => {
+    const item = findItemById(itemId);
     if (item) {
       setItemToDelete(item);
       setShowConfirmDeleteItem(true);
     }
   };
 
-  const confirmDeleteItem = () => {
+  const handleConfirmDeleteItem = () => {
     if (itemToDelete) {
       onRemoveItem(itemToDelete.id);
       setItemToDelete(null);
-      setShowConfirmDeleteItem(false);
     }
+    setShowConfirmDeleteItem(false);
   };
 
-  const cancelDeleteItem = () => {
+  const handleCancelDeleteItem = () => {
     setItemToDelete(null);
     setShowConfirmDeleteItem(false);
   };
 
-  const handleClearFilters = () => {
-    setSearchTerm("");
-    setSelectedCategory("all");
-    setSelectedBrand("all");
-    setSelectedUnitType("all"); // ✅ NEW: Clear unit type filter
-  };
-
-  const handleSortChange = (newSortBy: string, newSortOrder: string) => {
-    setSortBy(newSortBy as SortBy);
-    setSortOrder(newSortOrder as SortOrder);
-  };
-
+  // ✅ Export handler
   const handleExport = async () => {
     setIsExporting(true);
     try {
       await onExport();
+    } catch (error) {
+      console.error("Export failed:", error);
     } finally {
       setIsExporting(false);
     }
   };
 
-  // ✅ Component wrapper
-  const containerClasses = `space-y-6 ${className}`.trim();
-
   if (isLoading) {
-    return (
-      <div className={containerClasses}>
-        <LoadingSpinner message="กำลังโหลดข้อมูล inventory..." />
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
-    <div className={containerClasses}>
+    <div className={`space-y-6 ${className}`}>
       {/* Error Alert */}
-      {error && <ErrorAlert message={error} onDismiss={onClearError} />}
+      {error && (
+        <ErrorAlert
+          title="เกิดข้อผิดพลาด"
+          message={error}
+          onClose={onClearError}
+        />
+      )}
 
       {/* Controls */}
       <InventoryControls
@@ -293,16 +355,15 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         onCategoryChange={setSelectedCategory}
         selectedBrand={selectedBrand}
         onBrandChange={setSelectedBrand}
-        selectedUnitType={selectedUnitType} // ✅ NEW
-        onUnitTypeChange={setSelectedUnitType} // ✅ NEW
+        selectedUnitType={selectedUnitType}
+        onUnitTypeChange={setSelectedUnitType}
         sortBy={sortBy}
+        onSortByChange={setSortBy}
         sortOrder={sortOrder}
-        onSortChange={handleSortChange}
-        onClearFilters={handleClearFilters}
-        onExport={handleExport}
+        onSortOrderChange={setSortOrder}
         onClearAll={() => setShowConfirmClear(true)}
+        onExport={handleExport}
         isExporting={isExporting}
-        filteredCount={filteredAndSortedInventory.length}
       />
 
       {/* Inventory List */}
@@ -313,19 +374,15 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         editQuantity={editState.simpleQuantity}
         onEditStart={handleEditStart}
         onEditSave={handleEditSave}
-        onEditQuantityDetailSave={onUpdateItemQuantityDetail}
+        onEditQuantityDetailSave={handleEditQuantityDetailSave} // ✅ FIXED: Use wrapper function
         onEditCancel={handleEditCancel}
-        onEditQuantityChange={(quantity) =>
-          setEditState((prev) => ({ ...prev, simpleQuantity: quantity }))
-        }
-        onEditQuantityDetailChange={(quantityDetail) =>
-          setEditState((prev) => ({ ...prev, quantityDetail }))
-        }
+        onEditQuantityChange={handleEditQuantityChange}
+        onEditQuantityDetailChange={handleEditQuantityDetailChange}
         onQuickAdjust={handleQuickAdjust}
-        onRemoveItem={handleRemoveItem} // ✅ UPDATED: Now triggers confirmation
+        onRemoveItem={handleRequestDeleteItem}
       />
 
-      {/* Confirmation Modals */}
+      {/* Clear All Confirmation Modal */}
       <ConfirmDeleteDialog
         isOpen={showConfirmClear}
         onConfirm={() => {
@@ -333,27 +390,19 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
           setShowConfirmClear(false);
         }}
         onCancel={() => setShowConfirmClear(false)}
-        title="ล้างข้อมูล Inventory ทั้งหมด"
-        message="คุณแน่ใจหรือไม่ที่จะลบรายการสินค้าทั้งหมด? การดำเนินการนี้ไม่สามารถยกเลิกได้"
-        confirmText="ล้างทั้งหมด"
-        cancelText="ยกเลิก"
-        type="danger"
+        title="ล้างข้อมูลทั้งหมด"
+        message="คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลสินค้าทั้งหมด? การดำเนินการนี้ไม่สามารถยกเลิกได้"
+        itemCount={inventory.length}
       />
 
-      {/* ✅ NEW: Individual Item Delete Confirmation */}
+      {/* Individual Delete Confirmation Modal */}
       <ConfirmDeleteDialog
         isOpen={showConfirmDeleteItem}
-        onConfirm={confirmDeleteItem}
-        onCancel={cancelDeleteItem}
+        onConfirm={handleConfirmDeleteItem}
+        onCancel={handleCancelDeleteItem}
         title="ลบรายการสินค้า"
-        message={
-          itemToDelete
-            ? `คุณแน่ใจหรือไม่ที่จะลบ "${itemToDelete.productName}" ออกจากรายการ?`
-            : ""
-        }
-        confirmText="ลบรายการ"
-        cancelText="ยกเลิก"
-        type="danger"
+        message={`คุณแน่ใจหรือไม่ว่าต้องการลบสินค้า "${itemToDelete?.productName}" ออกจากรายการ?`}
+        itemCount={1}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-// Path: src/app/page.tsx - Fixed Multi-Unit Save Complete
+// Path: src/app/page.tsx - Complete Fixed Version with materialCode Integration
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -172,8 +172,6 @@ export default function BarcodeDetectionPage() {
     clearError: clearInventoryError,
     resetInventoryState,
     summary,
-    setInventory,
-    saveInventory,
   } = useInventoryManager(
     employee
       ? {
@@ -434,35 +432,25 @@ export default function BarcodeDetectionPage() {
     setShowAddProductForm(true);
   };
 
-  // ✅ FIXED: Handler สำหรับบันทึกสินค้าใหม่ - สร้าง item เดียวที่มีครบ 3 หน่วย
+  // ✅ UPDATED: Handler สำหรับบันทึกสินค้าใหม่ - รองรับครบ 3 หน่วย (CS, DSP, EA)
   const handleSaveNewProduct = async (productData: {
     barcode: string;
     productName: string;
     productGroup: string;
     description: string;
     countCs: number;
-    countDsp: number;
+    countDsp: number; // ✅ เพิ่ม DSP
     countPieces: number;
   }): Promise<boolean> => {
     try {
       console.log(
-        "💾 Saving new product with Multi-Unit API (3 units combined):",
+        "💾 Saving new product with Multi-Unit API (3 units):",
         productData
       );
 
       // ✅ Validate product group
       if (!isValidProductGroup(productData.productGroup)) {
         console.error("❌ Invalid product group:", productData.productGroup);
-        return false;
-      }
-
-      // ✅ ตรวจสอบว่ามีจำนวนอย่างน้อย 1 หน่วย
-      if (
-        productData.countCs <= 0 &&
-        productData.countDsp <= 0 &&
-        productData.countPieces <= 0
-      ) {
-        console.error("❌ No quantities provided");
         return false;
       }
 
@@ -482,130 +470,109 @@ export default function BarcodeDetectionPage() {
 
       console.log("📦 New product object:", newProduct);
 
-      // ✅ FIXED: สร้าง QuantityDetail object ที่มีครบ 3 หน่วย
-      const quantityDetail: QuantityDetail = {
-        cs: productData.countCs,
-        dsp: productData.countDsp,
-        ea: productData.countPieces,
-        isManualEdit: true,
-        lastModified: new Date().toISOString(),
-      };
-
       let success = false;
 
-      // ✅ OPTION 1: ใช้ Multi-Unit API แบบใหม่ (รวมทั้ง 3 หน่วย)
+      // ✅ Use new Multi-Unit API for adding quantities
       if (addOrUpdateMultiUnitItem) {
-        console.log("🚀 Using new Multi-Unit API with combined quantities...");
+        // เพิ่ม CS ถ้ามี
+        if (productData.countCs > 0) {
+          const csQuantityInput: QuantityInput = {
+            quantity: productData.countCs,
+            unit: "cs",
+          };
 
-        // สร้าง QuantityInput ที่มีข้อมูลครบ
-        const multiUnitQuantityInput: QuantityInput = quantityDetail;
+          const csSuccess = addOrUpdateMultiUnitItem(
+            newProduct,
+            csQuantityInput,
+            "cs",
+            productData.productGroup
+          );
 
-        // เลือก unit หลักตามลำดับความสำคัญ (CS > DSP > EA)
-        const primaryUnit =
-          productData.countCs > 0
-            ? "cs"
-            : productData.countDsp > 0
-            ? "dsp"
-            : "ea";
-
-        success = addOrUpdateMultiUnitItem(
-          newProduct,
-          multiUnitQuantityInput,
-          primaryUnit,
-          productData.productGroup
-        );
-
-        if (success) {
-          console.log("✅ Multi-Unit API succeeded with combined quantities");
-          console.log("📊 Saved quantities:", {
-            CS: productData.countCs,
-            DSP: productData.countDsp,
-            EA: productData.countPieces,
-            total:
-              productData.countCs +
-              productData.countDsp +
-              productData.countPieces,
-          });
-        }
-      }
-
-      // ✅ OPTION 2: Fallback - ใช้วิธีเก่าแต่แก้ไขให้ถูกต้อง
-      if (!success) {
-        console.log(
-          "🔄 Multi-Unit API failed, using direct inventory creation..."
-        );
-
-        // สร้าง inventory item โดยตรง
-        const materialCode = newProduct.id || newProduct.barcode;
-
-        const quantities: MultiUnitQuantities = {
-          cs: productData.countCs,
-          dsp: productData.countDsp,
-          ea: productData.countPieces,
-        };
-
-        // ลบหน่วยที่เป็น 0 ออก
-        if (quantities.cs === 0) delete quantities.cs;
-        if (quantities.dsp === 0) delete quantities.dsp;
-        if (quantities.ea === 0) delete quantities.ea;
-
-        const newInventoryItem: InventoryItem = {
-          id: `inv_${materialCode}_${Date.now()}`,
-          materialCode,
-          productName: newProduct.name || "ไม่ระบุชื่อ",
-          brand: newProduct.brand || "ไม่ระบุแบรนด์",
-          category: newProduct.category || "ไม่ระบุ",
-          size: newProduct.size?.toString() || "",
-          unit: newProduct.unit || "",
-          barcode: newProduct.barcode,
-          quantity:
-            productData.countCs +
-            productData.countDsp +
-            productData.countPieces,
-          quantities,
-          quantityDetail,
-          lastUpdated: new Date().toISOString(),
-          productData: newProduct,
-          productGroup: productData.productGroup,
-          thaiDescription: newProduct.name,
-          scannedBarcodes: {
-            ...(productData.countCs > 0 && { cs: newProduct.barcode }),
-            ...(productData.countDsp > 0 && { dsp: newProduct.barcode }),
-            ...(productData.countPieces > 0 && { ea: newProduct.barcode }),
-          },
-        };
-
-        // บันทึกโดยตรงเข้า inventory
-        const currentInventory = inventory || [];
-        const updatedInventory = [...currentInventory, newInventoryItem];
-
-        if (setInventory && saveInventory) {
-          setInventory(updatedInventory);
-          success = saveInventory(updatedInventory);
-
-          if (success) {
-            console.log("✅ Direct inventory creation succeeded");
-            console.log("📦 Created item:", newInventoryItem);
+          if (csSuccess) {
+            console.log(`✅ Added CS: ${productData.countCs} ลัง`);
+            success = true;
           }
         }
+
+        // ✅ เพิ่ม DSP ถ้ามี - ใหม่!
+        if (productData.countDsp > 0) {
+          const dspQuantityInput: QuantityInput = {
+            quantity: productData.countDsp,
+            unit: "dsp",
+          };
+
+          const dspSuccess = addOrUpdateMultiUnitItem(
+            newProduct,
+            dspQuantityInput,
+            "dsp",
+            productData.productGroup
+          );
+
+          if (dspSuccess) {
+            console.log(`✅ Added DSP: ${productData.countDsp} แพ็ค`);
+            success = true;
+          }
+        }
+
+        // เพิ่ม EA ถ้ามี
+        if (productData.countPieces > 0) {
+          const eaQuantityInput: QuantityInput = {
+            quantity: productData.countPieces,
+            unit: "ea",
+          };
+
+          const eaSuccess = addOrUpdateMultiUnitItem(
+            newProduct,
+            eaQuantityInput,
+            "ea",
+            productData.productGroup
+          );
+
+          if (eaSuccess) {
+            console.log(`✅ Added EA: ${productData.countPieces} ชิ้น`);
+            success = true;
+          }
+        }
+      } else {
+        // ✅ FIXED: Fallback to legacy method with correct QuantityDetail structure
+        console.log("🔄 Multi-Unit API not available, using legacy method...");
+
+        // ✅ ตรวจสอบว่ามีจำนวนอย่างน้อย 1 หน่วย
+        if (
+          productData.countCs > 0 ||
+          productData.countDsp > 0 ||
+          productData.countPieces > 0
+        ) {
+          const quantityDetail: QuantityDetail = {
+            cs: productData.countCs,
+            dsp: productData.countDsp, // ✅ เพิ่ม DSP support
+            ea: productData.countPieces,
+            // ✅ เลือก scannedType ตามลำดับความสำคัญ
+            scannedType:
+              productData.countCs > 0
+                ? "cs"
+                : productData.countDsp > 0
+                ? "dsp"
+                : "ea",
+            isManualEdit: true,
+            lastModified: new Date().toISOString(),
+          };
+
+          success = addOrUpdateItem(
+            newProduct,
+            quantityDetail,
+            quantityDetail.scannedType,
+            productData.productGroup
+          );
+        }
       }
 
-      if (success && employee) {
-        console.log(
-          `🎉 ${employee.employeeName} added new product: ${
-            newProduct.name
-          } with ${addOrUpdateMultiUnitItem ? "Multi-Unit" : "Direct"} API`
-        );
-
-        // ✅ Log current inventory summary
-        console.log("📊 Current inventory summary:", {
-          totalItems: summary.totalItems,
-          totalCS: summary.quantityBreakdown?.totalCS || 0,
-          totalDSP: summary.quantityBreakdown?.totalDSP || 0,
-          totalEA: summary.quantityBreakdown?.totalEA || 0,
-          itemsWithMultipleUnits:
-            summary.quantityBreakdown?.itemsWithMultipleUnits || 0,
-        });
+      if (success) {
+        console.log("✅ New product saved successfully with 3-unit support");
+        console.log(`   📦 Product Group: ${productData.productGroup}`);
+        console.log(`   📦 CS: ${productData.countCs} ลัง`);
+        console.log(`   📦 DSP: ${productData.countDsp} แพ็ค`); // ✅ เพิ่ม log DSP
+        console.log(`   🔢 EA: ${productData.countPieces} ชิ้น`);
 
         // ปิด form
         setShowAddProductForm(false);
@@ -613,11 +580,14 @@ export default function BarcodeDetectionPage() {
 
         // ปิด product slide และเริ่มสแกนใหม่
         restartForNextScan();
-      }
 
-      return success;
+        return true;
+      } else {
+        console.warn("⚠️ No quantities to save (all units are 0)"); // ✅ อัปเดต message
+        return false;
+      }
     } catch (error) {
-      console.error("❌ Error in handleSaveNewProduct:", error);
+      console.error("❌ Error saving new product:", error);
       return false;
     }
   };
@@ -643,6 +613,49 @@ export default function BarcodeDetectionPage() {
 
     console.warn("⚠️ updateUnitQuantity not available, using fallback");
     // TODO: Implement fallback logic if needed
+    return false;
+  };
+
+  // ✅ FIXED: Handler for updating quantity details with materialCode support
+  const handleUpdateItemQuantityDetail = (
+    materialCode: string,
+    quantityDetail: QuantityDetail
+  ): boolean => {
+    console.log("🔧 Main page handleUpdateItemQuantityDetail:", {
+      materialCode,
+      quantityDetail,
+      updateItemQuantityDetailExists: !!updateItemQuantityDetail,
+    });
+
+    // ✅ Call the actual inventory manager function with materialCode
+    if (updateItemQuantityDetail) {
+      try {
+        const success = updateItemQuantityDetail(materialCode, quantityDetail);
+
+        if (success) {
+          console.log("✅ Quantity detail updated successfully");
+
+          // ✅ Log current inventory summary after update
+          console.log("📊 Updated inventory summary:", {
+            totalItems: summary.totalItems,
+            totalCS: summary.quantityBreakdown?.totalCS || 0,
+            totalDSP: summary.quantityBreakdown?.totalDSP || 0,
+            totalEA: summary.quantityBreakdown?.totalEA || 0,
+            itemsWithMultipleUnits:
+              summary.quantityBreakdown?.itemsWithMultipleUnits || 0,
+          });
+        } else {
+          console.warn("⚠️ Quantity detail update returned false");
+        }
+
+        return success;
+      } catch (error) {
+        console.error("❌ Error in handleUpdateItemQuantityDetail:", error);
+        return false;
+      }
+    }
+
+    console.error("❌ updateItemQuantityDetail function not available");
     return false;
   };
 
@@ -988,10 +1001,10 @@ export default function BarcodeDetectionPage() {
                 summary={summary}
                 isLoading={isLoadingInventory}
                 error={inventoryError || exportError}
-                // ✅ แก้ไข: ใช้ prop names ที่ถูกต้องตาม interface
-                onAddOrUpdateItem={addOrUpdateItem} // ✅ เพิ่ม prop ที่ขาดหาย
-                onUpdateItemQuantity={updateItemQuantity} // ✅ แก้จาก onUpdateQuantity
-                onUpdateItemQuantityDetail={updateItemQuantityDetail} // ✅ แก้จาก onUpdateQuantityDetail
+                // ✅ FIXED: ใช้ prop names ที่ถูกต้องตาม interface
+                onAddOrUpdateItem={addOrUpdateItem}
+                onUpdateItemQuantity={updateItemQuantity}
+                onUpdateItemQuantityDetail={handleUpdateItemQuantityDetail} // ✅ FIXED: Use wrapper function with materialCode
                 onRemoveItem={removeItem}
                 onClearInventory={clearInventory}
                 onExport={handleExportInventory} // ✅ ใช้ function ที่แก้ไขแล้ว
