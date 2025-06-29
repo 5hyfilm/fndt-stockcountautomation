@@ -2,9 +2,7 @@
 "use client";
 
 import { useCallback } from "react";
-
-// ✅ FIX: ลบ circular import ที่ทำให้เกิด duplicate definition
-// import { useInventoryExport } from "../hooks/inventory/useInventoryExport"; // ❌ ลบบรรทัดนี้ออก
+import { Product } from "../../types/product";
 
 interface InventoryItem {
   id: string;
@@ -22,7 +20,7 @@ interface InventoryItem {
     ea?: number;
   };
   lastUpdated: string;
-  productData?: any;
+  productData?: Product; // ✅ แก้ไขจาก any เป็น Product
   addedBy?: string;
   branchCode?: string;
   branchName?: string;
@@ -231,9 +229,6 @@ export const useInventoryExport = ({
 
         // Data rows
         groupedData.forEach((item) => {
-          const totalQuantity =
-            item.quantities.cs + item.quantities.dsp + item.quantities.ea;
-
           const row = [
             item.materialCode,
             item.productName,

@@ -558,18 +558,6 @@ export default function BarcodeDetectionPage() {
   };
 
   // ✅ FIXED: New handler for updating quantity details (Phase 2)
-  const handleUpdateItemQuantityDetail = (
-    itemId: string,
-    quantityDetail: QuantityDetail
-  ): boolean => {
-    if (updateItemQuantityDetail) {
-      return updateItemQuantityDetail(itemId, quantityDetail);
-    }
-    // ✅ FIXED: Fallback using new QuantityDetail structure
-    const totalQuantity =
-      quantityDetail.cs + quantityDetail.dsp + quantityDetail.ea;
-    return updateItemQuantity(itemId, totalQuantity);
-  };
 
   // ✅ NEW: Handler for updating specific unit quantity
   const handleUpdateUnitQuantity = (

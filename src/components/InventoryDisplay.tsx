@@ -2,9 +2,13 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { InventoryItem, QuantityDetail } from "../hooks/inventory/types";
 import {
-  InventoryHeader,
+  InventoryItem,
+  QuantityDetail,
+  InventorySummary,
+} from "../hooks/inventory/types";
+import { Product } from "../types/product";
+import {
   InventoryControls,
   InventoryList,
   ConfirmDeleteDialog,
@@ -20,9 +24,9 @@ interface InventoryDisplayProps {
   inventory: InventoryItem[];
   isLoading: boolean;
   error: string | null;
-  summary: any;
+  summary: InventorySummary; // ✅ แก้ไขจาก any เป็น InventorySummary
   onAddOrUpdateItem: (
-    product: any,
+    product: Product, // ✅ แก้ไขจาก any เป็น Product
     quantityInput: number,
     barcodeType?: "ea" | "dsp" | "cs"
   ) => boolean;
@@ -89,7 +93,6 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
   const [selectedUnitType, setSelectedUnitType] =
     useState<UnitFilterType>("all");
-  const [showSummary, setShowSummary] = useState(false);
 
   // ✅ Sort states - default to F/FG code sorting
   const [sortBy, setSortBy] = useState<SortBy>("fgCode");

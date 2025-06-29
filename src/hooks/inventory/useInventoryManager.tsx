@@ -28,8 +28,9 @@ export const useInventoryManager = (): UseInventoryManagerReturn => {
   const {
     loadInventory: loadFromStorage,
     saveInventory,
-    isLoading: storageLoading,
-    error: storageError,
+    // ✅ Remove unused variables to fix ESLint warnings
+    // isLoading: storageLoading,
+    // error: storageError,
   } = useInventoryStorage(STORAGE_CONFIG);
 
   // ✅ Business operations
@@ -49,21 +50,28 @@ export const useInventoryManager = (): UseInventoryManagerReturn => {
     setError,
   });
 
-  // ✅ Data migration helper
-  const migrateOldData = (oldData: any[]): InventoryItem[] => {
+  // ✅ Data migration helper - Fix 'any' type
+  const migrateOldData = (oldData: unknown[]): InventoryItem[] => {
     console.log("🔄 Migrating old inventory data...");
 
     try {
       return oldData.map((oldItem) => {
+        // Type guard to ensure oldItem is an object
+        if (!oldItem || typeof oldItem !== "object") {
+          throw new Error("Invalid data format");
+        }
+
+        const item = oldItem as Record<string, unknown>;
+
         // ตรวจสอบว่าเป็นข้อมูลเก่าหรือไม่
-        if (oldItem.quantities) {
+        if (item.quantities) {
           // ข้อมูลใหม่แล้ว ไม่ต้อง migrate
-          return oldItem as InventoryItem;
+          return item as InventoryItem;
         }
 
         // Migrate ข้อมูลเก่า
-        const barcodeType = oldItem.barcodeType || "ea";
-        return migrateOldInventoryItem(oldItem, barcodeType);
+        const barcodeType = (item.barcodeType as "cs" | "dsp" | "ea") || "ea";
+        return migrateOldInventoryItem(item, barcodeType);
       });
     } catch (error) {
       console.error("❌ Migration error:", error);
