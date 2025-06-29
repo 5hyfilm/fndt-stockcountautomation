@@ -30,9 +30,10 @@ const PRODUCT_GROUP_OPTIONS = [
 interface NewProductData {
   barcode: string;
   productName: string;
-  productGroup: string; // ✅ เปลี่ยนจาก category เป็น productGroup
+  productGroup: string;
   description: string;
   countCs: number;
+  countDsp: number; // ✅ เพิ่ม DSP
   countPieces: number;
 }
 
@@ -40,9 +41,10 @@ interface NewProductData {
 interface FormErrors {
   barcode?: string;
   productName?: string;
-  productGroup?: string; // ✅ เปลี่ยนจาก category เป็น productGroup
+  productGroup?: string;
   description?: string;
   countCs?: string;
+  countDsp?: string; // ✅ เพิ่ม DSP error
   countPieces?: string;
 }
 
@@ -62,17 +64,17 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
   const [formData, setFormData] = useState<NewProductData>({
     barcode: barcode,
     productName: "",
-    productGroup: "", // ✅ เปลี่ยนจาก category เป็น productGroup
+    productGroup: "",
     description: "",
     countCs: 0,
+    countDsp: 0, // ✅ เพิ่ม DSP
     countPieces: 0,
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  // ✅ FIX: ใช้ FormErrors interface แทน Partial<NewProductData>
   const [errors, setErrors] = useState<FormErrors>({});
-  const [isBarcodeEditable, setIsBarcodeEditable] = useState(false); // ✅ เพิ่ม state สำหรับ control การแก้ไข barcode
-  const barcodeInputRef = useRef<HTMLInputElement>(null); // ✅ เพิ่ม ref สำหรับ focus
+  const [isBarcodeEditable, setIsBarcodeEditable] = useState(false);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
 
   // ✅ Update barcode when prop changes
   useEffect(() => {
@@ -80,7 +82,6 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
       ...prev,
       barcode: barcode,
     }));
-    // ✅ Reset barcode editable state เมื่อได้รับ barcode ใหม่
     setIsBarcodeEditable(false);
   }, [barcode]);
 
@@ -102,9 +103,7 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
 
   // ✅ Helper function สำหรับ format barcode
   const formatBarcode = (value: string): string => {
-    // เก็บเฉพาะตัวเลข
     const numbersOnly = value.replace(/\D/g, "");
-    // จำกัดความยาวไม่เกิน 14 หลัก
     return numbersOnly.slice(0, 14);
   };
 
@@ -137,7 +136,6 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
     const newEditableState = !isBarcodeEditable;
     setIsBarcodeEditable(newEditableState);
 
-    // Clear barcode error when enabling edit
     if (newEditableState && errors.barcode) {
       setErrors((prev) => ({
         ...prev,
@@ -145,18 +143,16 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
       }));
     }
 
-    // ✅ Focus on input when enabling edit
     if (newEditableState) {
       setTimeout(() => {
         barcodeInputRef.current?.focus();
-        barcodeInputRef.current?.select(); // เลือกข้อความทั้งหมดเพื่อให้แก้ไขง่าย
+        barcodeInputRef.current?.select();
       }, 100);
     }
   };
 
   // Validate form
   const validateForm = (): boolean => {
-    // ✅ FIX: ใช้ FormErrors type
     const newErrors: FormErrors = {};
 
     // ✅ Barcode validation
@@ -170,7 +166,6 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
       newErrors.productName = "กรุณากรอกรหัสสินค้า";
     }
 
-    // ✅ เปลี่ยน validation สำหรับ productGroup
     if (!formData.productGroup.trim()) {
       newErrors.productGroup = "กรุณาเลือกหมวดหมู่สินค้า";
     } else if (!PRODUCT_GROUP_OPTIONS.includes(formData.productGroup)) {
@@ -185,44 +180,49 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
       newErrors.countCs = "จำนวนลังต้องไม่ติดลบ";
     }
 
+    // ✅ เพิ่ม validation สำหรับ DSP
+    if (formData.countDsp < 0) {
+      newErrors.countDsp = "จำนวนแพ็คต้องไม่ติดลบ";
+    }
+
     if (formData.countPieces < 0) {
       newErrors.countPieces = "จำนวนชิ้นต้องไม่ติดลบ";
     }
 
-    if (formData.countCs === 0 && formData.countPieces === 0) {
+    // ✅ ตรวจสอบว่าต้องมีอย่างน้อย 1 หน่วย
+    if (
+      formData.countCs === 0 &&
+      formData.countDsp === 0 &&
+      formData.countPieces === 0
+    ) {
       newErrors.countCs = "กรุณากรอกจำนวนอย่างน้อย 1 ช่อง";
-      newErrors.countPieces = "กรุณากรอกจำนวนอย่างน้อย 1 ช่อง";
+      newErrors.countDsp = "";
+      newErrors.countPieces = "";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle save
+  // Handle form submission
   const handleSave = async () => {
     if (!validateForm()) {
+      console.log("❌ Form validation failed");
       return;
     }
 
     setIsLoading(true);
     try {
+      console.log("💾 Submitting form data:", formData);
       const success = await onSave(formData);
       if (success) {
-        onClose();
-        // ✅ Reset form
-        setFormData({
-          barcode: "",
-          productName: "",
-          productGroup: "", // ✅ เปลี่ยนจาก category เป็น productGroup
-          description: "",
-          countCs: 0,
-          countPieces: 0,
-        });
-        setErrors({}); // ✅ Clear errors too
-        setIsBarcodeEditable(false); // ✅ Reset barcode editable state
+        console.log("✅ Product saved successfully");
+        handleClose();
+      } else {
+        console.error("❌ Failed to save product");
       }
     } catch (error) {
-      console.error("Error saving new product:", error);
+      console.error("❌ Error saving product:", error);
     } finally {
       setIsLoading(false);
     }
@@ -230,347 +230,326 @@ export const AddNewProductForm: React.FC<AddNewProductFormProps> = ({
 
   // Handle close
   const handleClose = () => {
-    if (!isLoading) {
-      // ✅ Reset states when closing
-      setIsBarcodeEditable(false);
-      setErrors({});
-      onClose();
-    }
+    setFormData({
+      barcode: "",
+      productName: "",
+      productGroup: "",
+      description: "",
+      countCs: 0,
+      countDsp: 0, // ✅ รีเซ็ต DSP
+      countPieces: 0,
+    });
+    setErrors({});
+    setIsBarcodeEditable(false);
+    onClose();
   };
 
+  // Don't render if not visible
   if (!isVisible) return null;
+
+  const barcodeValidation = getBarcodeValidationStatus();
 
   return (
     <>
-      {/* Custom Scrollbar Styles */}
-      <style jsx>{`
-        .custom-scrollbar {
-          scrollbar-width: thin;
-          scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(243, 244, 246, 0.5);
-          border-radius: 3px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(156, 163, 175, 0.7);
-          border-radius: 3px;
-          border: 1px solid rgba(243, 244, 246, 0.5);
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(107, 114, 128, 0.8);
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb:active {
-          background: rgba(75, 85, 99, 0.9);
-        }
-
-        /* Better touch scrolling for mobile */
-        .custom-scrollbar {
-          -webkit-overflow-scrolling: touch;
-          overscroll-behavior: contain;
-        }
-      `}</style>
-
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/50 z-50" onClick={handleClose} />
+      <div
+        className="fixed inset-0 bg-black/50 z-[100] transition-opacity duration-300"
+        onClick={handleClose}
+      />
 
-      {/* Modal Container - ลดขนาดสำหรับมือถือ */}
-      <div className="fixed inset-0 flex items-center justify-center z-50 p-1 sm:p-2">
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-xs sm:max-w-sm flex flex-col max-h-[98vh] overflow-hidden">
-          {/* Header - ลดขนาด */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-fn-green text-white flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <Package size={16} />
-              <div>
-                <h2 className="text-sm font-semibold">เพิ่มสินค้าใหม่</h2>
-                <p className="text-xs opacity-90">กรอกข้อมูลสินค้าใหม่</p>
-              </div>
-            </div>
-            <button
-              onClick={handleClose}
-              disabled={isLoading}
-              className="p-1 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
-            >
-              <X size={16} />
-            </button>
-          </div>
-
-          {/* Form Content - ลดขนาด */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-3 space-y-3 min-h-0">
-            {/* ✅ Barcode Field with Edit Button */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
-                <Scan size={12} />
-                Barcode (หมายเลขบาร์โค้ด) *
-              </label>
-              <div className="relative">
-                <input
-                  ref={barcodeInputRef}
-                  type="text"
-                  value={formData.barcode}
-                  onChange={(e) =>
-                    updateField("barcode", formatBarcode(e.target.value))
-                  }
-                  disabled={!isBarcodeEditable || isLoading}
-                  className={`w-full px-2 py-1.5 pr-8 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors font-mono text-xs ${
-                    errors.barcode
-                      ? "border-red-500"
-                      : formData.barcode && getBarcodeValidationStatus().isValid
-                      ? "border-green-500"
-                      : "border-gray-300"
-                  } ${
-                    !isBarcodeEditable ? "bg-gray-50 text-gray-600" : "bg-white"
-                  }`}
-                  placeholder={
-                    isBarcodeEditable
-                      ? "กรอกหมายเลขบาร์โค้ด"
-                      : "กดปุ่มดินสอเพื่อแก้ไข"
-                  }
-                />
-
-                {/* ✅ Edit/Confirm Button */}
-                <button
-                  type="button"
-                  onClick={toggleBarcodeEditable}
-                  disabled={isLoading}
-                  className={`absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded transition-colors ${
-                    isBarcodeEditable
-                      ? "text-green-600 hover:bg-green-50"
-                      : "text-gray-500 hover:bg-gray-100"
-                  } disabled:opacity-50`}
-                  title={isBarcodeEditable ? "ยืนยันการแก้ไข" : "แก้ไขบาร์โค้ด"}
-                >
-                  {isBarcodeEditable ? (
-                    <Check size={12} />
-                  ) : (
-                    <Edit3 size={12} />
-                  )}
-                </button>
-              </div>
-
-              {/* ✅ Real-time validation feedback */}
-              {formData.barcode && !errors.barcode && isBarcodeEditable && (
-                <p
-                  className={`text-xs mt-0.5 ${
-                    getBarcodeValidationStatus().isValid
-                      ? "text-green-600"
-                      : "text-orange-600"
-                  }`}
-                >
-                  {getBarcodeValidationStatus().message}
-                </p>
-              )}
-              {errors.barcode && (
-                <p className="text-red-500 text-xs mt-0.5">{errors.barcode}</p>
-              )}
-              {!formData.barcode && !errors.barcode && (
-                <p className="text-gray-500 text-xs mt-0.5">
-                  รองรับบาร์โค้ด 8-14 หลัก
-                </p>
-              )}
-              {!isBarcodeEditable && formData.barcode && !errors.barcode && (
-                <p className="text-blue-600 text-xs mt-0.5 flex items-center gap-1">
-                  <Edit3 size={10} />
-                  กดปุ่มดินสอเพื่อแก้ไข
-                </p>
-              )}
-            </div>
-
-            {/* Product Name */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
-                <Tag size={12} />
-                F/FG Prod (รหัสสินค้า) *
-              </label>
-              <input
-                type="text"
-                value={formData.productName}
-                onChange={(e) => updateField("productName", e.target.value)}
-                className={`w-full px-2 py-1.5 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors text-xs ${
-                  errors.productName ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="กรอกรหัสสินค้า"
-                disabled={isLoading}
-              />
-              {errors.productName && (
-                <p className="text-red-500 text-xs mt-0.5">
-                  {errors.productName}
-                </p>
-              )}
-            </div>
-
-            {/* ✅ Product Group - เปลี่ยนเป็น Dropdown */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
-                <Package size={12} />
-                Prod. Gr. (หมวดหมู่สินค้า) *
-              </label>
-              <div className="relative">
-                <select
-                  value={formData.productGroup}
-                  onChange={(e) => updateField("productGroup", e.target.value)}
-                  className={`w-full px-2 py-1.5 pr-8 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors text-xs appearance-none bg-white ${
-                    errors.productGroup ? "border-red-500" : "border-gray-300"
-                  }`}
-                  disabled={isLoading}
-                >
-                  <option value="">เลือกหมวดหมู่สินค้า</option>
-                  {PRODUCT_GROUP_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-
-                {/* ✅ Custom dropdown arrow */}
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <ChevronDown size={12} className="text-gray-500" />
-                </div>
-              </div>
-
-              {errors.productGroup && (
-                <p className="text-red-500 text-xs mt-0.5">
-                  {errors.productGroup}
-                </p>
-              )}
-
-              {/* ✅ Show selected value info */}
-              {formData.productGroup && !errors.productGroup && (
-                <p className="text-green-600 text-xs mt-0.5">
-                  ✓ เลือก: {formData.productGroup}
-                </p>
-              )}
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
-                <FileText size={12} />
-                รายละเอียด *
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => updateField("description", e.target.value)}
-                rows={2}
-                className={`w-full px-2 py-1.5 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors resize-none text-xs custom-scrollbar ${
-                  errors.description ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="กรอกรายละเอียดสินค้า"
-                disabled={isLoading}
-              />
-              {errors.description && (
-                <p className="text-red-500 text-xs mt-0.5">
-                  {errors.description}
-                </p>
-              )}
-            </div>
-
-            {/* Count Section */}
-            <div className="grid grid-cols-2 gap-2">
-              {/* Count CS */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
-                  <Hash size={12} />
-                  นับจริง (cs)
-                </label>
-                <input
-                  type="number"
-                  value={formData.countCs}
-                  onChange={(e) =>
-                    updateField("countCs", parseInt(e.target.value) || 0)
-                  }
-                  min="0"
-                  className={`w-full px-2 py-1.5 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors text-xs ${
-                    errors.countCs ? "border-red-500" : "border-gray-300"
-                  }`}
-                  placeholder="0"
-                  disabled={isLoading}
-                />
-                {errors.countCs && (
-                  <p className="text-red-500 text-xs mt-0.5">
-                    {errors.countCs}
-                  </p>
-                )}
-              </div>
-
-              {/* Count Pieces */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
-                  <Hash size={12} />
-                  นับจริง (ชิ้น)
-                </label>
-                <input
-                  type="number"
-                  value={formData.countPieces}
-                  onChange={(e) =>
-                    updateField("countPieces", parseInt(e.target.value) || 0)
-                  }
-                  min="0"
-                  className={`w-full px-2 py-1.5 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors text-xs ${
-                    errors.countPieces ? "border-red-500" : "border-gray-300"
-                  }`}
-                  placeholder="0"
-                  disabled={isLoading}
-                />
-                {errors.countPieces && (
-                  <p className="text-red-500 text-xs mt-0.5">
-                    {errors.countPieces}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Summary */}
-            {(formData.countCs > 0 || formData.countPieces > 0) && (
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-2">
-                <p className="text-xs text-blue-800">
-                  <span className="font-medium">จะเพิ่ม: </span>
-                  {formData.countCs > 0 && <span>{formData.countCs} ลัง</span>}
-                  {formData.countCs > 0 && formData.countPieces > 0 && (
-                    <span> + </span>
-                  )}
-                  {formData.countPieces > 0 && (
-                    <span>{formData.countPieces} ชิ้น</span>
-                  )}
-                </p>
-              </div>
-            )}
-
-            {/* Add some bottom padding for better mobile scrolling */}
-            <div className="h-2"></div>
-          </div>
-
-          {/* Footer - ลดขนาด */}
-          <div className="px-3 py-2 border-t border-gray-200 bg-gray-50 flex-shrink-0">
-            <div className="flex gap-2">
+      {/* Modal */}
+      <div className="fixed inset-0 z-[101] flex items-center justify-center p-4">
+        <div
+          className="bg-white rounded-lg shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-300"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="px-4 py-3 border-b border-gray-200 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Package size={20} className="text-fn-green" />
+                เพิ่มสินค้าใหม่
+              </h2>
               <button
                 onClick={handleClose}
                 disabled={isLoading}
-                className="flex-1 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 text-xs"
+                className="p-1.5 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
+              >
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+          </div>
+
+          {/* Content - เพิ่ม scroll */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4 space-y-4">
+              {/* Barcode Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <Scan size={16} />
+                  หมายเลขบาร์โค้ด
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    ref={barcodeInputRef}
+                    type="text"
+                    value={formData.barcode}
+                    onChange={(e) =>
+                      updateField("barcode", formatBarcode(e.target.value))
+                    }
+                    readOnly={!isBarcodeEditable}
+                    className={`flex-1 px-3 py-2 border rounded-md focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors text-sm ${
+                      errors.barcode
+                        ? "border-red-500"
+                        : barcodeValidation.isValid
+                        ? "border-green-500"
+                        : "border-gray-300"
+                    } ${
+                      !isBarcodeEditable
+                        ? "bg-gray-50 text-gray-600"
+                        : "bg-white"
+                    }`}
+                    placeholder="กรอกหมายเลขบาร์โค้ด"
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={toggleBarcodeEditable}
+                    disabled={isLoading}
+                    className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center"
+                  >
+                    {isBarcodeEditable ? (
+                      <Check size={16} className="text-green-600" />
+                    ) : (
+                      <Edit3 size={16} className="text-gray-600" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Barcode validation feedback */}
+                <p
+                  className={`text-xs mt-1 ${
+                    errors.barcode
+                      ? "text-red-500"
+                      : barcodeValidation.isValid
+                      ? "text-green-600"
+                      : "text-gray-500"
+                  }`}
+                >
+                  {errors.barcode || barcodeValidation.message}
+                </p>
+              </div>
+
+              {/* Product Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <Tag size={16} />
+                  รหัสสินค้า
+                </label>
+                <input
+                  type="text"
+                  value={formData.productName}
+                  onChange={(e) => updateField("productName", e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors text-sm ${
+                    errors.productName ? "border-red-500" : "border-gray-300"
+                  }`}
+                  placeholder="กรอกรหัสสินค้า"
+                  disabled={isLoading}
+                />
+                {errors.productName && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.productName}
+                  </p>
+                )}
+              </div>
+
+              {/* Product Group */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <Package size={16} />
+                  หมวดหมู่สินค้า
+                </label>
+                <div className="relative">
+                  <select
+                    value={formData.productGroup}
+                    onChange={(e) =>
+                      updateField("productGroup", e.target.value)
+                    }
+                    className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors text-sm appearance-none bg-white ${
+                      errors.productGroup ? "border-red-500" : "border-gray-300"
+                    }`}
+                    disabled={isLoading}
+                  >
+                    <option value="">เลือกหมวดหมู่สินค้า</option>
+                    {PRODUCT_GROUP_OPTIONS.map((group) => (
+                      <option key={group} value={group}>
+                        {group}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={16}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"
+                  />
+                </div>
+                {errors.productGroup && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.productGroup}
+                  </p>
+                )}
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <FileText size={16} />
+                  รายละเอียดสินค้า
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => updateField("description", e.target.value)}
+                  rows={3}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors text-sm resize-none ${
+                    errors.description ? "border-red-500" : "border-gray-300"
+                  }`}
+                  placeholder="กรอกรายละเอียดสินค้า"
+                  disabled={isLoading}
+                />
+                {errors.description && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.description}
+                  </p>
+                )}
+              </div>
+
+              {/* ✅ Count Section - ปรับเป็น 3 คอลัมน์ */}
+              <div className="grid grid-cols-3 gap-2">
+                {/* Count CS */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
+                    <Hash size={12} />
+                    ลัง (cs)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.countCs}
+                    onChange={(e) =>
+                      updateField("countCs", parseInt(e.target.value) || 0)
+                    }
+                    min="0"
+                    className={`w-full px-2 py-1.5 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors text-xs ${
+                      errors.countCs ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="0"
+                    disabled={isLoading}
+                  />
+                  {errors.countCs && (
+                    <p className="text-red-500 text-xs mt-0.5">
+                      {errors.countCs}
+                    </p>
+                  )}
+                </div>
+
+                {/* ✅ Count DSP - ใหม่ */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
+                    <Hash size={12} />
+                    แพ็ค (dsp)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.countDsp}
+                    onChange={(e) =>
+                      updateField("countDsp", parseInt(e.target.value) || 0)
+                    }
+                    min="0"
+                    className={`w-full px-2 py-1.5 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors text-xs ${
+                      errors.countDsp ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="0"
+                    disabled={isLoading}
+                  />
+                  {errors.countDsp && (
+                    <p className="text-red-500 text-xs mt-0.5">
+                      {errors.countDsp}
+                    </p>
+                  )}
+                </div>
+
+                {/* Count Pieces */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
+                    <Hash size={12} />
+                    ชิ้น (ea)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.countPieces}
+                    onChange={(e) =>
+                      updateField("countPieces", parseInt(e.target.value) || 0)
+                    }
+                    min="0"
+                    className={`w-full px-2 py-1.5 border rounded-md focus:ring-1 focus:ring-fn-green focus:border-transparent transition-colors text-xs ${
+                      errors.countPieces ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="0"
+                    disabled={isLoading}
+                  />
+                  {errors.countPieces && (
+                    <p className="text-red-500 text-xs mt-0.5">
+                      {errors.countPieces}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* ✅ Summary - อัปเดตให้รองรับ DSP */}
+              {(formData.countCs > 0 ||
+                formData.countDsp > 0 ||
+                formData.countPieces > 0) && (
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <p className="text-sm text-blue-800">
+                    <span className="font-medium">จะเพิ่ม: </span>
+                    {[
+                      formData.countCs > 0 && `${formData.countCs} ลัง`,
+                      formData.countDsp > 0 && `${formData.countDsp} แพ็ค`,
+                      formData.countPieces > 0 &&
+                        `${formData.countPieces} ชิ้น`,
+                    ]
+                      .filter(Boolean)
+                      .join(" + ")}
+                  </p>
+                </div>
+              )}
+
+              {/* Add some bottom padding for better mobile scrolling */}
+              <div className="h-2"></div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+            <div className="flex gap-3">
+              <button
+                onClick={handleClose}
+                disabled={isLoading}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm font-medium"
               >
                 ยกเลิก
               </button>
               <button
                 onClick={handleSave}
                 disabled={isLoading}
-                className="flex-1 px-3 py-1.5 bg-fn-green text-white rounded-md hover:bg-fn-green/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-1 text-xs"
+                className="flex-1 px-4 py-2 bg-fn-green text-white rounded-md hover:bg-fn-green/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm font-medium"
               >
                 {isLoading ? (
                   <>
-                    <div className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full"></div>
+                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
                     กำลังบันทึก...
                   </>
                 ) : (
                   <>
-                    <Save size={12} />
+                    <Save size={16} />
                     บันทึก
                   </>
                 )}

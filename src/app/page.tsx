@@ -1,4 +1,4 @@
-// Path: src/app/page.tsx - Phase 2: Fixed with Real Export Function
+// Path: src/app/page.tsx - Phase 2: Fixed with Real Export Function + DSP Support
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -427,17 +427,21 @@ export default function BarcodeDetectionPage() {
     setShowAddProductForm(true);
   };
 
-  // ✅ UPDATED: Handler สำหรับบันทึกสินค้าใหม่ - ใช้ Multi-Unit API
+  // ✅ UPDATED: Handler สำหรับบันทึกสินค้าใหม่ - รองรับครบ 3 หน่วย (CS, DSP, EA)
   const handleSaveNewProduct = async (productData: {
     barcode: string;
     productName: string;
     productGroup: string;
     description: string;
     countCs: number;
+    countDsp: number; // ✅ เพิ่ม DSP
     countPieces: number;
   }): Promise<boolean> => {
     try {
-      console.log("💾 Saving new product with Multi-Unit API:", productData);
+      console.log(
+        "💾 Saving new product with Multi-Unit API (3 units):",
+        productData
+      );
 
       // ✅ Validate product group
       if (!isValidProductGroup(productData.productGroup)) {
@@ -485,6 +489,26 @@ export default function BarcodeDetectionPage() {
           }
         }
 
+        // ✅ เพิ่ม DSP ถ้ามี - ใหม่!
+        if (productData.countDsp > 0) {
+          const dspQuantityInput: QuantityInput = {
+            quantity: productData.countDsp,
+            unit: "dsp",
+          };
+
+          const dspSuccess = addOrUpdateMultiUnitItem(
+            newProduct,
+            dspQuantityInput,
+            "dsp",
+            productData.productGroup
+          );
+
+          if (dspSuccess) {
+            console.log(`✅ Added DSP: ${productData.countDsp} แพ็ค`);
+            success = true;
+          }
+        }
+
         // เพิ่ม EA ถ้ามี
         if (productData.countPieces > 0) {
           const eaQuantityInput: QuantityInput = {
@@ -508,12 +532,23 @@ export default function BarcodeDetectionPage() {
         // ✅ FIXED: Fallback to legacy method with correct QuantityDetail structure
         console.log("🔄 Multi-Unit API not available, using legacy method...");
 
-        if (productData.countCs > 0 || productData.countPieces > 0) {
+        // ✅ ตรวจสอบว่ามีจำนวนอย่างน้อย 1 หน่วย
+        if (
+          productData.countCs > 0 ||
+          productData.countDsp > 0 ||
+          productData.countPieces > 0
+        ) {
           const quantityDetail: QuantityDetail = {
             cs: productData.countCs,
-            dsp: 0, // ไม่มี DSP ในกรณีนี้
+            dsp: productData.countDsp, // ✅ เพิ่ม DSP support
             ea: productData.countPieces,
-            scannedType: productData.countCs > 0 ? "cs" : "ea",
+            // ✅ เลือก scannedType ตามลำดับความสำคัญ
+            scannedType:
+              productData.countCs > 0
+                ? "cs"
+                : productData.countDsp > 0
+                ? "dsp"
+                : "ea",
             isManualEdit: true,
             lastModified: new Date().toISOString(),
           };
@@ -528,9 +563,10 @@ export default function BarcodeDetectionPage() {
       }
 
       if (success) {
-        console.log("✅ New product saved successfully");
+        console.log("✅ New product saved successfully with 3-unit support");
         console.log(`   📦 Product Group: ${productData.productGroup}`);
         console.log(`   📦 CS: ${productData.countCs} ลัง`);
+        console.log(`   📦 DSP: ${productData.countDsp} แพ็ค`); // ✅ เพิ่ม log DSP
         console.log(`   🔢 EA: ${productData.countPieces} ชิ้น`);
 
         // ปิด form
@@ -542,7 +578,7 @@ export default function BarcodeDetectionPage() {
 
         return true;
       } else {
-        console.warn("⚠️ No quantities to save (both CS and EA are 0)");
+        console.warn("⚠️ No quantities to save (all units are 0)"); // ✅ อัปเดต message
         return false;
       }
     } catch (error) {
