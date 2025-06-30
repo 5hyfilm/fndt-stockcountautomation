@@ -39,11 +39,6 @@ export const DesktopTabNavigation: React.FC<DesktopTabNavigationProps> = ({
         >
           <Archive size={16} />
           จัดการ Inventory
-          {totalSKUs > 0 && (
-            <span className="bg-fn-green text-white text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center">
-              {totalSKUs} {/* ✅ แสดงจำนวน SKU */}
-            </span>
-          )}
         </button>
       </div>
     </div>

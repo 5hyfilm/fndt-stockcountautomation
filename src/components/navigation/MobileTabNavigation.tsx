@@ -39,11 +39,6 @@ export const MobileTabNavigation: React.FC<MobileTabNavigationProps> = ({
         >
           <Archive size={14} />
           Inventory
-          {totalSKUs > 0 && (
-            <span className="bg-fn-green text-white text-xs px-1.5 py-0.5 rounded-full min-w-[16px] text-center leading-none">
-              {totalSKUs} {/* ✅ แสดงจำนวน SKU */}
-            </span>
-          )}
         </button>
       </div>
     </div>
