@@ -1,9 +1,20 @@
 // Path: ./src/hooks/inventory/index.ts
-// ✅ แก้ไข: เปิดใช้งาน useInventoryExport อีกครั้งหลังจากแก้ conflict แล้ว
+// ✅ FIXED: ลำดับการ export ที่ถูกต้องตาม dependency chain
 
+// 1. ✅ Export types ก่อน (ไม่มี dependencies)
 export * from "./types";
+
+// 2. ✅ Export storage utilities (ขึ้นอยู่กับ types เท่านั้น)
 export * from "./useInventoryStorage";
+
+// 3. ✅ Export operations (ขึ้นอยู่กับ types + storage)
 export * from "./useInventoryOperations";
+
+// 4. ✅ Export summary utilities (ขึ้นอยู่กับ types)
 export * from "./useInventorySummary";
-export * from "./useInventoryExport"; // ✅ เปิดใช้งานอีกครั้ง
+
+// 5. ✅ Export export utilities (ขึ้นอยู่กับ types)
+export * from "./useInventoryExport";
+
+// 6. ✅ Export main manager ในที่สุด (ขึ้นอยู่กับทุกอย่างข้างต้น)
 export * from "./useInventoryManager";
