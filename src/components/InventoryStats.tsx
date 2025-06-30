@@ -10,7 +10,7 @@ import {
   Award,
   Star,
 } from "lucide-react";
-import { InventorySummary } from "../hooks/useInventoryManager";
+import { InventorySummary } from "../hooks/inventory/types";
 
 interface InventoryStatsProps {
   summary: InventorySummary;
@@ -50,6 +50,14 @@ export const InventoryStats: React.FC<InventoryStatsProps> = ({
       current[1] > max[1] ? current : max
     );
   }, [summary.brands]);
+
+  // ✅ FIXED: Safe access to quantityBreakdown with default values
+  const quantityBreakdown = summary.quantityBreakdown || {
+    totalCS: 0,
+    totalDSP: 0,
+    totalEA: 0,
+    itemsWithMultipleUnits: 0,
+  };
 
   if (isCompact) {
     return (
@@ -127,6 +135,44 @@ export const InventoryStats: React.FC<InventoryStatsProps> = ({
         </div>
       </div>
 
+      {/* ✅ NEW: Multi-unit quantity breakdown (if available) */}
+      {quantityBreakdown &&
+        (quantityBreakdown.totalCS > 0 ||
+          quantityBreakdown.totalDSP > 0 ||
+          quantityBreakdown.totalEA > 0) && (
+          <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 border border-blue-200">
+            <h4 className="text-sm font-medium text-gray-700 mb-3">
+              แยกตามหน่วยนับ
+            </h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-lg font-bold text-purple-600">
+                  {quantityBreakdown.totalCS}
+                </div>
+                <div className="text-xs text-gray-600">ลัง (CS)</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-green-600">
+                  {quantityBreakdown.totalDSP}
+                </div>
+                <div className="text-xs text-gray-600">แพ็ค (DSP)</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-blue-600">
+                  {quantityBreakdown.totalEA}
+                </div>
+                <div className="text-xs text-gray-600">ชิ้น (EA)</div>
+              </div>
+            </div>
+            {quantityBreakdown.itemsWithMultipleUnits > 0 && (
+              <div className="mt-2 text-xs text-gray-600 text-center">
+                มี {quantityBreakdown.itemsWithMultipleUnits}{" "}
+                รายการที่มีหลายหน่วย
+              </div>
+            )}
+          </div>
+        )}
+
       {/* Top Categories and Brands */}
       {(topCategory || topBrand) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -140,7 +186,7 @@ export const InventoryStats: React.FC<InventoryStatsProps> = ({
                   {topCategory[0]}
                 </span>
                 <span className="text-fn-green font-bold">
-                  {topCategory[1]} ชิ้น
+                  {topCategory[1]} รายการ
                 </span>
               </div>
             </div>
@@ -154,7 +200,7 @@ export const InventoryStats: React.FC<InventoryStatsProps> = ({
               <div className="flex justify-between items-center">
                 <span className="text-gray-900 font-medium">{topBrand[0]}</span>
                 <span className="text-blue-600 font-bold">
-                  {topBrand[1]} ชิ้น
+                  {topBrand[1]} รายการ
                 </span>
               </div>
             </div>
@@ -183,7 +229,10 @@ export const InventoryStats: React.FC<InventoryStatsProps> = ({
                       <div
                         className="bg-fn-green h-full rounded-full transition-all duration-300"
                         style={{
-                          width: `${(count / summary.totalItems) * 100}%`,
+                          width: `${Math.min(
+                            (count / summary.totalProducts) * 100,
+                            100
+                          )}%`,
                         }}
                       />
                     </div>
