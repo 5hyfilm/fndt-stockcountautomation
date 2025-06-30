@@ -12,7 +12,6 @@ interface DesktopTabNavigationProps {
 
 export const DesktopTabNavigation: React.FC<DesktopTabNavigationProps> = ({
   activeTab,
-  totalSKUs, // ✅ เปลี่ยนจาก totalProducts เป็น totalSKUs
   onTabChange,
 }) => {
   return (

@@ -251,7 +251,7 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
                     className="p-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-fn-green transition-all duration-200 text-sm"
                   >
                     <option value="fgCode">รหัส F/FG</option>
-                    <option value="name">ชื่อสินค้า</option>
+                    {/* <option value="name">ชื่อสินค้า</option> */}
                     {/* <option value="quantity">จำนวน</option> */}
                     <option value="date">เวลาที่อัปเดต</option>
                   </select>

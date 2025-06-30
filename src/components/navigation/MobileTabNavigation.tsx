@@ -12,7 +12,6 @@ interface MobileTabNavigationProps {
 
 export const MobileTabNavigation: React.FC<MobileTabNavigationProps> = ({
   activeTab,
-  totalSKUs, // ✅ เปลี่ยนจาก totalProducts เป็น totalSKUs
   onTabChange,
 }) => {
   return (
