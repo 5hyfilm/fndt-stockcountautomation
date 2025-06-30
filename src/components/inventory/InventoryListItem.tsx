@@ -1,4 +1,4 @@
-// Path: src/components/inventory/InventoryListItem.tsx - Consistent UI Design
+// Path: src/components/inventory/InventoryListItem.tsx - แสดงทั้ง 3 หน่วยเสมอ
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -22,7 +22,7 @@ interface InventoryListItemProps {
   onEditStart: () => void;
   onEditSave: () => void;
   onEditQuantityDetailSave?: (
-    materialCode: string, // ✅ FIXED: Change from itemId to materialCode
+    materialCode: string,
     quantityDetail: QuantityDetail
   ) => boolean;
   onEditCancel: () => void;
@@ -87,7 +87,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // ✅ Initialize edit state based on all possible units (consistent approach)
+  // ✅ Initialize edit state based on all possible units
   const [editState, setEditState] = useState<EditState>(() => {
     return {
       csQuantity: item.quantities?.cs || 0,
@@ -96,30 +96,25 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     };
   });
 
-  // ✅ Get active units - BUT now we always show at least the primary unit
-  const getActiveUnits = (): Array<"cs" | "dsp" | "ea"> => {
-    if (!item.quantities) {
-      // Legacy items: assume EA unit
-      return ["ea"];
-    }
-
-    const activeUnits = (["cs", "dsp", "ea"] as const).filter(
-      (unit) => (item.quantities?.[unit] || 0) > 0
-    );
-
-    // ✅ CONSISTENCY: Always show at least one unit, even if quantity is 0
-    if (activeUnits.length === 0) {
-      return ["ea"]; // Default to EA if no units have quantity
-    }
-
-    return activeUnits;
+  // ✅ CHANGED: แสดงทั้ง 3 หน่วยเสมอ
+  const getAllUnits = (): Array<"cs" | "dsp" | "ea"> => {
+    return ["cs", "dsp", "ea"]; // แสดงทั้ง 3 หน่วยเสมอ
   };
 
+  // ✅ เช็คหน่วยที่มีจำนวน > 0 สำหรับการคำนวณ
+  const getActiveUnits = (): Array<"cs" | "dsp" | "ea"> => {
+    return (["cs", "dsp", "ea"] as const).filter(
+      (unit) => (item.quantities?.[unit] || 0) > 0
+    );
+  };
+
+  const allUnits = getAllUnits();
   const activeUnits = getActiveUnits();
   const isMultiUnit = activeUnits.length > 1;
 
   // ✅ Get primary unit for header display
   const getPrimaryUnit = (): "cs" | "dsp" | "ea" => {
+    if (activeUnits.length === 0) return "ea"; // Default
     return activeUnits.sort(
       (a, b) => UNIT_CONFIG[a].priority - UNIT_CONFIG[b].priority
     )[0];
@@ -127,6 +122,15 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
 
   const primaryUnit = getPrimaryUnit();
   const primaryUnitConfig = UNIT_CONFIG[primaryUnit];
+
+  // ✅ Calculate total quantity
+  const getTotalQuantity = (): number => {
+    return (
+      (item.quantities?.cs || 0) +
+      (item.quantities?.dsp || 0) +
+      (item.quantities?.ea || 0)
+    );
+  };
 
   // ✅ Update edit state when item changes
   useEffect(() => {
@@ -162,7 +166,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
       onUpdateUnitQuantity(unit, newQuantity);
     }
 
-    // Update quantity detail for multi-unit items
+    // Update quantity detail for all items (since we always show 3 units)
     if (onEditQuantityDetailChange) {
       const quantityDetail: QuantityDetail = {
         cs: updatedState.csQuantity,
@@ -175,9 +179,9 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     }
   };
 
-  // ✅ Handle save action - FIXED: Use materialCode instead of item.id
+  // ✅ Handle save action
   const handleSave = () => {
-    if (isMultiUnit && onEditQuantityDetailSave) {
+    if (onEditQuantityDetailSave) {
       const quantityDetail: QuantityDetail = {
         cs: editState.csQuantity,
         dsp: editState.dspQuantity,
@@ -185,87 +189,61 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
         isManualEdit: true,
         lastModified: new Date().toISOString(),
       };
-      // ✅ FIXED: Pass materialCode instead of item.id
       onEditQuantityDetailSave(item.materialCode || item.id, quantityDetail);
     } else {
-      // For single unit, also pass the correct identifier
       onEditSave();
     }
   };
 
-  // ✅ Consistent quantity display for both single and multi-unit
+  // ✅ CHANGED: แสดงทั้ง 3 หน่วยเสมอ
   const renderQuantityDisplay = () => {
-    if (isMultiUnit) {
-      // Multi-unit: Show all active units
-      const parts: string[] = [];
+    return (
+      <div className="text-right min-w-0">
+        {/* แสดงทั้ง 3 หน่วยในบรรทัดเดียว */}
+        <div className="flex items-center gap-1 justify-end flex-wrap mb-2">
+          {allUnits.map((unit) => {
+            const config = UNIT_CONFIG[unit];
+            const quantity = item.quantities?.[unit] || 0;
+            const hasQuantity = quantity > 0;
 
-      activeUnits.forEach((unit) => {
-        const quantity = item.quantities?.[unit] || 0;
-        const config = UNIT_CONFIG[unit];
-        if (quantity > 0) {
-          parts.push(`${quantity} ${config.label}`);
-        }
-      });
-
-      return (
-        <div className="text-right">
-          <div className="flex flex-wrap gap-1 justify-end mb-1">
-            {activeUnits.map((unit) => {
-              const quantity = item.quantities?.[unit] || 0;
-              const config = UNIT_CONFIG[unit];
-              if (quantity === 0) return null;
-
-              return (
+            return (
+              <div key={unit} className="flex items-center gap-1">
                 <span
-                  key={unit}
-                  className={`text-xs px-2 py-1 rounded font-medium ${config.color}`}
+                  className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                    hasQuantity
+                      ? config.color
+                      : "bg-gray-100 text-gray-400 border-gray-200"
+                  }`}
                 >
                   {config.shortLabel}
                 </span>
-              );
-            })}
-          </div>
-          <div className="text-sm text-gray-600">{parts.join(" + ")}</div>
-          <div className="font-bold text-gray-900">
-            รวม:{" "}
-            {(item.quantities?.cs || 0) +
-              (item.quantities?.dsp || 0) +
-              (item.quantities?.ea || 0)}
-          </div>
+                <span
+                  className={`text-sm font-bold ${
+                    hasQuantity ? "text-gray-900" : "text-gray-400"
+                  }`}
+                >
+                  {quantity}
+                </span>
+                {unit !== "ea" && (
+                  <span className="text-gray-300 text-sm">|</span>
+                )}
+              </div>
+            );
+          })}
         </div>
-      );
-    } else {
-      // Single unit: Show with consistent badge
-      const quantity = item.quantities?.[primaryUnit] || item.quantity || 0;
-      return (
-        <div className="text-right">
-          <div className="flex items-center gap-2 justify-end mb-1">
-            <span
-              className={`text-xs px-2 py-1 rounded font-medium ${primaryUnitConfig.color}`}
-            >
-              {primaryUnitConfig.shortLabel}
-            </span>
-          </div>
-          <div className="font-bold text-gray-900">
-            {quantity.toLocaleString()} {primaryUnitConfig.label}
-          </div>
-        </div>
-      );
-    }
+      </div>
+    );
   };
 
-  // ✅ CONSISTENT editing interface for ALL items
+  // ✅ CHANGED: แก้ไขทั้ง 3 หน่วยเสมอ
   const renderEditingInterface = () => {
-    // ✅ CHANGED: Always use multi-unit style for consistency
-    const unitsToShow = isMultiUnit ? activeUnits : [primaryUnit];
-
     return (
       <div className="space-y-3">
         <div className="text-sm font-medium text-gray-700 mb-2">
-          แก้ไขจำนวนสินค้า
+          แก้ไขจำนวนสินค้า (ทั้ง 3 หน่วย)
         </div>
 
-        {unitsToShow.map((unit) => {
+        {allUnits.map((unit) => {
           const config = UNIT_CONFIG[unit];
           const quantity = editState[
             (unit + "Quantity") as keyof EditState
@@ -301,7 +279,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
                 </button>
 
                 <input
-                  ref={unitsToShow.indexOf(unit) === 0 ? inputRef : undefined}
+                  ref={unit === "cs" ? inputRef : undefined} // Focus first unit (CS)
                   type="number"
                   value={quantity}
                   onChange={(e) =>
@@ -329,6 +307,16 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
             </div>
           );
         })}
+
+        {/* Total Display */}
+        <div className="text-center p-2 bg-blue-50 rounded-lg border border-blue-200">
+          <span className="text-sm font-medium text-blue-700">
+            จำนวนรวมทั้งหมด:{" "}
+            {editState.csQuantity +
+              editState.dspQuantity +
+              editState.eaQuantity}
+          </span>
+        </div>
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-3 border-t border-gray-200">
@@ -384,14 +372,12 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
             รหัส: {item.materialCode || item.barcode}
           </div>
 
-          {/* Multi-unit indicator */}
-          {isMultiUnit && (
-            <div className="mt-2">
-              <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-medium">
-                หลายหน่วย ({activeUnits.length} หน่วย)
-              </span>
-            </div>
-          )}
+          {/* แสดงสถานะ 3 หน่วย */}
+          <div className="mt-2">
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+              3 หน่วย (CS|DSP|EA)
+            </span>
+          </div>
         </div>
 
         {/* Quantity Display */}
