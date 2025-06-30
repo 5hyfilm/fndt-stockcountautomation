@@ -371,13 +371,6 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
           <div className="text-xs text-gray-500 mt-1 font-mono">
             รหัส: {item.materialCode || item.barcode}
           </div>
-
-          {/* แสดงสถานะ 3 หน่วย */}
-          <div className="mt-2">
-            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
-              3 หน่วย (CS|DSP|EA)
-            </span>
-          </div>
         </div>
 
         {/* Quantity Display */}
