@@ -1,4 +1,4 @@
-// src/hooks/inventory/useInventoryValidation.tsx - Phase 2: Enhanced Validation Rules
+// src/hooks/inventory/useInventoryValidation.tsx - Phase 2: Enhanced Validation Rules (Fixed)
 "use client";
 
 import { useCallback, useMemo } from "react";
@@ -23,34 +23,39 @@ interface QuantityValidationRules {
   minQuantity: number;
   maxQuantity: number;
 
-  // Major unit rules (DSP/CS)
-  minMajorQuantity: number;
-  maxMajorQuantity: number;
-
-  // Remainder rules (EA)
-  minRemainder: number;
-  maxRemainder: number;
+  // Unit-specific rules
+  minCsQuantity: number;
+  maxCsQuantity: number;
+  minDspQuantity: number;
+  maxDspQuantity: number;
+  minEaQuantity: number;
+  maxEaQuantity: number;
 
   // Business rules
-  allowZeroMajor: boolean;
-  allowZeroRemainder: boolean;
-  requireRemainderForPackTypes: boolean;
+  allowZeroCs: boolean;
+  allowZeroDsp: boolean;
+  allowZeroEa: boolean;
+  requireMinimumUnit: boolean;
 
   // Pack size validation
   validatePackRatio: boolean;
-  maxRemainderPerPack?: number; // e.g., if 1 pack = 12 items, remainder should be < 12
+  maxEaPerDsp?: number; // e.g., if 1 DSP = 12 EA, EA should be < 12 when DSP > 0
+  maxDspPerCs?: number; // e.g., if 1 CS = 10 DSP, DSP should be < 10 when CS > 0
 }
 
 const DEFAULT_VALIDATION_RULES: QuantityValidationRules = {
   minQuantity: 0,
   maxQuantity: 99999,
-  minMajorQuantity: 0,
-  maxMajorQuantity: 9999,
-  minRemainder: 0,
-  maxRemainder: 999,
-  allowZeroMajor: true,
-  allowZeroRemainder: true,
-  requireRemainderForPackTypes: false,
+  minCsQuantity: 0,
+  maxCsQuantity: 9999,
+  minDspQuantity: 0,
+  maxDspQuantity: 9999,
+  minEaQuantity: 0,
+  maxEaQuantity: 99999,
+  allowZeroCs: true,
+  allowZeroDsp: true,
+  allowZeroEa: true,
+  requireMinimumUnit: false,
   validatePackRatio: false,
 };
 
@@ -136,77 +141,103 @@ export const useInventoryValidation = (
     [rules]
   );
 
-  // ✅ Validate quantity detail (DSP/CS) - ตอนนี้ใช้ stable rules dependency
+  // ✅ Validate quantity detail (CS/DSP/EA) - แก้ไขให้ใช้ cs, dsp, ea แทน major, remainder
   const validateQuantityDetail = useCallback(
-    (quantityDetail: QuantityDetail, product?: Product): ValidationResult => {
+    (quantityDetail: QuantityDetail): ValidationResult => {
       const errors: string[] = [];
       const warnings: string[] = [];
       const suggestions: string[] = [];
 
-      const { major, remainder, scannedType } = quantityDetail;
+      const { cs, dsp, ea, scannedType } = quantityDetail;
 
-      // Basic range validation
-      if (major < rules.minMajorQuantity) {
-        errors.push(
-          `จำนวน${scannedType.toUpperCase()}ต้องไม่น้อยกว่า ${
-            rules.minMajorQuantity
-          }`
-        );
+      // Basic range validation for CS
+      if (cs < rules.minCsQuantity) {
+        errors.push(`จำนวนลังต้องไม่น้อยกว่า ${rules.minCsQuantity}`);
       }
 
-      if (major > rules.maxMajorQuantity) {
-        errors.push(
-          `จำนวน${scannedType.toUpperCase()}ต้องไม่เกิน ${
-            rules.maxMajorQuantity
-          }`
-        );
+      if (cs > rules.maxCsQuantity) {
+        errors.push(`จำนวนลังต้องไม่เกิน ${rules.maxCsQuantity}`);
       }
 
-      if (remainder < rules.minRemainder) {
-        errors.push(`จำนวนเศษต้องไม่น้อยกว่า ${rules.minRemainder}`);
+      // Basic range validation for DSP
+      if (dsp < rules.minDspQuantity) {
+        errors.push(`จำนวนแพ็คต้องไม่น้อยกว่า ${rules.minDspQuantity}`);
       }
 
-      if (remainder > rules.maxRemainder) {
-        errors.push(`จำนวนเศษต้องไม่เกิน ${rules.maxRemainder}`);
+      if (dsp > rules.maxDspQuantity) {
+        errors.push(`จำนวนแพ็คต้องไม่เกิน ${rules.maxDspQuantity}`);
+      }
+
+      // Basic range validation for EA
+      if (ea < rules.minEaQuantity) {
+        errors.push(`จำนวนชิ้นต้องไม่น้อยกว่า ${rules.minEaQuantity}`);
+      }
+
+      if (ea > rules.maxEaQuantity) {
+        errors.push(`จำนวนชิ้นต้องไม่เกิน ${rules.maxEaQuantity}`);
       }
 
       // Business logic validation
-      if (!rules.allowZeroMajor && major === 0) {
-        errors.push(`จำนวน${scannedType.toUpperCase()}ต้องมากกว่า 0`);
+      if (!rules.allowZeroCs && cs === 0) {
+        warnings.push("จำนวนลังเป็น 0");
       }
 
-      if (
-        !rules.allowZeroRemainder &&
-        remainder === 0 &&
-        rules.requireRemainderForPackTypes
-      ) {
-        warnings.push("ไม่มีจำนวนเศษ ตรวจสอบว่าถูกต้องหรือไม่");
+      if (!rules.allowZeroDsp && dsp === 0) {
+        warnings.push("จำนวนแพ็คเป็น 0");
+      }
+
+      if (!rules.allowZeroEa && ea === 0) {
+        warnings.push("จำนวนชิ้นเป็น 0");
       }
 
       // Total quantity validation
-      if (major === 0 && remainder === 0) {
+      if (cs === 0 && dsp === 0 && ea === 0) {
         errors.push("จำนวนรวมต้องมากกว่า 0");
       }
 
-      // Pack ratio validation (if enabled and pack size data available)
-      if (rules.validatePackRatio && rules.maxRemainderPerPack && product) {
-        // This would require pack size data from the product
-        // For now, we'll use a general warning
-        if (remainder > (rules.maxRemainderPerPack || 50)) {
+      // Pack ratio validation (if enabled)
+      if (rules.validatePackRatio) {
+        // Check if EA count makes sense with DSP count
+        if (rules.maxEaPerDsp && dsp > 0 && ea >= rules.maxEaPerDsp) {
           warnings.push(
-            `จำนวนเศษ ${remainder} ดูเหมือนสูงกว่าปกติสำหรับ ${scannedType}`
+            `จำนวนชิ้น ${ea} ดูเหมือนสูงกว่าปกติเมื่อมีแพ็ค ${dsp} แล้ว`
           );
-          suggestions.push("ตรวจสอบว่าควรเพิ่มจำนวนหลักแทน");
+          suggestions.push("ตรวจสอบว่าควรเพิ่มจำนวนแพ็คแทน");
+        }
+
+        // Check if DSP count makes sense with CS count
+        if (rules.maxDspPerCs && cs > 0 && dsp >= rules.maxDspPerCs) {
+          warnings.push(
+            `จำนวนแพ็ค ${dsp} ดูเหมือนสูงกว่าปกติเมื่อมีลัง ${cs} แล้ว`
+          );
+          suggestions.push("ตรวจสอบว่าควรเพิ่มจำนวนลังแทน");
         }
       }
 
-      // Type-specific validations
-      if (scannedType === "cs" && major > 100) {
+      // Type-specific validations based on scanned type
+      if (scannedType === "cs" && cs > 100) {
         warnings.push("จำนวนลังสูงมาก กรุณาตรวจสอบความถูกต้อง");
       }
 
-      if (scannedType === "dsp" && major > 500) {
+      if (scannedType === "dsp" && dsp > 500) {
         warnings.push("จำนวนแพ็คสูงมาก กรุณาตรวจสอบความถูกต้อง");
+      }
+
+      if (scannedType === "ea" && ea > 10000) {
+        warnings.push("จำนวนชิ้นสูงมาก กรุณาตรวจสอบความถูกต้อง");
+      }
+
+      // Cross-validation with scanned type
+      if (scannedType === "cs" && cs === 0 && (dsp > 0 || ea > 0)) {
+        warnings.push("สแกนจากลังแต่ไม่มีจำนวนลัง - ตรวจสอบความถูกต้อง");
+      }
+
+      if (scannedType === "dsp" && dsp === 0 && (cs > 0 || ea > 0)) {
+        warnings.push("สแกนจากแพ็คแต่ไม่มีจำนวนแพ็ค - ตรวจสอบความถูกต้อง");
+      }
+
+      if (scannedType === "ea" && ea === 0 && (cs > 0 || dsp > 0)) {
+        warnings.push("สแกนจากชิ้นแต่ไม่มีจำนวนชิ้น - ตรวจสอบความถูกต้อง");
       }
 
       return {
@@ -223,8 +254,7 @@ export const useInventoryValidation = (
   const validateQuantityInput = useCallback(
     (
       quantityInput: QuantityInput,
-      barcodeType: "ea" | "dsp" | "cs" = "ea",
-      product?: Product
+      barcodeType: "ea" | "dsp" | "cs" = "ea"
     ): ValidationResult => {
       if (isSimpleQuantity(quantityInput)) {
         // Simple quantity validation
@@ -235,7 +265,7 @@ export const useInventoryValidation = (
           result.warnings.push(
             `สแกนจาก ${barcodeType.toUpperCase()} แต่ใช้จำนวนแบบง่าย - พิจารณาใช้จำนวนแบบรายละเอียด`
           );
-          result.suggestions.push("ลองใช้การกรอกจำนวนแบบแยกหลักและเศษ");
+          result.suggestions.push("ลองใช้การกรอกจำนวนแบบแยกหน่วย");
         }
 
         return result;
@@ -243,16 +273,38 @@ export const useInventoryValidation = (
 
       if (isQuantityDetail(quantityInput)) {
         // Quantity detail validation
-        const result = validateQuantityDetail(quantityInput, product);
+        const result = validateQuantityDetail(quantityInput);
 
         // Check consistency between scanned type and barcode type
-        if (quantityInput.scannedType !== barcodeType) {
+        if (
+          quantityInput.scannedType &&
+          quantityInput.scannedType !== barcodeType
+        ) {
           result.warnings.push(
             `ประเภทที่สแกน (${quantityInput.scannedType}) ไม่ตรงกับประเภทบาร์โค้ด (${barcodeType})`
           );
         }
 
         return result;
+      }
+
+      // Handle unit-specific quantity input
+      if (
+        typeof quantityInput === "object" &&
+        "quantity" in quantityInput &&
+        "unit" in quantityInput
+      ) {
+        const { quantity, unit } = quantityInput;
+        const simpleResult = validateSimpleQuantity(quantity);
+
+        // Check consistency
+        if (unit !== barcodeType) {
+          simpleResult.warnings.push(
+            `หน่วยที่ระบุ (${unit}) ไม่ตรงกับประเภทบาร์โค้ด (${barcodeType})`
+          );
+        }
+
+        return simpleResult;
       }
 
       // Invalid input type
@@ -335,8 +387,7 @@ export const useInventoryValidation = (
       // Validate quantity input
       const quantityValidation = validateQuantityInput(
         quantityInput,
-        barcodeType,
-        product
+        barcodeType
       );
       allErrors.push(...quantityValidation.errors);
       allWarnings.push(...quantityValidation.warnings);
