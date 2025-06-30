@@ -1,4 +1,4 @@
-// Path: src/components/inventory/InventoryListItem.tsx - เพิ่มเวลาที่แก้ไขล่าสุด
+// Path: src/components/inventory/InventoryListItem.tsx - Mobile Responsive Version
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -115,12 +115,12 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     };
   });
 
-  // ✅ CHANGED: แสดงทั้ง 3 หน่วยเสมอ
+  // ✅ Show all 3 units always
   const getAllUnits = (): Array<"cs" | "dsp" | "ea"> => {
-    return ["cs", "dsp", "ea"]; // แสดงทั้ง 3 หน่วยเสมอ
+    return ["cs", "dsp", "ea"];
   };
 
-  // ✅ เช็คหน่วยที่มีจำนวน > 0 สำหรับการคำนวณ
+  // ✅ Check units with quantity > 0 for calculations
   const getActiveUnits = (): Array<"cs" | "dsp" | "ea"> => {
     return (["cs", "dsp", "ea"] as const).filter(
       (unit) => (item.quantities?.[unit] || 0) > 0
@@ -175,7 +175,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
       onUpdateUnitQuantity(unit, newQuantity);
     }
 
-    // Update quantity detail for all items (since we always show 3 units)
+    // Update quantity detail for all items
     if (onEditQuantityDetailChange) {
       const quantityDetail: QuantityDetail = {
         cs: updatedState.csQuantity,
@@ -204,7 +204,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     }
   };
 
-  // ✅ NEW: Render timestamp display
+  // ✅ Render timestamp display
   const renderTimestamp = () => {
     const lastUpdated = item.quantityDetail?.lastModified || item.lastUpdated;
 
@@ -216,25 +216,25 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
 
     return (
       <div className="flex items-center gap-1 text-xs mt-1 text-gray-500">
-        <Clock size={12} className="text-gray-400" />
-        <span>{formattedTime}</span>
+        <Clock size={10} className="text-gray-400" />
+        <span className="truncate">{formattedTime}</span>
       </div>
     );
   };
 
-  // ✅ CHANGED: แสดงทั้ง 3 หน่วยเสมอ
+  // ✅ MOBILE RESPONSIVE: Responsive quantity display
   const renderQuantityDisplay = () => {
     return (
       <div className="text-right min-w-0">
-        {/* แสดงทั้ง 3 หน่วยในบรรทัดเดียว */}
-        <div className="flex items-center gap-1 justify-end flex-wrap mb-2">
-          {allUnits.map((unit) => {
+        {/* Mobile: Stack vertically, Desktop: Horizontal */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 justify-end">
+          {allUnits.map((unit, index) => {
             const config = UNIT_CONFIG[unit];
             const quantity = item.quantities?.[unit] || 0;
             const hasQuantity = quantity > 0;
 
             return (
-              <div key={unit} className="flex items-center gap-1">
+              <div key={unit} className="flex items-center justify-end gap-1">
                 <span
                   className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                     hasQuantity
@@ -251,8 +251,11 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
                 >
                   {quantity}
                 </span>
-                {unit !== "ea" && (
-                  <span className="text-gray-300 text-sm">|</span>
+                {/* Remove separators on mobile */}
+                {index !== allUnits.length - 1 && (
+                  <span className="text-gray-300 text-sm hidden sm:inline">
+                    |
+                  </span>
                 )}
               </div>
             );
@@ -262,96 +265,102 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     );
   };
 
-  // ✅ CHANGED: แก้ไขทั้ง 3 หน่วยเสมอ
+  // ✅ MOBILE RESPONSIVE: Mobile-friendly editing interface
   const renderEditingInterface = () => {
     return (
       <div className="space-y-3">
         <div className="text-sm font-medium text-gray-700 mb-2">
-          แก้ไขจำนวนสินค้า (ทั้ง 3 หน่วย)
+          แก้ไขจำนวนสินค้า
         </div>
 
-        {allUnits.map((unit) => {
-          const config = UNIT_CONFIG[unit];
-          const quantity = editState[
-            (unit + "Quantity") as keyof EditState
-          ] as number;
-          const Icon = config.icon;
+        {/* Mobile: Stack units vertically, Desktop: Can be side by side */}
+        <div className="grid grid-cols-1 gap-3">
+          {allUnits.map((unit) => {
+            const config = UNIT_CONFIG[unit];
+            const quantity = editState[
+              (unit + "Quantity") as keyof EditState
+            ] as number;
+            const Icon = config.icon;
 
-          return (
-            <div
-              key={unit}
-              className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
-            >
-              {/* Unit Badge with Icon */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <div className={`p-2 rounded-lg ${config.color}`}>
-                  <Icon size={16} />
+            return (
+              <div
+                key={unit}
+                className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200"
+              >
+                {/* Unit Badge with Icon - Responsive sizing */}
+                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                  <div className={`p-1.5 sm:p-2 rounded-lg ${config.color}`}>
+                    <Icon size={14} className="sm:w-4 sm:h-4" />
+                  </div>
+                  <span
+                    className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full ${config.color}`}
+                  >
+                    {config.shortLabel}
+                  </span>
                 </div>
-                <span
-                  className={`text-sm font-medium px-3 py-1 rounded-full ${config.color}`}
-                >
-                  {config.shortLabel}
-                </span>
+
+                {/* Quantity Controls - Touch-friendly */}
+                <div className="flex items-center gap-2 flex-1">
+                  {/* Touch-friendly buttons */}
+                  <button
+                    type="button"
+                    onClick={() => handleUnitQuantityChange(unit, quantity - 1)}
+                    className="min-w-[44px] min-h-[44px] sm:w-8 sm:h-8 flex items-center justify-center rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    disabled={quantity <= 0}
+                  >
+                    <Minus size={16} className="sm:w-3.5 sm:h-3.5" />
+                  </button>
+
+                  {/* Touch-friendly input */}
+                  <input
+                    ref={unit === "cs" ? inputRef : undefined}
+                    type="number"
+                    value={quantity}
+                    onChange={(e) =>
+                      handleUnitQuantityChange(
+                        unit,
+                        parseInt(e.target.value) || 0
+                      )
+                    }
+                    className="w-16 sm:w-20 px-2 sm:px-3 py-2 sm:py-2 text-center border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium text-base sm:text-sm"
+                    min="0"
+                    inputMode="numeric"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => handleUnitQuantityChange(unit, quantity + 1)}
+                    className="min-w-[44px] min-h-[44px] sm:w-8 sm:h-8 flex items-center justify-center rounded border border-gray-300 hover:bg-gray-50 transition-colors"
+                  >
+                    <Plus size={16} className="sm:w-3.5 sm:h-3.5" />
+                  </button>
+
+                  <span className="text-sm text-gray-600 ml-1 sm:ml-2 hidden sm:inline">
+                    {config.label}
+                  </span>
+                </div>
               </div>
+            );
+          })}
+        </div>
 
-              {/* Quantity Controls */}
-              <div className="flex items-center gap-2 flex-1">
-                <button
-                  type="button"
-                  onClick={() => handleUnitQuantityChange(unit, quantity - 1)}
-                  className="w-8 h-8 flex items-center justify-center rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  disabled={quantity <= 0}
-                >
-                  <Minus size={14} />
-                </button>
-
-                <input
-                  ref={unit === "cs" ? inputRef : undefined} // Focus first unit (CS)
-                  type="number"
-                  value={quantity}
-                  onChange={(e) =>
-                    handleUnitQuantityChange(
-                      unit,
-                      parseInt(e.target.value) || 0
-                    )
-                  }
-                  className="w-20 px-3 py-2 text-center border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
-                  min="0"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => handleUnitQuantityChange(unit, quantity + 1)}
-                  className="w-8 h-8 flex items-center justify-center rounded border border-gray-300 hover:bg-gray-50 transition-colors"
-                >
-                  <Plus size={14} />
-                </button>
-
-                <span className="text-sm text-gray-600 ml-2">
-                  {config.label}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Action Buttons */}
+        {/* Action Buttons - Touch-friendly */}
         <div className="flex gap-2 pt-3 border-t border-gray-200">
           <button
             type="button"
             onClick={handleSave}
-            className="flex-1 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 transition-colors"
+            className="flex-1 min-h-[44px] px-4 py-3 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 transition-colors"
           >
             <CheckCircle size={16} />
-            บันทึก
+            <span>บันทึก</span>
           </button>
           <button
             type="button"
             onClick={onEditCancel}
-            className="flex-1 px-4 py-2 bg-gray-500 text-white text-sm font-medium rounded-lg hover:bg-gray-600 flex items-center justify-center gap-2 transition-colors"
+            className="flex-1 min-h-[44px] px-4 py-3 bg-gray-500 text-white text-sm font-medium rounded-lg hover:bg-gray-600 flex items-center justify-center gap-2 transition-colors"
           >
             <X size={16} />
-            ยกเลิก
+            <span>ยกเลิก</span>
           </button>
         </div>
       </div>
@@ -359,43 +368,54 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-      {/* Product Header */}
-      <div className="flex items-start gap-3 mb-3">
-        {/* Product Icon with Primary Unit Color */}
-        <div className={`p-3 rounded-lg ${primaryUnitConfig.color}`}>
-          <primaryUnitConfig.icon size={24} />
+    <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow">
+      {/* Product Header - Mobile optimized */}
+      <div className="flex items-start gap-2 sm:gap-3 mb-3">
+        {/* Product Icon - Responsive sizing */}
+        <div
+          className={`p-2 sm:p-3 rounded-lg ${primaryUnitConfig.color} flex-shrink-0`}
+        >
+          <primaryUnitConfig.icon size={20} className="sm:w-6 sm:h-6" />
         </div>
 
-        {/* Product Info */}
+        {/* Product Info - Flexible layout */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 truncate text-lg">
+          <h3 className="font-semibold text-gray-900 truncate text-base sm:text-lg leading-tight">
             {item.productName}
           </h3>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-sm text-gray-600 font-medium">
+
+          {/* Brand and Size - Responsive layout */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-0 sm:gap-2 mt-1">
+            <span className="text-sm text-gray-600 font-medium truncate">
               {item.brand}
             </span>
             {item.size && (
-              <>
-                <span className="text-xs text-gray-400">•</span>
-                <span className="text-xs text-gray-500">{item.size}</span>
-              </>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <span className="text-xs text-gray-400 hidden sm:inline">
+                  •
+                </span>
+                <span className="text-xs text-gray-500 truncate">
+                  {item.size}
+                </span>
+              </div>
             )}
           </div>
 
-          {/* Material Code */}
-          <div className="text-xs text-gray-500 mt-1 font-mono">
+          {/* Material Code - Mobile friendly */}
+          <div className="text-xs text-gray-500 mt-1 font-mono truncate">
             รหัส: {item.materialCode || item.barcode}
           </div>
 
-          {/* ✅ NEW: Timestamp Display */}
-          {renderTimestamp()}
+          {/* Timestamp Display - Mobile optimized */}
+          <div className="sm:hidden">{renderTimestamp()}</div>
         </div>
 
-        {/* Quantity Display */}
-        <div className="text-right">
+        {/* Quantity Display - Responsive positioning */}
+        <div className="text-right flex-shrink-0">
           {!isEditing && renderQuantityDisplay()}
+
+          {/* Desktop timestamp */}
+          <div className="hidden sm:block">{renderTimestamp()}</div>
         </div>
       </div>
 
@@ -407,10 +427,11 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
       ) : (
         <div className="flex items-center justify-end mt-3 pt-3 border-t border-gray-200">
           <div className="flex gap-2">
+            {/* Touch-friendly action buttons */}
             <button
               type="button"
               onClick={onEditStart}
-              className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-3 py-2 min-h-[44px] sm:min-h-0 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
               title="แก้ไขจำนวน"
             >
               <Edit3 size={16} />
@@ -419,7 +440,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
             <button
               type="button"
               onClick={onRemove}
-              className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-3 py-2 min-h-[44px] sm:min-h-0 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               title="ลบรายการ"
             >
               <Trash2 size={16} />
