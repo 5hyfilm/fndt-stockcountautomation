@@ -150,7 +150,6 @@ export default function BarcodeDetectionPage() {
 
     // ✅ NEW: Multi-Unit API methods
     addOrUpdateMultiUnitItem,
-    updateUnitQuantity,
     findItemByMaterialCode,
 
     // ✅ LEGACY: Keep for backward compatibility
@@ -163,7 +162,6 @@ export default function BarcodeDetectionPage() {
     clearInventory,
     findItemByBarcode,
     searchItems,
-    exportInventory: dummyExportInventory, // ✅ เปลี่ยนชื่อ เพราะจะไม่ใช้
     clearError: clearInventoryError,
     resetInventoryState,
     summary,
@@ -612,24 +610,6 @@ export default function BarcodeDetectionPage() {
   const handleCloseAddProductForm = () => {
     setShowAddProductForm(false);
     setNewProductBarcode("");
-  };
-
-  // ✅ NEW: Handler for updating specific unit quantity
-  const handleUpdateUnitQuantity = (
-    materialCode: string,
-    unit: "cs" | "dsp" | "ea",
-    newQuantity: number
-  ): boolean => {
-    if (updateUnitQuantity) {
-      console.log(
-        `🔄 Updating ${unit} quantity for ${materialCode}: ${newQuantity}`
-      );
-      return updateUnitQuantity(materialCode, unit, newQuantity);
-    }
-
-    console.warn("⚠️ updateUnitQuantity not available, using fallback");
-    // TODO: Implement fallback logic if needed
-    return false;
   };
 
   // ✅ FIXED: Handler for updating quantity details with materialCode support
