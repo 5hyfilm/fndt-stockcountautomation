@@ -26,12 +26,7 @@ import {
 } from "../data/types/csvTypes";
 
 // ✅ Import new quantity types from Phase 2
-import {
-  QuantityInput,
-  QuantityDetail,
-  InventoryItem,
-  MultiUnitQuantities,
-} from "../hooks/inventory/types";
+import { QuantityInput, QuantityDetail } from "../hooks/inventory/types";
 
 // Import new sub-components
 import { MobileAppHeader } from "../components/headers/MobileAppHeader";

@@ -1,5 +1,9 @@
 // Path: src/hooks/inventory/useMultiUnitHelpers.ts - Helper functions for Multi-Unit Management
-import { InventoryItem, MultiUnitQuantities } from "./types";
+import {
+  InventoryItem,
+  MultiUnitQuantities,
+  LegacyInventoryItem,
+} from "./types";
 
 export type UnitType = "ea" | "dsp" | "cs";
 
@@ -174,9 +178,9 @@ export const mergeQuantities = (
   };
 };
 
-// ✅ Convert legacy item to multi-unit format
+// ✅ FIXED: Convert legacy item to multi-unit format with proper typing
 export const convertLegacyToMultiUnit = (
-  legacyItem: any,
+  legacyItem: LegacyInventoryItem,
   barcodeType: UnitType = "ea"
 ): InventoryItem => {
   const quantities = createEmptyQuantities();
