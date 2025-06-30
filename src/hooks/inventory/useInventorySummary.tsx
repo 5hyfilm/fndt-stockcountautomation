@@ -24,7 +24,7 @@ export const useInventorySummary = ({
           totalEA: 0,
           totalDSP: 0,
           totalCS: 0,
-          itemsWithDetail: 0,
+          itemsWithMultipleUnits: 0, // ✅ เพิ่มฟิลด์ที่ขาดหายไป
         },
       };
     }
@@ -59,29 +59,37 @@ export const useInventorySummary = ({
     let totalEA = 0;
     let totalDSP = 0;
     let totalCS = 0;
-    let itemsWithDetail = 0;
-    let totalRemainderItems = 0;
+    let itemsWithMultipleUnits = 0; // ✅ เพิ่มตัวนับสำหรับ items ที่มีหลายหน่วย
 
     inventory.forEach((item) => {
-      if (item.quantityDetail) {
-        itemsWithDetail++;
-        const { major, remainder, scannedType } = item.quantityDetail;
+      // ✅ ใช้ quantities object แทนการใช้ quantityDetail
+      if (item.quantities) {
+        const { cs = 0, dsp = 0, ea = 0 } = item.quantities;
 
-        switch (scannedType) {
-          case "ea":
-            totalEA += major;
-            break;
-          case "dsp":
-            totalDSP += major;
-            break;
-          case "cs":
-            totalCS += major;
-            break;
+        totalCS += cs;
+        totalDSP += dsp;
+        totalEA += ea;
+
+        // ✅ นับจำนวน SKU ที่มีมากกว่า 1 หน่วย
+        const activeUnits = [cs > 0, dsp > 0, ea > 0].filter(Boolean).length;
+        if (activeUnits > 1) {
+          itemsWithMultipleUnits++;
         }
+      } else if (item.quantityDetail) {
+        // ✅ Handle quantityDetail format (new structure)
+        const { cs = 0, dsp = 0, ea = 0 } = item.quantityDetail;
 
-        totalRemainderItems += remainder;
+        totalCS += cs;
+        totalDSP += dsp;
+        totalEA += ea;
+
+        // ✅ Check for multiple units in this item
+        const activeUnits = [cs > 0, dsp > 0, ea > 0].filter(Boolean).length;
+        if (activeUnits > 1) {
+          itemsWithMultipleUnits++;
+        }
       } else {
-        // Handle legacy format
+        // ✅ Handle legacy format
         const barcodeType = item.barcodeType || "ea";
         switch (barcodeType) {
           case "ea":
@@ -107,8 +115,7 @@ export const useInventorySummary = ({
         totalEA,
         totalDSP,
         totalCS,
-        itemsWithDetail,
-        totalRemainderItems, // ✅ New field
+        itemsWithMultipleUnits, // ✅ ส่งค่าที่ type ต้องการ
       },
     };
   }, [inventory]);
@@ -119,10 +126,11 @@ export const useInventorySummary = ({
 
     return {
       // Percentage breakdowns
-      detailCoverage:
+      multiUnitCoverage:
         summary.totalItems > 0
           ? Math.round(
-              ((quantityBreakdown?.itemsWithDetail || 0) / summary.totalItems) *
+              ((quantityBreakdown?.itemsWithMultipleUnits || 0) /
+                summary.totalItems) *
                 100
             )
           : 0,
@@ -145,13 +153,15 @@ export const useInventorySummary = ({
 
       // Data quality metrics
       dataQuality: {
-        hasQuantityDetail: quantityBreakdown?.itemsWithDetail || 0,
-        hasSimpleQuantity:
-          summary.totalItems - (quantityBreakdown?.itemsWithDetail || 0),
-        avgRemainderPerItem:
+        hasMultipleUnits: quantityBreakdown?.itemsWithMultipleUnits || 0,
+        hasSingleUnit:
+          summary.totalItems - (quantityBreakdown?.itemsWithMultipleUnits || 0),
+        avgUnitsPerItem:
           summary.totalItems > 0
             ? Math.round(
-                ((quantityBreakdown?.totalRemainderItems || 0) /
+                (((quantityBreakdown?.totalCS || 0) +
+                  (quantityBreakdown?.totalDSP || 0) +
+                  (quantityBreakdown?.totalEA || 0)) /
                   summary.totalItems) *
                   100
               ) / 100
@@ -172,7 +182,6 @@ export const useInventorySummary = ({
       : 0;
   };
 
-  // 🔧 FIXED: แก้ไข getBrandPercentage - เปลี่ยนจาก summary.brands เป็น summary.totalItems
   const getBrandPercentage = (brand: string): number => {
     const count = summary.brands[brand] || 0;
     return summary.totalItems > 0
@@ -183,12 +192,12 @@ export const useInventorySummary = ({
   // ✅ Generate summary text for display
   const getSummaryText = (): string => {
     const { totalItems, totalProducts, quantityBreakdown } = summary;
-    const { detailCoverage } = computedStats;
+    const { multiUnitCoverage } = computedStats;
 
     let text = `รวม ${totalItems} รายการ จาก ${totalProducts} สินค้า`;
 
-    if (quantityBreakdown && quantityBreakdown.itemsWithDetail > 0) {
-      text += ` (${detailCoverage}% มีรายละเอียดจำนวน)`;
+    if (quantityBreakdown && quantityBreakdown.itemsWithMultipleUnits > 0) {
+      text += ` (${multiUnitCoverage}% มีหลายหน่วย)`;
     }
 
     return text;
@@ -213,9 +222,10 @@ export const useInventorySummary = ({
       breakdown.push(`${quantityBreakdown.totalCS} ลัง (CS)`);
     }
 
-    // 🔧 FIXED: Handle undefined totalRemainderItems
-    if ((quantityBreakdown.totalRemainderItems || 0) > 0) {
-      breakdown.push(`${quantityBreakdown.totalRemainderItems || 0} ชิ้นเศษ`);
+    if (quantityBreakdown.itemsWithMultipleUnits > 0) {
+      breakdown.push(
+        `${quantityBreakdown.itemsWithMultipleUnits} รายการมีหลายหน่วย`
+      );
     }
 
     return breakdown;
@@ -223,19 +233,37 @@ export const useInventorySummary = ({
 
   // ✅ Filter helpers for different views
   const getItemsByType = (type: "ea" | "dsp" | "cs"): InventoryItem[] => {
-    return inventory.filter(
-      (item) =>
+    return inventory.filter((item) => {
+      if (item.quantities) {
+        return (item.quantities[type] || 0) > 0;
+      }
+      return (
         item.quantityDetail?.scannedType === type ||
         (!item.quantityDetail && item.barcodeType === type)
-    );
+      );
+    });
   };
 
-  const getItemsWithDetails = (): InventoryItem[] => {
-    return inventory.filter((item) => !!item.quantityDetail);
+  const getMultiUnitItems = (): InventoryItem[] => {
+    return inventory.filter((item) => {
+      if (item.quantities) {
+        const { cs = 0, dsp = 0, ea = 0 } = item.quantities;
+        const activeUnits = [cs > 0, dsp > 0, ea > 0].filter(Boolean).length;
+        return activeUnits > 1;
+      }
+      return false;
+    });
   };
 
-  const getItemsWithoutDetails = (): InventoryItem[] => {
-    return inventory.filter((item) => !item.quantityDetail);
+  const getSingleUnitItems = (): InventoryItem[] => {
+    return inventory.filter((item) => {
+      if (item.quantities) {
+        const { cs = 0, dsp = 0, ea = 0 } = item.quantities;
+        const activeUnits = [cs > 0, dsp > 0, ea > 0].filter(Boolean).length;
+        return activeUnits === 1;
+      }
+      return true; // Legacy items are considered single unit
+    });
   };
 
   return {
@@ -252,7 +280,7 @@ export const useInventorySummary = ({
 
     // Filter functions
     getItemsByType,
-    getItemsWithDetails,
-    getItemsWithoutDetails,
+    getMultiUnitItems,
+    getSingleUnitItems,
   };
 };
