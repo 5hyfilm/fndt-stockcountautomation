@@ -185,18 +185,6 @@ export const MobileScannerLayout: React.FC<MobileScannerLayoutProps> = ({
       {/* Control Buttons - Only show when camera is streaming */}
       {isStreaming && (
         <div className="absolute bottom-6 right-4 z-30 flex flex-col gap-3">
-          {/* ปุ่มสลับกล้อง */}
-          <button
-            onClick={switchCamera}
-            className="bg-gray-800/70 hover:bg-gray-700 text-white p-3 rounded-full shadow-lg transition-colors"
-            title="สลับกล้อง"
-          >
-            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M20 4h-3.17L15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 7c0 2.76-2.24 5-5 5s-5-2.24-5-5 2.24-5 5-5 5 2.24 5 5z" />
-              <path d="M12 17l1.5-1.5L9 12l4.5-3.5L12 7l-5 5 5 5z" />
-            </svg>
-          </button>
-
           {/* ปุ่มไฟฉาย */}
           {onToggleTorch && (
             <button

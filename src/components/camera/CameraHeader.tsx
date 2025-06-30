@@ -134,21 +134,6 @@ export const CameraHeader: React.FC<CameraHeaderProps> = ({
           </button>
         )}
 
-        {/* Switch Camera - only show when streaming */}
-        {isStreaming && (
-          <button
-            onClick={onSwitchCamera}
-            className={`${buttonSize} ${
-              transparent
-                ? "bg-white/20 hover:bg-white/30 text-white border border-white/30"
-                : "bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200"
-            } rounded-lg transition-colors flex items-center justify-center`}
-            title="สลับกล้อง"
-          >
-            <RotateCcw size={iconSize} />
-          </button>
-        )}
-
         {/* ⭐ Torch Button - only show when streaming and torch function available */}
         {isStreaming && onToggleTorch && (
           <button

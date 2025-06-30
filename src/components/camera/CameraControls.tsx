@@ -50,8 +50,6 @@ export const CameraControls: React.FC<CameraControlsProps> = ({
       {/* Secondary Controls - only show when camera is active */}
       {isStreaming && (
         <>
-          <CameraSwitchButton onClick={onSwitchCamera} />
-
           {hasFlash && onToggleFlash && (
             <FlashToggleButton enabled={flashEnabled} onClick={onToggleFlash} />
           )}
@@ -115,23 +113,6 @@ interface CameraSwitchButtonProps {
   onClick: () => void;
   disabled?: boolean;
 }
-
-export const CameraSwitchButton: React.FC<CameraSwitchButtonProps> = ({
-  onClick,
-  disabled = false,
-}) => {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 disabled:opacity-50 disabled:transform-none text-white px-3 py-2 sm:px-4 rounded-lg flex items-center gap-2 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 border border-gray-600"
-      title="สลับกล้องหน้า/หลัง"
-    >
-      <RotateCcw size={16} />
-      <span className="hidden xs:inline">สลับ</span>
-    </button>
-  );
-};
 
 // src/components/camera/FlashToggleButton.tsx
 interface FlashToggleButtonProps {
