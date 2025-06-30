@@ -1,4 +1,4 @@
-// Path: ./src/hooks/inventory/useInventoryExport.tsx
+// Path: /src/hooks/inventory/useInventoryExport.tsx
 "use client";
 
 import { useCallback } from "react";
@@ -20,7 +20,7 @@ interface InventoryItem {
     ea?: number;
   };
   lastUpdated: string;
-  productData?: Product; // ✅ แก้ไขจาก any เป็น Product
+  productData?: Product;
   addedBy?: string;
   branchCode?: string;
   branchName?: string;
@@ -156,22 +156,12 @@ export const useInventoryExport = ({
         const barcodeType = item.barcodeType || "ea";
         groupedItem.quantities[barcodeType] += item.quantity || 0;
       }
-
-      // เก็บบาร์โค้ดที่สแกน
-      // if (item.barcode && !groupedItem.scannedBarcodes.includes(item.barcode)) {
-      //   groupedItem.scannedBarcodes.push(item.barcode);
-      // }
-
-      // อัพเดทเวลาล่าสุด
-      // if (new Date(item.lastUpdated) > new Date(groupedItem.lastUpdated)) {
-      //   groupedItem.lastUpdated = item.lastUpdated;
-      // }
     });
 
     return Array.from(grouped.values());
   }, [inventory, isNewProduct]);
 
-  // ✅ Generate CSV content with Wide Format (หลัก)
+  // ✅ Generate CSV content with Wide Format (หลัก) - ✅ REMOVED "ชื่อสินค้า"
   const generateCsvContent = useCallback(
     (config: ExportConfig = DEFAULT_EXPORT_CONFIG) => {
       try {
@@ -205,10 +195,9 @@ export const useInventoryExport = ({
           csvContent += `\n`;
         }
 
-        // Column headers
+        // ✅ Column headers - REMOVED "ชื่อสินค้า"
         const headers = [
           "รหัสสินค้า",
-          "ชื่อสินค้า",
           "คำอธิบาย",
           "กลุ่มสินค้า",
           "แบรนด์",
@@ -219,20 +208,14 @@ export const useInventoryExport = ({
           headers.push("จำนวน CS", "จำนวน DSP", "จำนวน EA");
         }
 
-        headers
-          .push
-          // "จำนวนรวม"
-          ();
-
         csvContent +=
           headers.map(escapeCsvField).join(config.csvDelimiter) + "\n";
 
-        // Data rows
+        // ✅ Data rows - REMOVED item.productName
         groupedData.forEach((item) => {
           const row = [
             item.materialCode,
-            item.productName,
-            item.description,
+            item.description, // ✅ Removed productName, kept description only
             item.productGroup,
             item.brand,
             item.category,
@@ -245,11 +228,6 @@ export const useInventoryExport = ({
               item.quantities.ea.toString()
             );
           }
-
-          row
-            .push
-            // totalQuantity.toString()
-            ();
 
           csvContent +=
             row.map(escapeCsvField).join(config.csvDelimiter) + "\n";
@@ -268,9 +246,6 @@ export const useInventoryExport = ({
               item.quantities.ea,
             0
           )}\n`;
-          // csvContent += `สินค้าใหม่,${
-          //   groupedData.filter((item) => item.isNewProduct).length
-          // }\n`;
         }
 
         return csvContent;
@@ -340,36 +315,10 @@ export const useInventoryExport = ({
     [generateCsvContent]
   );
 
-  // ✅ Get export statistics
-  const getExportStats = useCallback(() => {
-    const groupedData = groupInventoryByMaterialCode();
-
-    return {
-      totalProducts: groupedData.length,
-      totalQuantity: groupedData.reduce(
-        (sum, item) =>
-          sum + item.quantities.cs + item.quantities.dsp + item.quantities.ea,
-        0
-      ),
-      newProducts: groupedData.filter((item) => item.isNewProduct).length,
-      quantityBreakdown: {
-        cs: groupedData.reduce((sum, item) => sum + item.quantities.cs, 0),
-        dsp: groupedData.reduce((sum, item) => sum + item.quantities.dsp, 0),
-        ea: groupedData.reduce((sum, item) => sum + item.quantities.ea, 0),
-      },
-      lastUpdate:
-        inventory.length > 0
-          ? Math.max(
-              ...inventory.map((item) => new Date(item.lastUpdated).getTime())
-            )
-          : null,
-    };
-  }, [groupInventoryByMaterialCode, inventory]);
-
   return {
     exportInventory,
+    generateCsvContent,
     getExportPreview,
-    getExportStats,
     groupInventoryByMaterialCode,
   };
 };
