@@ -252,7 +252,7 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
                   >
                     <option value="fgCode">รหัส F/FG</option>
                     <option value="name">ชื่อสินค้า</option>
-                    <option value="quantity">จำนวน</option>
+                    {/* <option value="quantity">จำนวน</option> */}
                     <option value="date">วันที่อัปเดต</option>
                   </select>
                   <select

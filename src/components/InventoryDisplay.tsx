@@ -1,4 +1,4 @@
-// Path: src/components/InventoryDisplay.tsx - Fixed materialCode Support
+// Path: src/components/InventoryDisplay.tsx - Fixed Sorting Issue
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -32,7 +32,7 @@ interface InventoryDisplayProps {
   ) => boolean;
   onUpdateItemQuantity: (itemId: string, newQuantity: number) => boolean;
   onUpdateItemQuantityDetail?: (
-    materialCode: string, // ✅ FIXED: Use materialCode instead of itemId
+    materialCode: string,
     quantityDetail: QuantityDetail
   ) => boolean;
   onRemoveItem: (itemId: string) => boolean;
@@ -97,6 +97,23 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   const [sortBy, setSortBy] = useState<SortBy>("fgCode");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [isExporting, setIsExporting] = useState(false);
+
+  // ✅ FIXED: Combined sort handler for InventoryControls
+  const handleSortChange = (newSortBy: string, newSortOrder: string) => {
+    console.log("🔧 handleSortChange:", { newSortBy, newSortOrder });
+    setSortBy(newSortBy as SortBy);
+    setSortOrder(newSortOrder as SortOrder);
+  };
+
+  // ✅ Clear filters handler
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setSelectedCategory("all");
+    setSelectedBrand("all");
+    setSelectedUnitType("all");
+    setSortBy("fgCode");
+    setSortOrder("asc");
+  };
 
   // ✅ Helper function to find item by itemId
   const findItemById = (itemId: string): InventoryItem | undefined => {
@@ -358,12 +375,13 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         selectedUnitType={selectedUnitType}
         onUnitTypeChange={setSelectedUnitType}
         sortBy={sortBy}
-        onSortByChange={setSortBy}
         sortOrder={sortOrder}
-        onSortOrderChange={setSortOrder}
-        onClearAll={() => setShowConfirmClear(true)}
+        onSortChange={handleSortChange} // ✅ FIXED: ใช้ combined handler
+        onClearFilters={handleClearFilters} // ✅ FIXED: เพิ่ม clear filters handler
         onExport={handleExport}
+        onClearAll={() => setShowConfirmClear(true)}
         isExporting={isExporting}
+        filteredCount={filteredAndSortedInventory.length} // ✅ FIXED: ส่ง filtered count
       />
 
       {/* Inventory List */}
@@ -374,7 +392,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         editQuantity={editState.simpleQuantity}
         onEditStart={handleEditStart}
         onEditSave={handleEditSave}
-        onEditQuantityDetailSave={handleEditQuantityDetailSave} // ✅ FIXED: Use wrapper function
+        onEditQuantityDetailSave={handleEditQuantityDetailSave}
         onEditCancel={handleEditCancel}
         onEditQuantityChange={handleEditQuantityChange}
         onEditQuantityDetailChange={handleEditQuantityDetailChange}
@@ -391,7 +409,10 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         }}
         onCancel={() => setShowConfirmClear(false)}
         title="ล้างข้อมูลทั้งหมด"
-        message="คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลสินค้าทั้งหมด? การดำเนินการนี้ไม่สามารถยกเลิกได้"
+        message="คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลสินค้าทั้งหมด?"
+        confirmText="ลบทั้งหมด"
+        cancelText="ยกเลิก"
+        type="danger"
         itemCount={inventory.length}
       />
 
@@ -401,8 +422,10 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         onConfirm={handleConfirmDeleteItem}
         onCancel={handleCancelDeleteItem}
         title="ลบรายการสินค้า"
-        message={`คุณแน่ใจหรือไม่ว่าต้องการลบสินค้า "${itemToDelete?.productName}" ออกจากรายการ?`}
-        itemCount={1}
+        message={`คุณแน่ใจหรือไม่ว่าต้องการลบ "${itemToDelete?.productName}" ออกจาก inventory?`}
+        confirmText="ลบ"
+        cancelText="ยกเลิก"
+        type="warning"
       />
     </div>
   );
