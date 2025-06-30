@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import { Camera, CameraOff, RotateCcw, Scan, Flashlight } from "lucide-react";
+import { Camera, CameraOff, Scan, Flashlight } from "lucide-react";
 
 interface CameraHeaderProps {
   isStreaming: boolean;
@@ -67,7 +67,6 @@ export const CameraHeader: React.FC<CameraHeaderProps> = ({
   processingQueue,
   onStartCamera,
   onStopCamera,
-  onSwitchCamera,
   onCaptureAndProcess,
   compact = false,
   transparent = false,

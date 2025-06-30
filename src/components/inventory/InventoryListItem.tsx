@@ -162,18 +162,6 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     }
   }, [isEditing]);
 
-  // ✅ Get total quantity across all units
-  const getTotalQuantity = (): number => {
-    if (item.quantities) {
-      return (
-        (item.quantities.cs || 0) +
-        (item.quantities.dsp || 0) +
-        (item.quantities.ea || 0)
-      );
-    }
-    return item.quantity || 0;
-  };
-
   // ✅ Handle unit quantity change
   const handleUnitQuantityChange = (
     unit: "cs" | "dsp" | "ea",

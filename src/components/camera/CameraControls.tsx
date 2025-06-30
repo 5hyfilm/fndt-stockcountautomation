@@ -2,14 +2,7 @@
 "use client";
 
 import React from "react";
-import {
-  Play,
-  Pause,
-  RotateCcw,
-  Zap,
-  Settings,
-  Flashlight,
-} from "lucide-react";
+import { Play, Pause, Zap, Settings, Flashlight } from "lucide-react";
 
 interface CameraControlsProps {
   isStreaming: boolean;
@@ -33,7 +26,6 @@ export const CameraControls: React.FC<CameraControlsProps> = ({
   resolution,
   onStartCamera,
   onStopCamera,
-  onSwitchCamera,
   onCapture,
   onToggleFlash,
   onOpenSettings,
@@ -107,12 +99,6 @@ export const CameraToggleButton: React.FC<CameraToggleButtonProps> = ({
     </button>
   );
 };
-
-// src/components/camera/CameraSwitchButton.tsx
-interface CameraSwitchButtonProps {
-  onClick: () => void;
-  disabled?: boolean;
-}
 
 // src/components/camera/FlashToggleButton.tsx
 interface FlashToggleButtonProps {
