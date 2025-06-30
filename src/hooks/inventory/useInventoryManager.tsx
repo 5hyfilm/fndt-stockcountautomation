@@ -1,4 +1,4 @@
-// Path: src/hooks/inventory/useInventoryManager.tsx - Phase 2: Fixed with Complete Implementation
+// Path: src/hooks/inventory/useInventoryManager.tsx - Phase 2: Fixed TypeScript Issues
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -9,6 +9,9 @@ import {
   QuantityDetail,
   StorageConfig,
   migrateOldInventoryItem,
+  isLegacyInventoryItem,
+  isModernInventoryItem,
+  LegacyInventoryItem,
 } from "./types";
 import { useInventoryStorage } from "./useInventoryStorage";
 import { useInventoryOperations } from "./useInventoryOperations";
@@ -50,29 +53,89 @@ export const useInventoryManager = (): UseInventoryManagerReturn => {
     setError,
   });
 
-  // ✅ Data migration helper - Fix 'any' type
+  // ✅ FIXED: Data migration helper with proper type safety
   const migrateOldData = (oldData: unknown[]): InventoryItem[] => {
     console.log("🔄 Migrating old inventory data...");
 
     try {
-      return oldData.map((oldItem) => {
-        // Type guard to ensure oldItem is an object
-        if (!oldItem || typeof oldItem !== "object") {
-          throw new Error("Invalid data format");
-        }
+      return oldData
+        .map((oldItem) => {
+          // Type guard to ensure oldItem is an object
+          if (!oldItem || typeof oldItem !== "object") {
+            console.warn("⚠️ Skipping invalid data item:", oldItem);
+            return null;
+          }
 
-        const item = oldItem as Record<string, unknown>;
+          // ✅ Use type guards instead of unsafe casting
+          if (isModernInventoryItem(oldItem)) {
+            // Already in new format, no migration needed
+            return oldItem;
+          }
 
-        // ตรวจสอบว่าเป็นข้อมูลเก่าหรือไม่
-        if (item.quantities) {
-          // ข้อมูลใหม่แล้ว ไม่ต้อง migrate
-          return item as InventoryItem;
-        }
+          if (isLegacyInventoryItem(oldItem)) {
+            // Migrate legacy item
+            const barcodeType = oldItem.barcodeType || "ea";
+            return migrateOldInventoryItem(oldItem, barcodeType);
+          }
 
-        // Migrate ข้อมูลเก่า
-        const barcodeType = (item.barcodeType as "cs" | "dsp" | "ea") || "ea";
-        return migrateOldInventoryItem(item, barcodeType);
-      });
+          // ✅ Handle unknown format by attempting to convert to legacy first
+          const unknownItem = oldItem as Record<string, unknown>;
+
+          // Check if it has minimum required fields for legacy item
+          if (
+            typeof unknownItem.id === "string" &&
+            typeof unknownItem.productName === "string" &&
+            typeof unknownItem.barcode === "string"
+          ) {
+            // Convert to legacy item structure
+            const legacyItem: LegacyInventoryItem = {
+              id: unknownItem.id,
+              materialCode:
+                typeof unknownItem.materialCode === "string"
+                  ? unknownItem.materialCode
+                  : unknownItem.id,
+              productName: unknownItem.productName,
+              brand:
+                typeof unknownItem.brand === "string"
+                  ? unknownItem.brand
+                  : "ไม่ระบุ",
+              category:
+                typeof unknownItem.category === "string"
+                  ? unknownItem.category
+                  : "ไม่ระบุ",
+              size:
+                typeof unknownItem.size === "string" ? unknownItem.size : "",
+              unit:
+                typeof unknownItem.unit === "string"
+                  ? unknownItem.unit
+                  : "ชิ้น",
+              barcode: unknownItem.barcode,
+              quantity:
+                typeof unknownItem.quantity === "number"
+                  ? unknownItem.quantity
+                  : 0,
+              lastUpdated:
+                typeof unknownItem.lastUpdated === "string"
+                  ? unknownItem.lastUpdated
+                  : new Date().toISOString(),
+              barcodeType: ["cs", "dsp", "ea"].includes(
+                unknownItem.barcodeType as string
+              )
+                ? (unknownItem.barcodeType as "cs" | "dsp" | "ea")
+                : "ea",
+            };
+
+            // Migrate the converted legacy item
+            return migrateOldInventoryItem(
+              legacyItem,
+              legacyItem.barcodeType || "ea"
+            );
+          }
+
+          console.warn("⚠️ Skipping unrecognizable data format:", unknownItem);
+          return null;
+        })
+        .filter((item): item is InventoryItem => item !== null);
     } catch (error) {
       console.error("❌ Migration error:", error);
       return [];
@@ -159,7 +222,7 @@ export const useInventoryManager = (): UseInventoryManagerReturn => {
     let itemsWithMultipleUnits = 0;
 
     inventory.forEach((item) => {
-      const { cs = 0, dsp = 0, ea = 0 } = item.quantities;
+      const { cs = 0, dsp = 0, ea = 0 } = item.quantities || {};
 
       totalCS += cs;
       totalDSP += dsp;

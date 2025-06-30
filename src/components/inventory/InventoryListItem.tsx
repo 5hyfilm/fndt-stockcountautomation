@@ -74,14 +74,11 @@ const UNIT_CONFIG = {
 export const InventoryListItem: React.FC<InventoryListItemProps> = ({
   item,
   isEditing,
-  editQuantity,
   onEditStart,
   onEditSave,
   onEditQuantityDetailSave,
   onEditCancel,
-  onEditQuantityChange,
   onEditQuantityDetailChange,
-  onQuickAdjust,
   onRemove,
   onUpdateUnitQuantity,
 }) => {
@@ -110,7 +107,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
 
   const allUnits = getAllUnits();
   const activeUnits = getActiveUnits();
-  const isMultiUnit = activeUnits.length > 1;
+  // const isMultiUnit = activeUnits.length > 1;
 
   // ✅ Get primary unit for header display
   const getPrimaryUnit = (): "cs" | "dsp" | "ea" => {
@@ -124,13 +121,13 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
   const primaryUnitConfig = UNIT_CONFIG[primaryUnit];
 
   // ✅ Calculate total quantity
-  const getTotalQuantity = (): number => {
-    return (
-      (item.quantities?.cs || 0) +
-      (item.quantities?.dsp || 0) +
-      (item.quantities?.ea || 0)
-    );
-  };
+  // const getTotalQuantity = (): number => {
+  //   return (
+  //     (item.quantities?.cs || 0) +
+  //     (item.quantities?.dsp || 0) +
+  //     (item.quantities?.ea || 0)
+  //   );
+  // };
 
   // ✅ Update edit state when item changes
   useEffect(() => {
