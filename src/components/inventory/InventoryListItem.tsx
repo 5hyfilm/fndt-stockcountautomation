@@ -309,14 +309,14 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
         })}
 
         {/* Total Display */}
-        <div className="text-center p-2 bg-blue-50 rounded-lg border border-blue-200">
+        {/* <div className="text-center p-2 bg-blue-50 rounded-lg border border-blue-200">
           <span className="text-sm font-medium text-blue-700">
             จำนวนรวมทั้งหมด:{" "}
             {editState.csQuantity +
               editState.dspQuantity +
               editState.eaQuantity}
           </span>
-        </div>
+        </div> */}
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-3 border-t border-gray-200">
