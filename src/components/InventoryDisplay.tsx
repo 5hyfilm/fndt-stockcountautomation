@@ -1,4 +1,4 @@
-// Path: src/components/InventoryDisplay.tsx - Fixed Sorting Issue
+// Path: src/components/InventoryDisplay.tsx - Fixed ErrorAlert Props
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -353,14 +353,8 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Error Alert */}
-      {error && (
-        <ErrorAlert
-          title="เกิดข้อผิดพลาด"
-          message={error}
-          onClose={onClearError}
-        />
-      )}
+      {/* ✅ FIXED: Error Alert - ใช้ props ที่ถูกต้องตาม ErrorAlert interface */}
+      {error && <ErrorAlert message={error} onDismiss={onClearError} />}
 
       {/* Controls */}
       <InventoryControls
