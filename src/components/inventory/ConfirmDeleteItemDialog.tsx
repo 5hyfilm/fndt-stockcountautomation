@@ -67,19 +67,40 @@ const getProductDisplayName = (item: InventoryItem): string => {
   }
 };
 
-// ✅ Helper function to format quantity display
+// ✅ FIXED: Helper function to format quantity display with new QuantityDetail structure
 const formatQuantityDisplay = (item: InventoryItem): string => {
   const barcodeType = item.barcodeType || "ea";
   const unitConfig = UNIT_CONFIG[barcodeType];
 
+  // ✅ NEW: Use quantityDetail with cs, dsp, ea structure
   if (item.quantityDetail && (barcodeType === "dsp" || barcodeType === "cs")) {
-    const { major, remainder } = item.quantityDetail;
-    if (remainder && remainder > 0) {
-      return `${major} ${unitConfig.label} + ${remainder} ชิ้น`;
+    const { cs, dsp, ea } = item.quantityDetail;
+
+    // Build display string for non-zero quantities
+    const parts: string[] = [];
+    if (cs > 0) parts.push(`${cs} ลัง`);
+    if (dsp > 0) parts.push(`${dsp} แพ็ค`);
+    if (ea > 0) parts.push(`${ea} ชิ้น`);
+
+    if (parts.length > 0) {
+      return parts.join(" + ");
     }
-    return `${major} ${unitConfig.label}`;
   }
 
+  // ✅ NEW: Use quantities property if available
+  if (item.quantities) {
+    const { cs = 0, dsp = 0, ea = 0 } = item.quantities;
+    const parts: string[] = [];
+    if (cs > 0) parts.push(`${cs} ลัง`);
+    if (dsp > 0) parts.push(`${dsp} แพ็ค`);
+    if (ea > 0) parts.push(`${ea} ชิ้น`);
+
+    if (parts.length > 0) {
+      return parts.join(" + ");
+    }
+  }
+
+  // ✅ Fallback to simple quantity display
   return `${item.quantity} ${unitConfig.label}`;
 };
 
