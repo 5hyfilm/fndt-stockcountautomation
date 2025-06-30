@@ -27,8 +27,7 @@ export const useInventoryOperations = ({
 }: UseInventoryOperationsProps) => {
   // ✅ Generate unique material code for new products
   const generateMaterialCode = useCallback((product: Product): string => {
-    // ใช้ product.id หรือ barcode เป็น materialCode
-    return product.id || product.barcode || `MAT_${Date.now()}`;
+    return product.name || product.barcode || `MAT_${Date.now()}`;
   }, []);
 
   // ✅ Find item by material code (ใหม่ - สำคัญ!)
