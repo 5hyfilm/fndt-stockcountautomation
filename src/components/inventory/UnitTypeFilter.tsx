@@ -187,8 +187,8 @@ export const UnitTypeFilter: React.FC<UnitTypeFilterProps> = ({
       </div>
 
       {/* Summary Information */}
-      <div className="bg-gray-50 rounded-lg p-3">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+      <div className="">
+        {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
           <div className="text-center">
             <div className="font-medium text-gray-900">{counts.ea}</div>
             <div className="text-gray-600">ชิ้นเดียว</div>
@@ -205,7 +205,7 @@ export const UnitTypeFilter: React.FC<UnitTypeFilterProps> = ({
             <div className="font-medium text-gray-900">{counts.multi}</div>
             <div className="text-gray-600">หลายหน่วย</div>
           </div>
-        </div>
+        </div> */}
 
         {selectedUnitType !== "all" && (
           <div className="mt-2 pt-2 border-t border-gray-200 text-center">

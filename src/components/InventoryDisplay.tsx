@@ -1,7 +1,8 @@
-// Path: src/components/InventoryDisplay.tsx - Fixed ErrorAlert Props
+// Path: src/components/InventoryDisplay.tsx - Enhanced with Collapsible Controls
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { ChevronUp, ChevronDown, Settings } from "lucide-react";
 import {
   InventoryItem,
   QuantityDetail,
@@ -83,9 +84,12 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
   // ✅ State for clear all confirmation modal
   const [showConfirmClear, setShowConfirmClear] = useState(false);
 
-  // ✅ NEW: State for individual delete confirmation modal
+  // ✅ State for individual delete confirmation modal
   const [showConfirmDeleteItem, setShowConfirmDeleteItem] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
+
+  // ✅ NEW: State for controls visibility
+  const [showControls, setShowControls] = useState(true);
 
   // ✅ Filter states
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -114,6 +118,30 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
     setSortBy("fgCode");
     setSortOrder("asc");
   };
+
+  // ✅ NEW: Toggle controls visibility
+  const toggleControls = () => {
+    setShowControls(!showControls);
+  };
+
+  // ✅ Check if any filters are active
+  const hasActiveFilters = useMemo(() => {
+    return (
+      searchTerm.trim() !== "" ||
+      selectedCategory !== "all" ||
+      selectedBrand !== "all" ||
+      selectedUnitType !== "all" ||
+      sortBy !== "fgCode" ||
+      sortOrder !== "asc"
+    );
+  }, [
+    searchTerm,
+    selectedCategory,
+    selectedBrand,
+    selectedUnitType,
+    sortBy,
+    sortOrder,
+  ]);
 
   // ✅ Helper function to find item by itemId
   const findItemById = (itemId: string): InventoryItem | undefined => {
@@ -175,7 +203,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
       filtered = filtered.filter((item) => item.brand === selectedBrand);
     }
 
-    // ✅ NEW: Apply unit type filter
+    // ✅ Apply unit type filter
     filtered = filterInventoryByUnitType(filtered, selectedUnitType);
 
     // Apply sorting
@@ -353,32 +381,69 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* ✅ FIXED: Error Alert - ใช้ props ที่ถูกต้องตาม ErrorAlert interface */}
+      {/* ✅ Error Alert */}
       {error && <ErrorAlert message={error} onDismiss={onClearError} />}
 
-      {/* Controls */}
-      <InventoryControls
-        inventory={inventory}
-        summary={summary}
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        selectedCategory={selectedCategory}
-        onCategoryChange={setSelectedCategory}
-        selectedBrand={selectedBrand}
-        onBrandChange={setSelectedBrand}
-        selectedUnitType={selectedUnitType}
-        onUnitTypeChange={setSelectedUnitType}
-        sortBy={sortBy}
-        sortOrder={sortOrder}
-        onSortChange={handleSortChange} // ✅ FIXED: ใช้ combined handler
-        onClearFilters={handleClearFilters} // ✅ FIXED: เพิ่ม clear filters handler
-        onExport={handleExport}
-        onClearAll={() => setShowConfirmClear(true)}
-        isExporting={isExporting}
-        filteredCount={filteredAndSortedInventory.length} // ✅ FIXED: ส่ง filtered count
-      />
+      {/* ✅ NEW: Controls Toggle Header */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+        {/* Toggle Header */}
+        <button
+          onClick={toggleControls}
+          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors duration-200 rounded-xl"
+        >
+          <div className="flex items-center gap-3">
+            <Settings className="text-gray-500" size={20} />
+            <span className="text-gray-700 font-medium">ตัวควบคุมและกรอง</span>
+            {hasActiveFilters && (
+              <span className="bg-fn-green text-white text-xs px-2 py-1 rounded-full">
+                มีการกรองข้อมูล
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">
+              {showControls ? "ซ่อน" : "แสดง"}
+            </span>
+            {showControls ? (
+              <ChevronUp className="text-gray-400" size={20} />
+            ) : (
+              <ChevronDown className="text-gray-400" size={20} />
+            )}
+          </div>
+        </button>
 
-      {/* Inventory List */}
+        {/* ✅ Collapsible Controls Content */}
+        <div
+          className={`transition-all duration-300 ease-in-out overflow-hidden ${
+            showControls ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="border-t border-gray-200">
+            <InventoryControls
+              inventory={inventory}
+              summary={summary}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+              selectedBrand={selectedBrand}
+              onBrandChange={setSelectedBrand}
+              selectedUnitType={selectedUnitType}
+              onUnitTypeChange={setSelectedUnitType}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortChange={handleSortChange}
+              onClearFilters={handleClearFilters}
+              onExport={handleExport}
+              onClearAll={() => setShowConfirmClear(true)}
+              isExporting={isExporting}
+              filteredCount={filteredAndSortedInventory.length}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ✅ Inventory List */}
       <InventoryList
         items={filteredAndSortedInventory}
         totalCount={inventory.length}
@@ -394,7 +459,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         onRemoveItem={handleRequestDeleteItem}
       />
 
-      {/* Clear All Confirmation Modal */}
+      {/* ✅ Clear All Confirmation Modal */}
       <ConfirmDeleteDialog
         isOpen={showConfirmClear}
         onConfirm={() => {
@@ -410,7 +475,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         itemCount={inventory.length}
       />
 
-      {/* Individual Delete Confirmation Modal */}
+      {/* ✅ Individual Delete Confirmation Modal */}
       <ConfirmDeleteDialog
         isOpen={showConfirmDeleteItem}
         onConfirm={handleConfirmDeleteItem}
