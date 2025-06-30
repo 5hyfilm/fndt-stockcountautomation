@@ -32,6 +32,7 @@ interface InventoryItem {
     dsp?: string;
     ea?: string;
   };
+  description?: string; // เพิ่ม field description
 }
 
 interface EmployeeContext {
@@ -112,24 +113,43 @@ export const useInventoryExport = ({
       item.materialCode?.startsWith("new_") ||
       item.materialCode?.startsWith("NEW_") ||
       item.brand === "เพิ่มใหม่" ||
+      item.brand === "สินค้าใหม่" ||
       item.id?.startsWith("new_") ||
+      item.id?.startsWith("NEW_") ||
       !item.materialCode ||
       item.materialCode === ""
     );
   }, []);
 
-  // ✅ Group inventory by Material Code (Wide Format)
+  // ✅ Group inventory by Material Code (Wide Format) - แก้ไขการจัดการข้อมูลสินค้าใหม่
   const groupInventoryByMaterialCode = useCallback(() => {
     const grouped = new Map<string, GroupedInventoryData>();
 
     inventory.forEach((item) => {
       const materialCode = item.materialCode || item.id;
+      const isNew = isNewProduct(item);
 
       if (!grouped.has(materialCode)) {
+        // ✅ แก้ไข: แยกการจัดการ description สำหรับสินค้าใหม่และสินค้าเก่า
+        let displayDescription = "";
+
+        if (isNew) {
+          // สำหรับสินค้าใหม่: ใช้ description จาก productData หรือ description field หรือ thaiDescription
+          displayDescription =
+            item.productData?.description ||
+            item.description ||
+            item.thaiDescription ||
+            "ไม่มีคำอธิบาย";
+        } else {
+          // สำหรับสินค้าเก่า: ใช้ thaiDescription หรือ productName
+          displayDescription =
+            item.thaiDescription || item.productName || item.description || "";
+        }
+
         grouped.set(materialCode, {
           materialCode,
           productName: item.productName,
-          description: item.thaiDescription || item.productName,
+          description: displayDescription, // ✅ ใช้ description ที่ปรับปรุงแล้ว
           productGroup: item.productGroup || "",
           brand: item.brand,
           category: item.category,
@@ -138,7 +158,7 @@ export const useInventoryExport = ({
             dsp: 0,
             ea: 0,
           },
-          isNewProduct: isNewProduct(item),
+          isNewProduct: isNew,
           scannedBarcodes: [],
           lastUpdated: item.lastUpdated,
         });
@@ -161,7 +181,7 @@ export const useInventoryExport = ({
     return Array.from(grouped.values());
   }, [inventory, isNewProduct]);
 
-  // ✅ Generate CSV content with Wide Format (หลัก) - ✅ REMOVED "ชื่อสินค้า"
+  // ✅ Generate CSV content - ปรับปรุงการแสดงผลข้อมูล
   const generateCsvContent = useCallback(
     (config: ExportConfig = DEFAULT_EXPORT_CONFIG) => {
       try {
@@ -195,7 +215,7 @@ export const useInventoryExport = ({
           csvContent += `\n`;
         }
 
-        // ✅ Column headers - REMOVED "ชื่อสินค้า"
+        // ✅ Column headers
         const headers = [
           "รหัสสินค้า",
           "คำอธิบาย",
@@ -211,11 +231,21 @@ export const useInventoryExport = ({
         csvContent +=
           headers.map(escapeCsvField).join(config.csvDelimiter) + "\n";
 
-        // ✅ Data rows - REMOVED item.productName
+        // ✅ Data rows - แก้ไขการแสดงข้อมูล
         groupedData.forEach((item) => {
+          // ✅ สำหรับสินค้าใหม่: แยกแสดงรหัสสินค้าและคำอธิบายแยกกัน
+          let displayMaterialCode = item.materialCode;
+          let displayDescription = item.description;
+
+          if (item.isNewProduct) {
+            // สำหรับสินค้าใหม่: แสดงชื่อสินค้าที่ผู้ใช้กรอกเป็นรหัสสินค้า
+            displayMaterialCode = item.productName || item.materialCode;
+            // คำอธิบายจะเป็น description ที่แยกออกมาแล้ว
+          }
+
           const row = [
-            item.materialCode,
-            item.description, // ✅ Removed productName, kept description only
+            displayMaterialCode, // รหัสสินค้า (สำหรับสินค้าใหม่จะเป็น productName)
+            displayDescription, // คำอธิบาย (แยกออกจากรหัสสินค้าแล้ว)
             item.productGroup,
             item.brand,
             item.category,
