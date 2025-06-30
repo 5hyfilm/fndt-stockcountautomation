@@ -56,11 +56,11 @@ export const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
       warningIcon: "text-red-600",
     },
     warning: {
-      headerBg: "bg-gradient-to-r from-amber-500 to-amber-600",
-      buttonBg: "bg-amber-600 hover:bg-amber-700",
-      warningBg: "bg-amber-50 border-amber-200",
-      warningText: "text-amber-800",
-      warningIcon: "text-amber-600",
+      headerBg: "bg-gradient-to-r from-red-500 to-red-600",
+      buttonBg: "bg-red-600 hover:bg-red-700",
+      warningBg: "bg-red-50 border-red-200",
+      warningText: "text-red-800",
+      warningIcon: "text-red-600",
     },
     info: {
       headerBg: "bg-gradient-to-r from-blue-500 to-blue-600",
