@@ -6,13 +6,13 @@ import { Camera, Archive } from "lucide-react";
 
 interface MobileTabNavigationProps {
   activeTab: "scanner" | "inventory";
-  totalProducts: number;
+  totalSKUs: number; // ✅ เปลี่ยนจาก totalProducts เป็น totalSKUs
   onTabChange: (tab: "scanner" | "inventory") => void;
 }
 
 export const MobileTabNavigation: React.FC<MobileTabNavigationProps> = ({
   activeTab,
-  totalProducts,
+  totalSKUs, // ✅ เปลี่ยนจาก totalProducts เป็น totalSKUs
   onTabChange,
 }) => {
   return (
@@ -39,9 +39,9 @@ export const MobileTabNavigation: React.FC<MobileTabNavigationProps> = ({
         >
           <Archive size={14} />
           Inventory
-          {totalProducts > 0 && (
+          {totalSKUs > 0 && (
             <span className="bg-fn-green text-white text-xs px-1.5 py-0.5 rounded-full min-w-[16px] text-center leading-none">
-              {totalProducts}
+              {totalSKUs} {/* ✅ แสดงจำนวน SKU */}
             </span>
           )}
         </button>

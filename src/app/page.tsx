@@ -735,7 +735,7 @@ export default function BarcodeDetectionPage() {
         <MobileAppHeader
           employeeName={employeeName}
           activeTab={activeTab}
-          totalProducts={summary.totalProducts}
+          totalSKUs={summary.totalProducts}
           isStreaming={isStreaming}
           lastDetectedCode={lastDetectedCode}
           totalItems={summary.totalItems}
@@ -821,7 +821,7 @@ export default function BarcodeDetectionPage() {
         <MobileAppHeader
           employeeName={employeeName}
           activeTab={activeTab}
-          totalProducts={summary.totalProducts}
+          totalSKUs={summary.totalProducts}
           isStreaming={isStreaming}
           lastDetectedCode={lastDetectedCode}
           totalItems={summary.totalItems}
@@ -835,7 +835,7 @@ export default function BarcodeDetectionPage() {
           branchName={branchName}
           formatTimeRemaining={formatTimeRemaining}
           activeTab={activeTab}
-          totalProducts={summary.totalProducts}
+          totalSKUs={summary.totalProducts}
           isStreaming={isStreaming}
           lastDetectedCode={lastDetectedCode}
           product={product}

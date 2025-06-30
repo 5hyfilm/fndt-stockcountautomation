@@ -10,7 +10,7 @@ import { MobileStatusBar } from "../status/MobileStatusBar";
 interface MobileAppHeaderProps {
   employeeName: string;
   activeTab: "scanner" | "inventory";
-  totalProducts: number;
+  totalSKUs: number; // ✅ เปลี่ยนจาก totalProducts เป็น totalSKUs
   isStreaming: boolean;
   lastDetectedCode?: string;
   totalItems: number;
@@ -21,7 +21,7 @@ interface MobileAppHeaderProps {
 export const MobileAppHeader: React.FC<MobileAppHeaderProps> = ({
   employeeName,
   activeTab,
-  totalProducts,
+  totalSKUs, // ✅ เปลี่ยนจาก totalProducts เป็น totalSKUs
   isStreaming,
   lastDetectedCode,
   totalItems,
@@ -36,7 +36,7 @@ export const MobileAppHeader: React.FC<MobileAppHeaderProps> = ({
 
       <MobileTabNavigation
         activeTab={activeTab}
-        totalProducts={totalProducts}
+        totalSKUs={totalSKUs} // ✅ ส่ง totalSKUs แทน totalProducts
         onTabChange={onTabChange}
       />
 

@@ -14,7 +14,7 @@ interface DesktopAppHeaderProps {
   branchName: string;
   formatTimeRemaining: () => string;
   activeTab: "scanner" | "inventory";
-  totalProducts: number;
+  totalSKUs: number; // ✅ เปลี่ยนจาก totalProducts เป็น totalSKUs
   isStreaming: boolean;
   lastDetectedCode?: string;
   product?: Product | null;
@@ -29,7 +29,7 @@ export const DesktopAppHeader: React.FC<DesktopAppHeaderProps> = ({
   branchName,
   formatTimeRemaining,
   activeTab,
-  totalProducts,
+  totalSKUs, // ✅ เปลี่ยนจาก totalProducts เป็น totalSKUs
   isStreaming,
   lastDetectedCode,
   product,
@@ -52,7 +52,7 @@ export const DesktopAppHeader: React.FC<DesktopAppHeaderProps> = ({
 
         <DesktopTabNavigation
           activeTab={activeTab}
-          totalProducts={totalProducts}
+          totalSKUs={totalSKUs} // ✅ ส่ง totalSKUs แทน totalProducts
           onTabChange={onTabChange}
         />
 
