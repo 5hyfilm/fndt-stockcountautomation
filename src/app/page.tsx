@@ -147,7 +147,7 @@ export default function BarcodeDetectionPage() {
     console.log("---");
   }, [detectedBarcodeType, product, lastDetectedCode]);
 
-  // ✅ UPDATED: Enhanced Inventory Management with Multi-Unit API
+  // ✅ FIXED: Enhanced Inventory Management with Multi-Unit API - ไม่ส่ง parameter
   const {
     inventory,
     isLoading: isLoadingInventory,
@@ -172,15 +172,7 @@ export default function BarcodeDetectionPage() {
     clearError: clearInventoryError,
     resetInventoryState,
     summary,
-  } = useInventoryManager(
-    employee
-      ? {
-          employeeName: employee.employeeName,
-          branchCode: employee.branchCode,
-          branchName: employee.branchName,
-        }
-      : undefined
-  );
+  } = useInventoryManager(); // ✅ FIXED: ไม่ส่ง parameter ใดๆ
 
   // ✅ เพิ่ม useInventoryExport hook สำหรับ export จริง
   const { exportInventory: performRealExport } = useInventoryExport({
@@ -337,6 +329,7 @@ export default function BarcodeDetectionPage() {
     console.log("  🏷️ Final BarcodeType:", finalBarcodeType);
 
     let success = false;
+    let usedMultiUnitAPI = false; // ✅ Track which API was actually used
 
     // ✅ Try new Multi-Unit API first
     if (addOrUpdateMultiUnitItem) {
@@ -351,6 +344,7 @@ export default function BarcodeDetectionPage() {
 
         if (success) {
           console.log("✅ Multi-Unit API succeeded");
+          usedMultiUnitAPI = true; // ✅ Mark as used Multi-Unit API
         } else {
           console.warn("⚠️ Multi-Unit API returned false, trying fallback...");
         }
@@ -363,7 +357,29 @@ export default function BarcodeDetectionPage() {
     // ✅ Fallback to legacy API if new API fails or unavailable
     if (!success) {
       console.log("🔄 Using legacy API...");
-      success = addOrUpdateItem(product, quantityInput, finalBarcodeType);
+
+      // ✅ FIXED: Convert QuantityInput to number for legacy API
+      let legacyQuantity: number = 1; // default
+
+      if (typeof quantityInput === "number") {
+        legacyQuantity = quantityInput;
+      } else if (
+        typeof quantityInput === "object" &&
+        "quantity" in quantityInput
+      ) {
+        // New format: { quantity: number, unit: string }
+        legacyQuantity = quantityInput.quantity;
+      } else {
+        // QuantityDetail format - sum up the detected unit
+        const quantityDetail = quantityInput as QuantityDetail;
+        legacyQuantity =
+          quantityDetail[finalBarcodeType] ||
+          quantityDetail.cs + quantityDetail.dsp + quantityDetail.ea ||
+          1; // fallback to 1
+      }
+
+      success = addOrUpdateItem(product, legacyQuantity, finalBarcodeType);
+      usedMultiUnitAPI = false; // ✅ Mark as used Legacy API
     }
 
     if (success && employee) {
@@ -405,7 +421,7 @@ export default function BarcodeDetectionPage() {
         `✅ Added ${logMessage} of ${
           product?.name
         } (${finalBarcodeType.toUpperCase()}) using ${
-          addOrUpdateMultiUnitItem ? "Multi-Unit" : "Legacy"
+          usedMultiUnitAPI ? "Multi-Unit" : "Legacy"
         } API`
       );
 
@@ -558,9 +574,14 @@ export default function BarcodeDetectionPage() {
             lastModified: new Date().toISOString(),
           };
 
+          // ✅ FIXED: Convert QuantityDetail to number for legacy API
+          const legacyQuantity = quantityDetail.scannedType
+            ? quantityDetail[quantityDetail.scannedType]
+            : quantityDetail.cs + quantityDetail.dsp + quantityDetail.ea;
+
           success = addOrUpdateItem(
             newProduct,
-            quantityDetail,
+            legacyQuantity, // ← Send number instead of QuantityDetail
             quantityDetail.scannedType,
             productData.productGroup
           );
@@ -659,11 +680,11 @@ export default function BarcodeDetectionPage() {
     return false;
   };
 
-  // ✅ FIXED: Handle export with real export function
-  const handleExportInventory = async (): Promise<boolean> => {
+  // ✅ FIXED: Handle export with real export function - Updated to return Promise<void>
+  const handleExportInventory = async (): Promise<void> => {
     if (!employee) {
       console.warn("⚠️ No employee data available for export");
-      return false;
+      return;
     }
 
     console.log("📤 Starting REAL export process...");
@@ -695,11 +716,8 @@ export default function BarcodeDetectionPage() {
           console.error("❌ Export error:", exportError);
         }
       }
-
-      return success;
     } catch (error) {
       console.error("❌ Export error:", error);
-      return false;
     }
   };
 
