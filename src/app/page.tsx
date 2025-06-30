@@ -448,7 +448,7 @@ export default function BarcodeDetectionPage() {
     productGroup: string;
     description: string;
     countCs: number;
-    countDsp: number; // ✅ เพิ่ม DSP
+    countDsp: number;
     countPieces: number;
   }): Promise<boolean> => {
     try {
@@ -465,7 +465,7 @@ export default function BarcodeDetectionPage() {
 
       // ✅ สร้าง Product object
       const newProduct: Product = {
-        id: `NEW_${Date.now()}`, // Material Code ใหม่
+        id: `NEW_${Date.now()}`,
         barcode: productData.barcode,
         name: productData.productName,
         brand: "สินค้าใหม่",
@@ -477,12 +477,14 @@ export default function BarcodeDetectionPage() {
         updated_at: new Date().toISOString(),
       };
 
-      console.log("📦 New product object:", newProduct);
-
       let success = false;
 
-      // ✅ Use new Multi-Unit API for adding quantities
+      // ✅ Use Multi-Unit API for adding quantities
       if (addOrUpdateMultiUnitItem) {
+        console.log("🔥 Using Multi-Unit API for all 3 units");
+
+        let hasAnyQuantity = false;
+
         // เพิ่ม CS ถ้ามี
         if (productData.countCs > 0) {
           const csQuantityInput: QuantityInput = {
@@ -499,11 +501,11 @@ export default function BarcodeDetectionPage() {
 
           if (csSuccess) {
             console.log(`✅ Added CS: ${productData.countCs} ลัง`);
-            success = true;
+            hasAnyQuantity = true;
           }
         }
 
-        // ✅ เพิ่ม DSP ถ้ามี - ใหม่!
+        // เพิ่ม DSP ถ้ามี
         if (productData.countDsp > 0) {
           const dspQuantityInput: QuantityInput = {
             quantity: productData.countDsp,
@@ -519,7 +521,7 @@ export default function BarcodeDetectionPage() {
 
           if (dspSuccess) {
             console.log(`✅ Added DSP: ${productData.countDsp} แพ็ค`);
-            success = true;
+            hasAnyQuantity = true;
           }
         }
 
@@ -539,53 +541,79 @@ export default function BarcodeDetectionPage() {
 
           if (eaSuccess) {
             console.log(`✅ Added EA: ${productData.countPieces} ชิ้น`);
-            success = true;
+            hasAnyQuantity = true;
           }
         }
-      } else {
-        // ✅ FIXED: Fallback to legacy method with correct QuantityDetail structure
-        console.log("🔄 Multi-Unit API not available, using legacy method...");
 
-        // ✅ ตรวจสอบว่ามีจำนวนอย่างน้อย 1 หน่วย
+        success = hasAnyQuantity;
+      } else {
+        // ✅ FIXED: Fallback to legacy method - บันทึกทั้ง 3 หน่วย
+        console.log(
+          "🔄 Multi-Unit API not available, using enhanced legacy method..."
+        );
+
+        // ตรวจสอบว่ามีจำนวนอย่างน้อย 1 หน่วย
         if (
           productData.countCs > 0 ||
           productData.countDsp > 0 ||
           productData.countPieces > 0
         ) {
-          const quantityDetail: QuantityDetail = {
-            cs: productData.countCs,
-            dsp: productData.countDsp, // ✅ เพิ่ม DSP support
-            ea: productData.countPieces,
-            // ✅ เลือก scannedType ตามลำดับความสำคัญ
-            scannedType:
-              productData.countCs > 0
-                ? "cs"
-                : productData.countDsp > 0
-                ? "dsp"
-                : "ea",
-            isManualEdit: true,
-            lastModified: new Date().toISOString(),
-          };
+          // 🔥 NEW: บันทึกแต่ละหน่วยแยกกัน แทนที่จะรวมกัน
+          let legacySuccess = false;
 
-          // ✅ FIXED: Convert QuantityDetail to number for legacy API
-          const legacyQuantity = quantityDetail.scannedType
-            ? quantityDetail[quantityDetail.scannedType]
-            : quantityDetail.cs + quantityDetail.dsp + quantityDetail.ea;
+          // บันทึก CS หากมี
+          if (productData.countCs > 0) {
+            const csSuccess = addOrUpdateItem(
+              newProduct,
+              productData.countCs,
+              "cs",
+              productData.productGroup
+            );
+            if (csSuccess) {
+              console.log(`✅ Legacy: Added CS: ${productData.countCs} ลัง`);
+              legacySuccess = true;
+            }
+          }
 
-          success = addOrUpdateItem(
-            newProduct,
-            legacyQuantity, // ← Send number instead of QuantityDetail
-            quantityDetail.scannedType,
-            productData.productGroup
-          );
+          // บันทึก DSP หากมี
+          if (productData.countDsp > 0) {
+            const dspSuccess = addOrUpdateItem(
+              newProduct,
+              productData.countDsp,
+              "dsp",
+              productData.productGroup
+            );
+            if (dspSuccess) {
+              console.log(`✅ Legacy: Added DSP: ${productData.countDsp} แพ็ค`);
+              legacySuccess = true;
+            }
+          }
+
+          // บันทึก EA หากมี
+          if (productData.countPieces > 0) {
+            const eaSuccess = addOrUpdateItem(
+              newProduct,
+              productData.countPieces,
+              "ea",
+              productData.productGroup
+            );
+            if (eaSuccess) {
+              console.log(
+                `✅ Legacy: Added EA: ${productData.countPieces} ชิ้น`
+              );
+              legacySuccess = true;
+            }
+          }
+
+          success = legacySuccess;
         }
       }
 
       if (success) {
-        console.log("✅ New product saved successfully with 3-unit support");
+        console.log("✅ New product saved successfully with all 3 units");
         console.log(`   📦 Product Group: ${productData.productGroup}`);
         console.log(`   📦 CS: ${productData.countCs} ลัง`);
-        console.log(`   📦 DSP: ${productData.countDsp} แพ็ค`); // ✅ เพิ่ม log DSP
+        console.log(`   📦 DSP: ${productData.countDsp} แพ็ค`);
         console.log(`   🔢 EA: ${productData.countPieces} ชิ้น`);
 
         // ปิด form
@@ -597,7 +625,7 @@ export default function BarcodeDetectionPage() {
 
         return true;
       } else {
-        console.warn("⚠️ No quantities to save (all units are 0)"); // ✅ อัปเดต message
+        console.warn("⚠️ No quantities to save (all units are 0)");
         return false;
       }
     } catch (error) {
