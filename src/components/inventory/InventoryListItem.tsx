@@ -1,4 +1,4 @@
-// Path: src/components/inventory/InventoryListItem.tsx - แสดงทั้ง 3 หน่วยเสมอ
+// Path: src/components/inventory/InventoryListItem.tsx - เพิ่มเวลาที่แก้ไขล่าสุด
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -12,6 +12,8 @@ import {
   X,
   Archive,
   Package2,
+  Clock,
+  Calendar,
 } from "lucide-react";
 import { InventoryItem, QuantityDetail } from "../../hooks/inventory/types";
 
@@ -71,6 +73,27 @@ const UNIT_CONFIG = {
   },
 };
 
+// ✅ Helper function to format timestamp
+const formatTimestamp = (timestamp: string): string => {
+  try {
+    const time = new Date(timestamp);
+    if (isNaN(time.getTime())) {
+      return "เวลาไม่ถูกต้อง";
+    }
+
+    return time.toLocaleString("th-TH", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (error) {
+    console.error("Error formatting timestamp:", error);
+    return "เวลาไม่ถูกต้อง";
+  }
+};
+
 export const InventoryListItem: React.FC<InventoryListItemProps> = ({
   item,
   isEditing,
@@ -107,7 +130,6 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
 
   const allUnits = getAllUnits();
   const activeUnits = getActiveUnits();
-  // const isMultiUnit = activeUnits.length > 1;
 
   // ✅ Get primary unit for header display
   const getPrimaryUnit = (): "cs" | "dsp" | "ea" => {
@@ -119,15 +141,6 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
 
   const primaryUnit = getPrimaryUnit();
   const primaryUnitConfig = UNIT_CONFIG[primaryUnit];
-
-  // ✅ Calculate total quantity
-  // const getTotalQuantity = (): number => {
-  //   return (
-  //     (item.quantities?.cs || 0) +
-  //     (item.quantities?.dsp || 0) +
-  //     (item.quantities?.ea || 0)
-  //   );
-  // };
 
   // ✅ Update edit state when item changes
   useEffect(() => {
@@ -190,6 +203,24 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
     } else {
       onEditSave();
     }
+  };
+
+  // ✅ NEW: Render timestamp display
+  const renderTimestamp = () => {
+    const lastUpdated = item.quantityDetail?.lastModified || item.lastUpdated;
+
+    if (!lastUpdated) {
+      return null;
+    }
+
+    const formattedTime = formatTimestamp(lastUpdated);
+
+    return (
+      <div className="flex items-center gap-1 text-xs mt-1 text-gray-500">
+        <Clock size={12} className="text-gray-400" />
+        <span>{formattedTime}</span>
+      </div>
+    );
   };
 
   // ✅ CHANGED: แสดงทั้ง 3 หน่วยเสมอ
@@ -305,16 +336,6 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
           );
         })}
 
-        {/* Total Display */}
-        {/* <div className="text-center p-2 bg-blue-50 rounded-lg border border-blue-200">
-          <span className="text-sm font-medium text-blue-700">
-            จำนวนรวมทั้งหมด:{" "}
-            {editState.csQuantity +
-              editState.dspQuantity +
-              editState.eaQuantity}
-          </span>
-        </div> */}
-
         {/* Action Buttons */}
         <div className="flex gap-2 pt-3 border-t border-gray-200">
           <button
@@ -368,6 +389,9 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
           <div className="text-xs text-gray-500 mt-1 font-mono">
             รหัส: {item.materialCode || item.barcode}
           </div>
+
+          {/* ✅ NEW: Timestamp Display */}
+          {renderTimestamp()}
         </div>
 
         {/* Quantity Display */}
