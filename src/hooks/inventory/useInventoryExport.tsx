@@ -218,13 +218,7 @@ export const useInventoryExport = ({
         }
 
         // ✅ Column headers
-        const headers = [
-          "รหัสสินค้า",
-          "คำอธิบาย",
-          "กลุ่มสินค้า",
-          "แบรนด์",
-          "หมวดหมู่",
-        ];
+        const headers = ["รหัสสินค้า", "คำอธิบาย", "กลุ่มสินค้า", "แบรนด์"];
 
         if (config.includeUnitBreakdown) {
           headers.push("จำนวน CS", "จำนวน DSP", "จำนวน EA");
@@ -249,7 +243,6 @@ export const useInventoryExport = ({
             displayDescription, // คำอธิบาย (สลับแล้วสำหรับสินค้าเก่า)
             item.productGroup,
             item.brand,
-            item.category,
           ];
 
           if (config.includeUnitBreakdown) {
