@@ -272,7 +272,7 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
 
       {/* ✅ Summary Stats */}
       <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-xl p-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <div className="grid grid-cols-3 gap-4 text-center">
           <div>
             <div className="text-2xl font-bold text-blue-600">
               {summary.totalItems}
@@ -281,12 +281,12 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
               รายการสินค้า
             </div>
           </div>
-          <div>
+          {/* <div>
             <div className="text-2xl font-bold text-green-600">
               {Object.keys(summary.categories).length}
             </div>
             <div className="text-sm text-green-700 font-medium">หมวดหมู่</div>
-          </div>
+          </div> */}
           <div>
             <div className="text-2xl font-bold text-purple-600">
               {Object.keys(summary.brands).length}
