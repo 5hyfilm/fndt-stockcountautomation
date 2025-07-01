@@ -131,20 +131,22 @@ export const useInventoryExport = ({
 
       if (!grouped.has(materialCode)) {
         // ✅ แก้ไข: แยกการจัดการ description สำหรับสินค้าใหม่และสินค้าเก่า
-        let displayDescription = "";
-
-        if (isNew) {
-          // สำหรับสินค้าใหม่: ใช้ description จาก productData หรือ description field หรือ thaiDescription
-          displayDescription =
-            item.productData?.description ||
-            item.description ||
-            item.thaiDescription ||
-            "ไม่มีคำอธิบาย";
-        } else {
-          // สำหรับสินค้าเก่า: ใช้ thaiDescription หรือ productName
-          displayDescription =
-            item.thaiDescription || item.productName || item.description || "";
-        }
+        const displayDescription = (() => {
+          if (isNew) {
+            // สำหรับสินค้าใหม่: ใช้ description จาก productData หรือ description field หรือ thaiDescription
+            return (
+              item.productData?.description ||
+              item.description ||
+              item.thaiDescription ||
+              "ไม่มีคำอธิบาย"
+            );
+          } else {
+            // สำหรับสินค้าเก่า: ใช้ thaiDescription หรือ productName
+            return (
+              item.thaiDescription || item.productName || item.description || ""
+            );
+          }
+        })();
 
         grouped.set(materialCode, {
           materialCode,
@@ -234,14 +236,11 @@ export const useInventoryExport = ({
         // ✅ Data rows - แก้ไขการแสดงข้อมูล
         groupedData.forEach((item) => {
           // ✅ สำหรับสินค้าใหม่: แยกแสดงรหัสสินค้าและคำอธิบายแยกกัน
-          let displayMaterialCode = item.materialCode;
-          let displayDescription = item.description;
+          const displayMaterialCode = item.isNewProduct
+            ? item.productName || item.materialCode // สำหรับสินค้าใหม่: แสดงชื่อสินค้าที่ผู้ใช้กรอกเป็นรหัสสินค้า
+            : item.materialCode;
 
-          if (item.isNewProduct) {
-            // สำหรับสินค้าใหม่: แสดงชื่อสินค้าที่ผู้ใช้กรอกเป็นรหัสสินค้า
-            displayMaterialCode = item.productName || item.materialCode;
-            // คำอธิบายจะเป็น description ที่แยกออกมาแล้ว
-          }
+          const displayDescription = item.description; // คำอธิบายจะเป็น description ที่แยกออกมาแล้ว
 
           const row = [
             displayMaterialCode, // รหัสสินค้า (สำหรับสินค้าใหม่จะเป็น productName)

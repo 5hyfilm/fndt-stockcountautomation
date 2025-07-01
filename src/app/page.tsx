@@ -552,7 +552,7 @@ export default function BarcodeDetectionPage() {
             if (multiUnitSuccess) {
               console.log("✅ Successfully saved all units in single item!");
 
-              // Log แต่ละหน่วยที่บันทึก
+              // ✅ FIXED: Log แต่ละหน่วยที่บันทึก - เปลี่ยนจาก let เป็น const
               const savedUnits: string[] = [];
               if (allUnitsQuantity.cs > 0)
                 savedUnits.push(`CS: ${allUnitsQuantity.cs} ลัง`);
@@ -596,7 +596,8 @@ export default function BarcodeDetectionPage() {
         ) {
           // 🔥 NEW: บันทึกแต่ละหน่วยแยกกัน แทนที่จะรวมกัน
           let legacySuccess = false;
-          let savedUnits: string[] = [];
+          // ✅ FIXED: เปลี่ยนจาก let เป็น const เพราะไม่ได้ reassign array ใหม่ แต่ push ข้อมูลเข้าไป
+          const savedUnits: string[] = [];
 
           // 🔍 DEBUG: บันทึก CS หากมี
           if (productData.countCs > 0) {
