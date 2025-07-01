@@ -143,7 +143,7 @@ export const useInventoryExport = ({
           } else {
             // สำหรับสินค้าเก่า: ใช้ thaiDescription หรือ productName
             return (
-              item.thaiDescription || item.productName || item.description || ""
+              item.productData?.id || item.productName || item.description || ""
             );
           }
         })();
