@@ -1,5 +1,5 @@
-// Path: ./src/types/product.ts
-// Updated with debug property
+// Path: /src/types/product.ts
+// Updated with debug property and Product Group categories
 export interface Product {
   id: string;
   barcode: string;
@@ -43,6 +43,17 @@ export interface NutritionInfo {
 }
 
 export enum ProductCategory {
+  // ✅ เพิ่ม Product Group เป็น category แยกกัน
+  STM = "STM", // Sterilized Milk
+  BB_GOLD = "BB_GOLD", // Bear Brand Gold
+  EVAP = "EVAP", // Evaporated
+  SBC = "SBC", // Sweetened Beverage Creamer
+  SCM = "SCM", // Sweetened Condensed Milk
+  MAGNOLIA_UHT = "MAGNOLIA_UHT", // Magnolia UHT
+  NUTRISOY = "NUTRISOY", // Nutriwell
+  GUMMY = "GUMMY", // Gummy candy
+
+  // เก็บ category เดิมไว้ (สำหรับสินค้าประเภทอื่น)
   BEVERAGES = "beverages",
   DAIRY = "dairy",
   SNACKS = "snacks",

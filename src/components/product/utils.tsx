@@ -1,4 +1,4 @@
-// src/components/product/utils.ts - Product Component Utilities (Fixed TypeScript)
+// Path: /src/components/product/utils.ts - Product Component Utilities (Fixed TypeScript)
 import {
   Coffee,
   Package,
@@ -10,6 +10,9 @@ import {
   Refrigerator,
   UtensilsCrossed,
   Droplets,
+  Milk,
+  Crown,
+  Beaker,
 } from "lucide-react";
 import { ProductCategory, Product, NutritionInfo } from "../../types/product";
 import { CategoryStyling, NutritionItem } from "./types";
@@ -19,6 +22,25 @@ import { CategoryStyling, NutritionItem } from "./types";
  */
 export const getCategoryIcon = (category: ProductCategory) => {
   switch (category) {
+    // ✅ ใหม่: Product Group Icons
+    case ProductCategory.STM:
+      return <Coffee size={16} className="text-blue-500" />;
+    case ProductCategory.BB_GOLD:
+      return <Crown size={16} className="text-yellow-500" />;
+    case ProductCategory.EVAP:
+      return <Droplets size={16} className="text-purple-500" />;
+    case ProductCategory.SBC:
+      return <Beaker size={16} className="text-green-500" />;
+    case ProductCategory.SCM:
+      return <Milk size={16} className="text-red-500" />;
+    case ProductCategory.MAGNOLIA_UHT:
+      return <Coffee size={16} className="text-indigo-500" />;
+    case ProductCategory.NUTRISOY:
+      return <Coffee size={16} className="text-teal-500" />;
+    case ProductCategory.GUMMY:
+      return <Cookie size={16} className="text-pink-500" />;
+
+    // เดิม: Generic Categories
     case ProductCategory.BEVERAGES:
       return <Coffee size={16} className="text-blue-500" />;
     case ProductCategory.DAIRY:
@@ -51,6 +73,25 @@ export const getCategoryIcon = (category: ProductCategory) => {
  */
 export const getCategoryColor = (category: ProductCategory): string => {
   switch (category) {
+    // ✅ ใหม่: Product Group Colors
+    case ProductCategory.STM:
+      return "bg-blue-50 text-blue-800 border-blue-200";
+    case ProductCategory.BB_GOLD:
+      return "bg-yellow-50 text-yellow-800 border-yellow-200";
+    case ProductCategory.EVAP:
+      return "bg-purple-50 text-purple-800 border-purple-200";
+    case ProductCategory.SBC:
+      return "bg-green-50 text-green-800 border-green-200";
+    case ProductCategory.SCM:
+      return "bg-red-50 text-red-800 border-red-200";
+    case ProductCategory.MAGNOLIA_UHT:
+      return "bg-indigo-50 text-indigo-800 border-indigo-200";
+    case ProductCategory.NUTRISOY:
+      return "bg-teal-50 text-teal-800 border-teal-200";
+    case ProductCategory.GUMMY:
+      return "bg-pink-50 text-pink-800 border-pink-200";
+
+    // เดิม: Generic Categories
     case ProductCategory.BEVERAGES:
       return "bg-blue-50 text-blue-800 border-blue-200";
     case ProductCategory.DAIRY:

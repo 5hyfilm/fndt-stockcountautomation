@@ -1,4 +1,4 @@
-// src/data/types/csvTypes.ts
+// Path: /src/data/types/csvTypes.ts
 import { Product, ProductCategory } from "../../types/product";
 
 // CSV Row interface based on the actual CSV structure
@@ -53,25 +53,33 @@ export const PRODUCT_GROUP_OPTIONS = [
 // ✅ Type for Product Group (เพื่อ type safety)
 export type ProductGroupCode = (typeof PRODUCT_GROUP_OPTIONS)[number];
 
-// Product group to category mapping
+// ✅ อัพเดต Product group to category mapping (1:1 mapping)
 export const PRODUCT_GROUP_MAPPING: Record<string, ProductCategory> = {
-  STM: ProductCategory.BEVERAGES, // Sterilized Milk
-  "BB Gold": ProductCategory.BEVERAGES, // Bear Brand Gold
-  EVAP: ProductCategory.DAIRY, // Evaporated
-  SBC: ProductCategory.DAIRY, // Sweetened Beverage Creamer
-  SCM: ProductCategory.DAIRY, // Sweetened Condensed Milk
-  "Magnolia UHT": ProductCategory.BEVERAGES, // Magnolia UHT
-  NUTRISOY: ProductCategory.BEVERAGES, // Nutriwell
-  Gummy: ProductCategory.CONFECTIONERY, // Gummy candy
+  STM: ProductCategory.STM, // STM → STM
+  "BB Gold": ProductCategory.BB_GOLD, // BB Gold → BB_GOLD
+  EVAP: ProductCategory.EVAP, // EVAP → EVAP
+  SBC: ProductCategory.SBC, // SBC → SBC
+  SCM: ProductCategory.SCM, // SCM → SCM
+  "Magnolia UHT": ProductCategory.MAGNOLIA_UHT, // Magnolia UHT → MAGNOLIA_UHT
+  NUTRISOY: ProductCategory.NUTRISOY, // NUTRISOY → NUTRISOY
+  Gummy: ProductCategory.GUMMY, // Gummy → GUMMY
 };
 
-// ✅ Reverse mapping: ProductCategory กลับเป็น Product Group Code array
-// (สำหรับกรณีที่ต้องการหา Product Group ของ category เดียวกัน)
+// ✅ อัพเดต Reverse mapping (แต่ละ category มี 1 product group)
 export const CATEGORY_TO_PRODUCT_GROUPS: Record<ProductCategory, string[]> = {
-  [ProductCategory.BEVERAGES]: ["STM", "BB Gold", "Magnolia UHT", "NUTRISOY"],
-  [ProductCategory.DAIRY]: ["EVAP", "SBC", "SCM"],
-  [ProductCategory.CONFECTIONERY]: ["Gummy"],
-  // เพิ่ม categories อื่นๆ เป็น array ว่างไว้ก่อน
+  // ใหม่: Product Group Categories (1:1)
+  [ProductCategory.STM]: ["STM"],
+  [ProductCategory.BB_GOLD]: ["BB Gold"],
+  [ProductCategory.EVAP]: ["EVAP"],
+  [ProductCategory.SBC]: ["SBC"],
+  [ProductCategory.SCM]: ["SCM"],
+  [ProductCategory.MAGNOLIA_UHT]: ["Magnolia UHT"],
+  [ProductCategory.NUTRISOY]: ["NUTRISOY"],
+  [ProductCategory.GUMMY]: ["Gummy"],
+
+  // เดิม: Generic Categories (สำหรับสินค้าอื่นๆ)
+  [ProductCategory.BEVERAGES]: [],
+  [ProductCategory.DAIRY]: [],
   [ProductCategory.SNACKS]: [],
   [ProductCategory.CANNED_FOOD]: [],
   [ProductCategory.INSTANT_NOODLES]: [],
@@ -79,6 +87,7 @@ export const CATEGORY_TO_PRODUCT_GROUPS: Record<ProductCategory, string[]> = {
   [ProductCategory.SEASONING]: [],
   [ProductCategory.FROZEN]: [],
   [ProductCategory.BAKERY]: [],
+  [ProductCategory.CONFECTIONERY]: [],
   [ProductCategory.OTHER]: [],
 };
 
@@ -130,23 +139,32 @@ export const getProductGroupOptionsWithCategory = () => {
   }));
 };
 
-/**
- * แปลง ProductCategory enum เป็นชื่อภาษาไทยที่อ่านง่าย
- */
+// ✅ อัพเดต ชื่อภาษาไทย - ให้เป็นตัวพิมพ์ใหญ่
 export const getCategoryDisplayName = (category: ProductCategory): string => {
   const categoryNames: Record<ProductCategory, string> = {
-    [ProductCategory.BEVERAGES]: "เครื่องดื่ม",
-    [ProductCategory.DAIRY]: "ผลิตภัณฑ์นม",
-    [ProductCategory.SNACKS]: "ขนม",
-    [ProductCategory.CANNED_FOOD]: "อาหารกระป๋อง",
-    [ProductCategory.INSTANT_NOODLES]: "บะหมี่กึ่งสำเร็จรูป",
-    [ProductCategory.SAUCES]: "ซอส",
-    [ProductCategory.SEASONING]: "เครื่องปรุงรส",
-    [ProductCategory.FROZEN]: "อาหารแช่แข็ง",
-    [ProductCategory.BAKERY]: "เบเกอรี่",
-    [ProductCategory.CONFECTIONERY]: "ขนมหวาน",
-    [ProductCategory.OTHER]: "อื่นๆ",
+    // ใหม่: Product Group Names (ตัวพิมพ์ใหญ่ทั้งหมด)
+    [ProductCategory.STM]: "STM",
+    [ProductCategory.BB_GOLD]: "BB GOLD",
+    [ProductCategory.EVAP]: "EVAP",
+    [ProductCategory.SBC]: "SBC",
+    [ProductCategory.SCM]: "SCM",
+    [ProductCategory.MAGNOLIA_UHT]: "MAGNOLIA UHT",
+    [ProductCategory.NUTRISOY]: "NUTRISOY",
+    [ProductCategory.GUMMY]: "GUMMY",
+
+    // เดิม: Generic Categories
+    [ProductCategory.BEVERAGES]: "BEVERAGES",
+    [ProductCategory.DAIRY]: "DAIRY",
+    [ProductCategory.SNACKS]: "SNACKS",
+    [ProductCategory.CANNED_FOOD]: "CANNED FOOD",
+    [ProductCategory.INSTANT_NOODLES]: "INSTANT NOODLES",
+    [ProductCategory.SAUCES]: "SAUCES",
+    [ProductCategory.SEASONING]: "SEASONING",
+    [ProductCategory.FROZEN]: "FROZEN",
+    [ProductCategory.BAKERY]: "BAKERY",
+    [ProductCategory.CONFECTIONERY]: "CONFECTIONERY",
+    [ProductCategory.OTHER]: "OTHER",
   };
 
-  return categoryNames[category] || "ไม่ระบุ";
+  return categoryNames[category] || "OTHER";
 };
