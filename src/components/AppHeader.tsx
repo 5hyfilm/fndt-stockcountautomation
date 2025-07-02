@@ -1,4 +1,4 @@
-// src/components/AppHeader.tsx
+// Path: src/components/AppHeader.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -52,6 +52,20 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     return classes;
   };
 
+  // ✅ Dynamic styles สำหรับ Safe Area
+  const getHeaderStyles = () => {
+    const baseStyles: React.CSSProperties = {};
+
+    if (floating) {
+      // ✅ เมื่อเป็น floating ให้ใช้ safe area
+      baseStyles.paddingTop = "max(env(safe-area-inset-top), 8px)";
+      baseStyles.paddingLeft = "max(env(safe-area-inset-left), 12px)";
+      baseStyles.paddingRight = "max(env(safe-area-inset-right), 12px)";
+    }
+
+    return baseStyles;
+  };
+
   // Dynamic text classes
   const getTextClasses = (variant: "primary" | "secondary" = "primary") => {
     if (transparent) {
@@ -68,14 +82,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       return "camera-overlay-button text-sm";
     }
     return compact
-      ? "bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg text-sm transition-colors"
-      : "bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg transition-colors";
+      ? "bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg text-sm transition-colors touch-button"
+      : "bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg transition-colors touch-button";
   };
 
   const toggleMobileMenu = () => setShowMobileMenu(!showMobileMenu);
 
   return (
-    <header className={getHeaderClasses()}>
+    <header className={getHeaderClasses()} style={getHeaderStyles()}>
       <div className="flex items-center justify-between">
         {/* Left side - Employee info */}
         <div className="flex items-center gap-3">
@@ -125,7 +139,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               onClick={toggleMobileMenu}
               className={`${compact ? "text-xs" : "text-sm"} ${getTextClasses(
                 "secondary"
-              )} flex items-center gap-1 mt-0.5`}
+              )} flex items-center gap-1 mt-0.5 touch-button`}
+              style={{
+                minHeight: "28px",
+                minWidth: "80px",
+              }}
             >
               <Menu size={compact ? 12 : 14} />
               รายละเอียด
@@ -134,7 +152,15 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
 
         {/* Right side - Logout button */}
-        <button onClick={onLogout} className={getButtonClasses()}>
+        <button
+          onClick={onLogout}
+          className={getButtonClasses()}
+          style={{
+            // ✅ Touch-friendly button size
+            minHeight: "36px",
+            minWidth: "80px",
+          }}
+        >
           <LogOut size={compact ? 14 : 16} className="mr-1" />
           ออกจากระบบ
         </button>

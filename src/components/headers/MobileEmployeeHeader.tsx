@@ -17,8 +17,18 @@ export const MobileEmployeeHeader: React.FC<MobileEmployeeHeaderProps> = ({
   onLogout,
 }) => {
   return (
-    <div className="bg-gradient-to-r from-fn-green to-fn-red text-white safe-area-top">
-      <div className="px-3 py-2 flex items-center justify-between">
+    <div
+      className="bg-gradient-to-r from-fn-green to-fn-red text-white"
+      style={{
+        // ✅ ลบ safe-area-top class และใช้ inline style แทน
+        // เพราะ parent (MobileAppHeader) จัดการ safe area แล้ว
+        paddingTop: "8px", // py-2 equivalent
+        paddingBottom: "8px",
+        paddingLeft: "12px", // px-3 equivalent
+        paddingRight: "12px",
+      }}
+    >
+      <div className="flex items-center justify-between">
         {/* Left side - F&N Logo */}
         <div className="flex items-center gap-2">
           <Image
@@ -37,8 +47,13 @@ export const MobileEmployeeHeader: React.FC<MobileEmployeeHeaderProps> = ({
           <span className="max-w-24 truncate">{employeeName}</span>
           <button
             onClick={onLogout}
-            className="bg-white/20 hover:bg-white/30 p-1 rounded transition-colors"
+            className="bg-white/20 hover:bg-white/30 p-1 rounded transition-colors touch-button"
             title="ออกจากระบบ"
+            style={{
+              // ✅ เพิ่ม touch-friendly size สำหรับมือถือ
+              minHeight: "32px",
+              minWidth: "32px",
+            }}
           >
             <LogOut size={14} />
           </button>

@@ -1,4 +1,4 @@
-// src/components/headers/MobileAppHeader.tsx
+// Path: src/components/headers/MobileAppHeader.tsx
 "use client";
 
 import React from "react";
@@ -10,7 +10,7 @@ import { MobileStatusBar } from "../status/MobileStatusBar";
 interface MobileAppHeaderProps {
   employeeName: string;
   activeTab: "scanner" | "inventory";
-  totalSKUs: number; // ✅ เปลี่ยนจาก totalProducts เป็น totalSKUs
+  totalSKUs: number;
   isStreaming: boolean;
   lastDetectedCode?: string;
   totalItems: number;
@@ -21,7 +21,7 @@ interface MobileAppHeaderProps {
 export const MobileAppHeader: React.FC<MobileAppHeaderProps> = ({
   employeeName,
   activeTab,
-  totalSKUs, // ✅ เปลี่ยนจาก totalProducts เป็น totalSKUs
+  totalSKUs,
   isStreaming,
   lastDetectedCode,
   totalItems,
@@ -29,14 +29,20 @@ export const MobileAppHeader: React.FC<MobileAppHeaderProps> = ({
   onTabChange,
 }) => {
   return (
-    <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
+    <div
+      className="bg-white border-b border-gray-200 sticky top-0 z-40"
+      style={{
+        // ✅ เพิ่ม Safe Area Support สำหรับ iPhone notch พร้อม fallback
+        paddingTop: "max(env(safe-area-inset-top), 0px)",
+      }}
+    >
       <MobileEmployeeHeader employeeName={employeeName} onLogout={onLogout} />
 
       <MobileAppTitle />
 
       <MobileTabNavigation
         activeTab={activeTab}
-        totalSKUs={totalSKUs} // ✅ ส่ง totalSKUs แทน totalProducts
+        totalSKUs={totalSKUs}
         onTabChange={onTabChange}
       />
 
