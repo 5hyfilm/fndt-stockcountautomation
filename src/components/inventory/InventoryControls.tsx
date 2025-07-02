@@ -135,7 +135,7 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
             className="px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200 flex items-center gap-2 text-sm font-medium"
           >
             <Trash2 size={16} />
-            ล้างทั้งหมด
+            ลบทั้งหมด
           </button>
         </div>
       </div>
@@ -159,7 +159,7 @@ export const InventoryControls: React.FC<InventoryControlsProps> = ({
           <div className="flex items-center gap-3">
             <Filter size={18} className="text-gray-500" />
             <div className="flex items-center gap-2">
-              <span className="font-medium text-gray-900">ตัวกรองขั้นสูง</span>
+              <span className="font-medium text-gray-900">Filter & Sort</span>
               {hasActiveFilters && (
                 <>
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">

@@ -393,7 +393,7 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
         >
           <div className="flex items-center gap-3">
             <Settings className="text-gray-500" size={20} />
-            <span className="text-gray-700 font-medium">ตัวควบคุมและกรอง</span>
+            <span className="text-gray-700 font-medium">Control Panel</span>
             {hasActiveFilters && (
               <span className="bg-fn-green text-white text-xs px-2 py-1 rounded-full">
                 มีการกรองข้อมูล
