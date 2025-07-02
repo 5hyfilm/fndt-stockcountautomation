@@ -55,7 +55,7 @@ export const MobileEmployeeHeader: React.FC<MobileEmployeeHeaderProps> = ({
               minWidth: "32px",
             }}
           >
-            <LogOut size={14} />
+            <LogOut size={20} />
           </button>
         </div>
       </div>
