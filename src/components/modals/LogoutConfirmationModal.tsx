@@ -107,7 +107,7 @@ export const LogoutConfirmationModal: React.FC<
                 <AlertTriangle className="text-amber-600 mt-0.5" size={18} />
                 <div>
                   <div className="font-medium text-amber-800">
-                    ข้อมูลที่ยังไม่ได้บันทึก
+                    คำเตือนการออกจากระบบ
                   </div>
                   <div className="text-sm text-amber-700 mt-1">
                     คุณมีข้อมูลสินค้า {unsavedDataCount} รายการที่ยังอยู่ใน
