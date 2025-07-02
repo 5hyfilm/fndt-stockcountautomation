@@ -93,6 +93,48 @@ const formatTimestamp = (timestamp: string): string => {
   }
 };
 
+// ✅ FIXED: Helper function to get correct product code
+const getProductCode = (item: InventoryItem): string => {
+  // ✅ ตรวจสอบว่าเป็นสินค้าใหม่หรือไม่
+  const isNewProduct =
+    item.productData?.id?.startsWith("NEW_") ||
+    item.materialCode?.startsWith("NEW_") ||
+    item.brand === "สินค้าใหม่";
+
+  if (isNewProduct) {
+    // สำหรับสินค้าใหม่: ใช้รหัสที่ผู้ใช้กรอก (เก็บใน productData.name)
+    if (item.productData?.name) {
+      return item.productData.name;
+    }
+    // Fallback สำหรับสินค้าใหม่: ใช้ barcode
+    if (item.barcode) {
+      return item.barcode;
+    }
+  } else {
+    // สำหรับสินค้าในฐานข้อมูล: ใช้รหัสจาก productData.id
+    if (item.productData?.id && !item.productData.id.startsWith("NEW_")) {
+      return item.productData.id;
+    }
+  }
+
+  // สำหรับสินค้าทั่วไป: ใช้ barcode เป็นหลัก
+  if (item.barcode) {
+    return item.barcode;
+  }
+
+  // Fallback: ใช้ materialCode เฉพาะกรณีที่ไม่ใช่ชื่อสินค้า
+  if (
+    item.materialCode &&
+    !item.materialCode.includes("หมื่น") &&
+    !item.materialCode.includes("นิว")
+  ) {
+    return item.materialCode;
+  }
+
+  // สุดท้าย: ใช้ id
+  return item.id;
+};
+
 export const InventoryListItem: React.FC<InventoryListItemProps> = ({
   item,
   isEditing,
@@ -402,9 +444,9 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
             )}
           </div>
 
-          {/* Material Code - Mobile friendly */}
+          {/* ✅ FIXED: Material Code - แสดงรหัสสินค้าที่ถูกต้อง */}
           <div className="text-xs text-gray-500 mt-1 font-mono truncate">
-            รหัส: {item.materialCode || item.barcode}
+            รหัส: {getProductCode(item)}
           </div>
 
           {/* Timestamp Display - Mobile optimized */}

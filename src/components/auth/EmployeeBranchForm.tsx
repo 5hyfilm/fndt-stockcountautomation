@@ -258,7 +258,7 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
         {/* Footer */}
         <div className="px-6 pb-6">
           <div className="text-center text-xs text-gray-500">
-            <p>© 2024 F&N Inventory Management System</p>
+            <p>© 2025 F&N Inventory Management System</p>
           </div>
         </div>
       </div>
