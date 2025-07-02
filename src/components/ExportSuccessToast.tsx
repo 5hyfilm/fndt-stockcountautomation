@@ -87,7 +87,7 @@ export const ExportSuccessToast: React.FC<ExportSuccessToastProps> = ({
               <div className="flex items-center gap-1">
                 <FileText className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                 <span className="truncate">
-                  {fileName || "FN_Stock_Inventory.csv"}
+                  {fileName || "FNDT_inventory.csv"}
                 </span>
               </div>
 

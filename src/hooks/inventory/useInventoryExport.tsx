@@ -307,7 +307,7 @@ export const useInventoryExport = ({
           .slice(0, 19)
           .replace(/:/g, "-");
         const branchCode = employeeContext?.branchCode || "UNKNOWN";
-        const filename = `inventory_${branchCode}_${timestamp}.csv`;
+        const filename = `FNDT_inventory_${branchCode}_${timestamp}.csv`;
 
         link.setAttribute("href", url);
         link.setAttribute("download", filename);

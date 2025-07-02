@@ -798,7 +798,7 @@ export default function BarcodeDetectionPage() {
         const now = new Date();
         const dateStr = now.toISOString().split("T")[0];
         const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-");
-        const fileName = `FN_Stock_Wide_${employee.branchCode}_${dateStr}_${timeStr}.csv`;
+        const fileName = `FNDTinventory_${employee.branchCode}_${dateStr}_${timeStr}.csv`;
 
         setExportFileName(fileName);
         setShowExportSuccess(true);
