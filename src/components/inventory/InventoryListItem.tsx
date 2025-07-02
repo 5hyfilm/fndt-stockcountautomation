@@ -446,7 +446,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
 
           {/* ✅ FIXED: Material Code - แสดงรหัสสินค้าที่ถูกต้อง */}
           <div className="text-xs text-gray-500 mt-1 font-mono truncate">
-            รหัส: {getProductCode(item)}
+            รหัส F/FG: {getProductCode(item)}
           </div>
 
           {/* Timestamp Display - Mobile optimized */}
