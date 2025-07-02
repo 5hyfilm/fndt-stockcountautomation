@@ -381,7 +381,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
         {/* Product Info - Flexible layout */}
         <div className="flex-1 min-w-0">
           {/* ✅ FIXED: แสดงรายละเอียดสินค้า (productData.description) สำหรับสินค้าใหม่ */}
-          <h3 className="font-semibold text-gray-900 truncate text-base sm:text-lg leading-tight">
+          <h3 className="font-semibold text-gray-900 truncate text-sm sm:text-base leading-tight">
             {item.productData?.description || item.productName}
           </h3>
 
