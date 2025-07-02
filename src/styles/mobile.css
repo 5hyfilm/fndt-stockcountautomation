@@ -1,17 +1,207 @@
-/* src/styles/mobile.css */
+/* Path: src/styles/mobile.css */
 
-/* Mobile-first responsive utilities */
+/* ✅ Safe Area Variables - กำหนด CSS custom properties */
+:root {
+    --safe-area-inset-top: env(safe-area-inset-top, 0px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-inset-left: env(safe-area-inset-left, 0px);
+    --safe-area-inset-right: env(safe-area-inset-right, 0px);
+
+    /* ✅ App-specific safe area values */
+    --app-safe-top: max(var(--safe-area-inset-top), 20px);
+    --app-safe-bottom: max(var(--safe-area-inset-bottom), 20px);
+}
+
+/* ✅ Base Mobile Layout */
+.mobile-viewport {
+    min-height: 100vh;
+    min-height: 100dvh;
+    /* Dynamic viewport height */
+    min-height: 100svh;
+    /* Small viewport height */
+
+    /* ✅ รองรับ safe area ใน viewport */
+    min-height: calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+}
+
+/* ✅ Fixed Safe Area Classes */
+.safe-area-top {
+    padding-top: var(--app-safe-top);
+}
+
+.safe-area-bottom {
+    padding-bottom: var(--app-safe-bottom);
+}
+
+.safe-area-left {
+    padding-left: var(--safe-area-inset-left);
+}
+
+.safe-area-right {
+    padding-right: var(--safe-area-inset-right);
+}
+
+.safe-area-all {
+    padding-top: var(--app-safe-top);
+    padding-bottom: var(--app-safe-bottom);
+    padding-left: var(--safe-area-inset-left);
+    padding-right: var(--safe-area-inset-right);
+}
+
+/* ✅ PWA Status Bar Compatibility */
+.pwa-container {
+    /* ✅ ไม่ให้ content ทับ status bar */
+    margin-top: var(--safe-area-inset-top);
+    margin-left: var(--safe-area-inset-left);
+    margin-right: var(--safe-area-inset-right);
+    /* ไม่ใส่ margin-bottom เพื่อให้ content ใช้พื้นที่เต็ม */
+}
+
+/* ✅ Header ที่รองรับ Safe Area */
 .mobile-header {
     @apply px-3 py-2;
+
+    /* ✅ เพิ่ม safe area support */
+    padding-top: calc(0.5rem + var(--safe-area-inset-top));
+    padding-left: calc(0.75rem + var(--safe-area-inset-left));
+    padding-right: calc(0.75rem + var(--safe-area-inset-right));
 }
 
 .desktop-header {
     @apply px-6 py-4;
 }
 
-/* Compact component styles */
+/* ✅ Fixed Navigation Bar */
+.mobile-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200;
+
+    /* ✅ เพิ่ม safe area support สำหรับ navigation */
+    padding-bottom: var(--app-safe-bottom);
+    padding-left: var(--safe-area-inset-left);
+    padding-right: var(--safe-area-inset-right);
+}
+
+.mobile-nav-item {
+    @apply flex-1 flex flex-col items-center justify-center py-2 text-xs;
+}
+
+/* ✅ Full Screen Camera Mode - ปรับปรุงใหม่ */
+.camera-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    /* Dynamic viewport height */
+    background: #000;
+    z-index: 1000;
+
+    /* ✅ ไม่ใส่ safe area padding ใน camera mode เพื่อให้เต็มจอ */
+    /* แต่ให้ content ภายในจัดการ safe area เอง */
+}
+
+/* ✅ Camera Overlay Elements */
+.camera-overlay-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 60;
+
+    /* ✅ เพิ่ม safe area สำหรับ overlay ด้านบน */
+    padding-top: var(--safe-area-inset-top);
+    padding-left: var(--safe-area-inset-left);
+    padding-right: var(--safe-area-inset-right);
+}
+
+.camera-overlay-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 60;
+
+    /* ✅ เพิ่ม safe area สำหรับ overlay ด้านล่าง */
+    padding-bottom: var(--safe-area-inset-bottom);
+    padding-left: var(--safe-area-inset-left);
+    padding-right: var(--safe-area-inset-right);
+}
+
+/* ✅ Floating Controls in Camera */
+.camera-controls-floating {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 80;
+    padding: 1rem;
+
+    /* ✅ รองรับ safe area */
+    padding-bottom: calc(1rem + var(--safe-area-inset-bottom));
+    padding-left: calc(1rem + var(--safe-area-inset-left));
+    padding-right: calc(1rem + var(--safe-area-inset-right));
+
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+}
+
+/* ✅ Status Indicators for Camera */
+.camera-status-floating {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 80;
+    padding: 1rem;
+
+    /* ✅ รองรับ safe area */
+    padding-top: calc(1rem + var(--safe-area-inset-top));
+    padding-left: calc(1rem + var(--safe-area-inset-left));
+    padding-right: calc(1rem + var(--safe-area-inset-right));
+
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), transparent);
+}
+
+/* ✅ Mobile Modal - ปรับปรุงใหม่ */
+.mobile-modal {
+    @apply fixed inset-0 z-50 flex items-end justify-center;
+
+    /* ✅ รองรับ safe area */
+    padding-left: var(--safe-area-inset-left);
+    padding-right: var(--safe-area-inset-right);
+    padding-bottom: var(--safe-area-inset-bottom);
+}
+
+@media (min-width: 768px) {
+    .mobile-modal {
+        @apply items-center;
+        padding: 1rem;
+    }
+}
+
+.mobile-modal-content {
+    @apply w-full max-w-lg bg-white rounded-t-xl;
+
+    /* ✅ กำหนดความสูงสูงสุดโดยคำนึงถึง safe area */
+    max-height: calc(90vh - var(--safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+    .mobile-modal-content {
+        @apply rounded-xl max-w-md;
+        max-height: 80vh;
+    }
+}
+
+/* ✅ Compact Component Styles */
 .compact-button {
     @apply p-2 rounded-md text-sm;
+
+    /* ✅ Touch-friendly size */
+    min-height: 44px;
+    min-width: 44px;
 }
 
 .compact-icon {
@@ -22,7 +212,16 @@
     @apply text-xs;
 }
 
-/* Mobile-specific card styles */
+/* ✅ Touch-friendly Button Sizes */
+.touch-button {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+
+    /* ✅ เพิ่ม tap highlight */
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    tap-highlight-color: rgba(0, 0, 0, 0.1);
+}
+
+/* ✅ Mobile Card Styles */
 .mobile-card {
     @apply rounded-lg shadow-sm border border-gray-200 overflow-hidden;
 }
@@ -35,21 +234,7 @@
     @apply p-3;
 }
 
-/* Touch-friendly button sizes */
-.touch-button {
-    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
-}
-
-/* Mobile navigation */
-.mobile-nav {
-    @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200;
-}
-
-.mobile-nav-item {
-    @apply flex-1 flex flex-col items-center justify-center py-2 text-xs;
-}
-
-/* Responsive grid */
+/* ✅ Responsive Grid */
 .mobile-grid {
     @apply grid grid-cols-1 gap-3;
 }
@@ -66,7 +251,7 @@
     }
 }
 
-/* Mobile-specific spacing */
+/* ✅ Mobile-specific Spacing */
 .mobile-space-y {
     @apply space-y-3;
 }
@@ -77,104 +262,7 @@
     }
 }
 
-/* Safe area insets for mobile devices */
-.safe-area-top {
-    padding-top: env(safe-area-inset-top);
-    padding-top: max(env(safe-area-inset-top), 20px);
-    /* Fallback for older browsers */
-}
-
-.safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-bottom: max(env(safe-area-inset-bottom), 20px);
-    /* Fallback for older browsers */
-}
-
-.safe-area-left {
-    padding-left: env(safe-area-inset-left);
-    padding-left: max(env(safe-area-inset-left), 0px);
-}
-
-.safe-area-right {
-    padding-right: env(safe-area-inset-right);
-    padding-right: max(env(safe-area-inset-right), 0px);
-}
-
-.safe-area-all {
-    padding-top: env(safe-area-inset-top);
-    padding-top: max(env(safe-area-inset-top), 20px);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-bottom: max(env(safe-area-inset-bottom), 20px);
-    padding-left: env(safe-area-inset-left);
-    padding-left: max(env(safe-area-inset-left), 0px);
-    padding-right: env(safe-area-inset-right);
-    padding-right: max(env(safe-area-inset-right), 0px);
-}
-
-/* Mobile viewport optimization */
-.mobile-viewport {
-    min-height: 100vh;
-    min-height: 100dvh;
-    /* Dynamic viewport height */
-    min-height: 100svh;
-    /* Small viewport height */
-}
-
-/* Full screen mode for camera */
-.camera-fullscreen {
-    position: relative;
-    /* เปลี่ยนจาก fixed */
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100vw;
-    min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-    /* ลบพื้นที่ safe area */
-    background: black;
-}
-
-/* ลบการซ่อน scrollbar */
-.camera-fullscreen body {
-    overflow: visible;
-    /* เปลี่ยนจาก hidden */
-}
-
-/* Full screen video element */
-.camera-video-fullscreen {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-}
-
-/* Overlay elements positioning in full screen */
-.camera-overlay-top {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 60;
-    padding-top: 0;
-    /* ลบ safe-area-inset-top */
-}
-
-.camera-overlay-bottom {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 60;
-    padding-bottom: 0;
-    /* ลบ safe-area-inset-bottom */
-}
-
-.camera-overlay-sides {
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-}
-
-/* Hide on mobile */
+/* ✅ Hide/Show Elements */
 .hidden-mobile {
     @apply hidden;
 }
@@ -185,7 +273,6 @@
     }
 }
 
-/* Show only on mobile */
 .mobile-only {
     @apply block;
 }
@@ -196,7 +283,7 @@
     }
 }
 
-/* Mobile-optimized typography */
+/* ✅ Mobile Typography */
 .mobile-title {
     @apply text-lg font-semibold;
 }
@@ -217,53 +304,47 @@
     }
 }
 
-/* Mobile form styles */
+/* ✅ Mobile Form Styles */
 .mobile-form-group {
     @apply space-y-1;
 }
 
 .mobile-input {
     @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-base;
+
+    /* ✅ ป้องกัน zoom ใน iOS */
+    font-size: 16px;
 }
 
 .mobile-label {
     @apply text-sm font-medium text-gray-700;
 }
 
-/* Mobile modal styles */
-.mobile-modal {
-    @apply fixed inset-0 z-50 flex items-end justify-center;
+/* ✅ Custom Scrollbar */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db #f9fafb;
 }
 
-@media (min-width: 768px) {
-    .mobile-modal {
-        @apply items-center;
-    }
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
 }
 
-.mobile-modal-content {
-    @apply w-full max-w-lg bg-white rounded-t-xl;
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f9fafb;
+    border-radius: 3px;
 }
 
-@media (min-width: 768px) {
-    .mobile-modal-content {
-        @apply rounded-xl max-w-md;
-    }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #d1d5db;
+    border-radius: 3px;
 }
 
-/* Full screen camera specific utilities */
-.fullscreen-camera-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    background: #000;
-    z-index: 1000;
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: #9ca3af;
 }
 
-/* Prevent scrolling when in full screen mode */
+/* ✅ Prevent Body Scroll during Full Screen */
 .fullscreen-active {
     overflow: hidden;
     position: fixed;
@@ -271,129 +352,50 @@
     height: 100%;
 }
 
-/* Camera guide frame for full screen */
-.camera-guide-fullscreen {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 80%;
-    max-width: 300px;
-    aspect-ratio: 3/2;
-    border: 2px solid rgba(255, 255, 255, 0.8);
-    border-radius: 12px;
-    z-index: 70;
-}
+/* ✅ iOS Safari Specific Fixes */
+@supports (-webkit-touch-callout: none) {
+    .mobile-viewport {
+        /* ✅ Fix for iOS Safari viewport */
+        min-height: -webkit-fill-available;
+    }
 
-/* Floating controls in full screen */
-.camera-controls-floating {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 80;
-    padding: 1rem;
-    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
-}
-
-/* Status indicators for full screen */
-.camera-status-floating {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 80;
-    padding: 1rem;
-    padding-top: calc(1rem + env(safe-area-inset-top));
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), transparent);
-}
-
-/* Responsive breakpoints for camera */
-@media (max-width: 767px) {
-
-    /* Force full screen on mobile */
-    .camera-container-mobile {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        height: 100dvh;
-        z-index: 1000;
+    .camera-fullscreen {
+        height: -webkit-fill-available;
     }
 }
 
-@media (min-width: 768px) {
-
-    /* Regular container on desktop */
-    .camera-container-desktop {
-        position: relative;
-        max-width: 100%;
-        height: auto;
-        border-radius: 0.75rem;
-        overflow: hidden;
+/* ✅ Android Chrome Specific Fixes */
+@media screen and (max-width: 767px) {
+    .mobile-viewport {
+        /* ✅ Prevent horizontal scroll on mobile */
+        overflow-x: hidden;
     }
 }
 
-/* Animation for entering/exiting full screen */
-.camera-transition {
-    transition: all 0.3s ease-in-out;
+/* ✅ High DPI Screen Support */
+@media (-webkit-min-device-pixel-ratio: 2),
+(min-resolution: 192dpi) {
+    .mobile-card {
+        border-width: 0.5px;
+    }
 }
 
-/* Backdrop blur for overlays */
-.camera-backdrop-blur {
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+/* ✅ Accessibility Improvements */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 
-/* Text shadows for better readability on camera background */
-.camera-text-shadow {
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
-}
+/* ✅ Dark Mode Support (ถ้าต้องการ) */
+@media (prefers-color-scheme: dark) {
+    .mobile-card {
+        @apply bg-gray-800 border-gray-700;
+    }
 
-/* Button styles for camera overlays */
-.camera-overlay-button {
-    @apply bg-white/20 hover:bg-white/30 active:bg-white/40;
-    @apply text-white border border-white/30;
-    @apply backdrop-blur-sm rounded-lg;
-    @apply transition-all duration-200;
-    @apply min-h-[44px] min-w-[44px];
-    @apply flex items-center justify-center;
-}
-
-.camera-overlay-button:disabled {
-    @apply bg-white/10 text-white/50 border-white/20;
-    @apply cursor-not-allowed;
-}
-
-/* Primary action button in camera */
-.camera-primary-button {
-    @apply bg-blue-500/80 hover:bg-blue-500;
-    @apply text-white border-0;
-    @apply backdrop-blur-sm rounded-full;
-    @apply transition-all duration-200;
-    @apply min-h-[56px] min-w-[56px];
-    @apply flex items-center justify-center;
-    @apply shadow-lg;
-}
-
-/* Danger button in camera */
-.camera-danger-button {
-    @apply bg-red-500/80 hover:bg-red-500;
-    @apply text-white border-0;
-    @apply backdrop-blur-sm rounded-lg;
-    @apply transition-all duration-200;
-    @apply min-h-[44px] min-w-[44px];
-    @apply flex items-center justify-center;
-}
-
-/* Success button in camera */
-.camera-success-button {
-    @apply bg-green-500/80 hover:bg-green-500;
-    @apply text-white border-0;
-    @apply backdrop-blur-sm rounded-lg;
-    @apply transition-all duration-200;
-    @apply min-h-[44px] min-w-[44px];
-    @apply flex items-center justify-center;
+    .mobile-card-header {
+        @apply bg-gray-700 border-gray-600;
+    }
 }
