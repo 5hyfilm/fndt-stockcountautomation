@@ -53,10 +53,50 @@ interface EditState {
   quantityDetail?: QuantityDetail;
 }
 
-// ✅ Helper function to extract F/FG code for sorting
+// ✅ FIXED: Helper function to extract F/FG code for sorting - with new product support
 const getFgCode = (item: InventoryItem): string => {
-  const code = item.materialCode || item.barcode || item.id;
-  return code.toString().toUpperCase();
+  // ✅ ตรวจสอบว่าเป็นสินค้าใหม่หรือไม่
+  const isNewProduct =
+    !item.materialCode ||
+    item.materialCode.trim() === "" ||
+    item.materialCode.startsWith("NEW_") ||
+    item.materialCode.startsWith("new_") ||
+    item.brand === "สินค้าใหม่" ||
+    item.brand === "เพิ่มใหม่" ||
+    item.productName?.startsWith("FG");
+
+  if (isNewProduct) {
+    // ✅ สำหรับสินค้าใหม่: ใช้รหัสที่ผู้ใช้กรอก (เก็บใน productData.name) หรือ barcode
+    if (item.productData?.name) {
+      return item.productData.name.toString().toUpperCase();
+    }
+    // Fallback สำหรับสินค้าใหม่: ใช้ barcode
+    if (item.barcode) {
+      return item.barcode.toString().toUpperCase();
+    }
+  } else {
+    // ✅ สำหรับสินค้าในฐานข้อมูล: ใช้รหัสจาก productData.id หรือ materialCode
+    if (item.productData?.id && !item.productData.id.startsWith("NEW_")) {
+      return item.productData.id.toString().toUpperCase();
+    }
+
+    // ใช้ materialCode สำหรับสินค้าเก่า
+    if (
+      item.materialCode &&
+      !item.materialCode.includes("หมื่น") &&
+      !item.materialCode.includes("นิว")
+    ) {
+      return item.materialCode.toString().toUpperCase();
+    }
+
+    // Fallback สำหรับสินค้าเก่า: ใช้ barcode
+    if (item.barcode) {
+      return item.barcode.toString().toUpperCase();
+    }
+  }
+
+  // สุดท้าย: ใช้ id
+  return item.id.toString().toUpperCase();
 };
 
 export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
@@ -236,7 +276,14 @@ export const InventoryDisplay: React.FC<InventoryDisplayProps> = ({
             new Date(b.lastUpdated).getTime();
           break;
         case "fgCode":
-          comparison = getFgCode(a).localeCompare(getFgCode(b));
+          // ✅ FIXED: Now uses the corrected getFgCode function
+          const aCode = getFgCode(a);
+          const bCode = getFgCode(b);
+          console.log("🔍 Sorting fgCode:", {
+            a: { id: a.id, productName: a.productName, code: aCode },
+            b: { id: b.id, productName: b.productName, code: bCode },
+          });
+          comparison = aCode.localeCompare(bCode);
           break;
         default:
           comparison = 0;
