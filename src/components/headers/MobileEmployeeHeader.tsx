@@ -1,4 +1,4 @@
-// src/components/headers/MobileEmployeeHeader.tsx
+// Path: src/components/headers/MobileEmployeeHeader.tsx
 "use client";
 
 import React from "react";
@@ -17,7 +17,7 @@ export const MobileEmployeeHeader: React.FC<MobileEmployeeHeaderProps> = ({
   onLogout,
 }) => {
   return (
-    <div className="bg-gradient-to-r from-fn-green to-fn-red text-white">
+    <div className="bg-gradient-to-r from-fn-green to-fn-red text-white safe-area-top">
       <div className="px-3 py-2 flex items-center justify-between">
         {/* Left side - F&N Logo */}
         <div className="flex items-center gap-2">
