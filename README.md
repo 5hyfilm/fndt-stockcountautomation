@@ -22,8 +22,8 @@ AI-powered barcode scanning system with Next.js frontend and Python Flask backen
 ### Docker (Recommended)
 
 ```bash
-git clone https://github.com/5hyfilm/f-and-n.git
-cd f-and-n
+git clone https://github.com/5hyfilm/fndt-stockcountautomation.git
+cd fndt-stockcountautomation
 docker-compose up --build
 ```
 
