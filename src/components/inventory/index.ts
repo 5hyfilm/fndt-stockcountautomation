@@ -1,5 +1,4 @@
 // src/components/inventory/index.ts
-// export { InventoryHeader } from "./InventoryHeader";
 export { InventoryControls } from "./InventoryControls";
 export { InventoryList } from "./InventoryList";
 export { InventoryListItem } from "./InventoryListItem";

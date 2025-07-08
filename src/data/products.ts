@@ -12,9 +12,6 @@ import {
   debugBarcodeMatching as csvDebugBarcodeMatching,
 } from "./csvProducts";
 
-// Maintain backward compatibility with existing imports
-export const MOCK_PRODUCTS = []; // Empty array since we're using CSV now
-
 export const findProductByBarcode = csvFindProductByBarcode;
 export const searchProducts = csvSearchProducts;
 export const getProductsByCategory = csvGetProductsByCategory;
