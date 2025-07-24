@@ -1,4 +1,4 @@
-// Path: src/app/page.tsx - Fixed with Enhanced Debug for handleSaveNewProduct
+// Path: src/app/page.tsx - Fixed Legacy Methods (No Legacy Code)
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -142,30 +142,27 @@ export default function BarcodeDetectionPage() {
     console.log("---");
   }, [detectedBarcodeType, product, lastDetectedCode]);
 
-  // ✅ FIXED: Enhanced Inventory Management with Multi-Unit API - ไม่ส่ง parameter
+  // ✅ FIXED: Modern Inventory Management (ไม่มี legacy methods)
   const {
     inventory,
     isLoading: isLoadingInventory,
     error: inventoryError,
 
-    // ✅ NEW: Multi-Unit API methods
+    // ✅ Modern multi-unit methods only
     addOrUpdateMultiUnitItem,
-    findItemByMaterialCode,
-
-    // ✅ LEGACY: Keep for backward compatibility
-    addOrUpdateItem,
-    updateItemQuantity,
+    updateUnitQuantity,
     updateItemQuantityDetail,
+    findItemByMaterialCode,
+    findItemByBarcode,
 
     // Core methods (unchanged)
     removeItem,
     clearInventory,
-    findItemByBarcode,
     searchItems,
     clearError: clearInventoryError,
     resetInventoryState,
     summary,
-  } = useInventoryManager(); // ✅ FIXED: ไม่ส่ง parameter ใดๆ
+  } = useInventoryManager();
 
   // ✅ เพิ่ม useInventoryExport hook สำหรับ export จริง
   const { exportInventory: performRealExport } = useInventoryExport({
@@ -270,7 +267,7 @@ export default function BarcodeDetectionPage() {
     };
   }, [isStreaming, activeTab, captureAndProcess, isAuthenticated]);
 
-  // ✅ UPDATED: หาจำนวนสินค้าปัจจุบันใน inventory (รองรับ multi-unit)
+  // ✅ หาจำนวนสินค้าปัจจุบันใน inventory (รองรับ multi-unit)
   const currentInventoryQuantity = React.useMemo(() => {
     if (!lastDetectedCode || !product) return 0;
 
@@ -281,7 +278,7 @@ export default function BarcodeDetectionPage() {
     if (itemByMaterialCode) {
       // คืนค่าจำนวนรวมของหน่วยที่ตรงกับ detected barcode type
       const detectedUnit = detectedBarcodeType || "ea";
-      const unitQuantity = itemByMaterialCode.quantities?.[detectedUnit] || 0;
+      const unitQuantity = itemByMaterialCode.quantities[detectedUnit] || 0;
 
       console.log(
         `🔍 Found by materialCode: ${materialCode}, unit: ${detectedUnit}, qty: ${unitQuantity}`
@@ -305,131 +302,98 @@ export default function BarcodeDetectionPage() {
     findItemByBarcode,
   ]);
 
-  // ✅ UPDATED: Enhanced add to inventory with Multi-Unit API
+  // ✅ FIXED: Enhanced handleAddToInventory to accept directProductGroup
   const handleAddToInventory = (
     product: Product,
     quantityInput: QuantityInput,
-    barcodeType?: "ea" | "dsp" | "cs"
+    barcodeType?: "ea" | "dsp" | "cs",
+    directProductGroup?: string
   ): boolean => {
     const finalBarcodeType = barcodeType || detectedBarcodeType || "ea";
 
-    console.log("🎯 handleAddToInventory called with Multi-Unit API:");
+    console.log("🎯 handleAddToInventory called with Modern API:");
     console.log("  📦 Product:", product?.name);
     console.log("  🆔 Material Code:", product.id || product.barcode);
     console.log("  🔢 QuantityInput:", quantityInput);
     console.log("  🏷️ BarcodeType received:", barcodeType);
     console.log("  🏷️ DetectedBarcodeType:", detectedBarcodeType);
     console.log("  🏷️ Final BarcodeType:", finalBarcodeType);
+    console.log("  🏭 DirectProductGroup:", directProductGroup);
 
-    let success = false;
-    let usedMultiUnitAPI = false; // ✅ Track which API was actually used
-
-    // ✅ Try new Multi-Unit API first
+    // ✅ ใช้ Modern Multi-Unit API เท่านั้น
     if (addOrUpdateMultiUnitItem) {
       try {
-        console.log("🚀 Using new Multi-Unit API...");
-        success = addOrUpdateMultiUnitItem(
+        console.log("🚀 Using Modern Multi-Unit API...");
+        const success = addOrUpdateMultiUnitItem(
           product,
           quantityInput,
           finalBarcodeType,
-          product.category // directProductGroup
+          directProductGroup || product.category // ใช้ directProductGroup ถ้ามี
         );
 
-        if (success) {
-          console.log("✅ Multi-Unit API succeeded");
-          usedMultiUnitAPI = true; // ✅ Mark as used Multi-Unit API
-        } else {
-          console.warn("⚠️ Multi-Unit API returned false, trying fallback...");
+        if (success && employee) {
+          // ✅ Enhanced logging for different quantity types
+          let logMessage = "";
+          if (typeof quantityInput === "number") {
+            const unitType =
+              finalBarcodeType === "cs"
+                ? "ลัง"
+                : finalBarcodeType === "dsp"
+                ? "แพ็ค"
+                : "ชิ้น";
+            logMessage = `${quantityInput} ${unitType}`;
+          } else if (
+            typeof quantityInput === "object" &&
+            "quantity" in quantityInput
+          ) {
+            // New format: { quantity: number, unit: string }
+            const unitMap = { ea: "ชิ้น", dsp: "แพ็ค", cs: "ลัง" };
+            logMessage = `${quantityInput.quantity} ${
+              unitMap[quantityInput.unit]
+            }`;
+          } else {
+            // QuantityDetail format
+            const quantityDetail = quantityInput as QuantityDetail;
+            const unitMap = { ea: "ชิ้น", dsp: "แพ็ค", cs: "ลัง" };
+
+            // สร้าง log message จาก quantities ที่มีค่า > 0
+            const activeParts: string[] = [];
+            if (quantityDetail.cs > 0)
+              activeParts.push(`${quantityDetail.cs} ${unitMap.cs}`);
+            if (quantityDetail.dsp > 0)
+              activeParts.push(`${quantityDetail.dsp} ${unitMap.dsp}`);
+            if (quantityDetail.ea > 0)
+              activeParts.push(`${quantityDetail.ea} ${unitMap.ea}`);
+
+            logMessage = activeParts.join(" + ") || "0 ชิ้น";
+          }
+
+          console.log(
+            `✅ Added ${logMessage} of ${
+              product?.name
+            } (${finalBarcodeType.toUpperCase()}) using Modern API`
+          );
+
+          // ✅ Log current inventory summary
+          console.log("📊 Current inventory summary:", {
+            totalItems: summary.totalItems,
+            totalCS: summary.quantityBreakdown?.totalCS || 0,
+            totalDSP: summary.quantityBreakdown?.totalDSP || 0,
+            totalEA: summary.quantityBreakdown?.totalEA || 0,
+            itemsWithMultipleUnits:
+              summary.quantityBreakdown?.itemsWithMultipleUnits || 0,
+          });
         }
+
+        return success;
       } catch (error) {
-        console.error("❌ Multi-Unit API error:", error);
-        console.log("🔄 Falling back to legacy API...");
+        console.error("❌ Modern Multi-Unit API error:", error);
+        return false;
       }
+    } else {
+      console.error("❌ addOrUpdateMultiUnitItem function not available");
+      return false;
     }
-
-    // ✅ Fallback to legacy API if new API fails or unavailable
-    if (!success) {
-      console.log("🔄 Using legacy API...");
-
-      // ✅ FIXED: Convert QuantityInput to number for legacy API
-      let legacyQuantity: number = 1; // default
-
-      if (typeof quantityInput === "number") {
-        legacyQuantity = quantityInput;
-      } else if (
-        typeof quantityInput === "object" &&
-        "quantity" in quantityInput
-      ) {
-        // New format: { quantity: number, unit: string }
-        legacyQuantity = quantityInput.quantity;
-      } else {
-        // QuantityDetail format - sum up the detected unit
-        const quantityDetail = quantityInput as QuantityDetail;
-        legacyQuantity =
-          quantityDetail[finalBarcodeType] ||
-          quantityDetail.cs + quantityDetail.dsp + quantityDetail.ea ||
-          1; // fallback to 1
-      }
-
-      success = addOrUpdateItem(product, legacyQuantity, finalBarcodeType);
-      usedMultiUnitAPI = false; // ✅ Mark as used Legacy API
-    }
-
-    if (success && employee) {
-      // ✅ Enhanced logging for different quantity types
-      let logMessage = "";
-      if (typeof quantityInput === "number") {
-        const unitType =
-          finalBarcodeType === "cs"
-            ? "ลัง"
-            : finalBarcodeType === "dsp"
-            ? "แพ็ค"
-            : "ชิ้น";
-        logMessage = `${quantityInput} ${unitType}`;
-      } else if (
-        typeof quantityInput === "object" &&
-        "quantity" in quantityInput
-      ) {
-        // New format: { quantity: number, unit: string }
-        const unitMap = { ea: "ชิ้น", dsp: "แพ็ค", cs: "ลัง" };
-        logMessage = `${quantityInput.quantity} ${unitMap[quantityInput.unit]}`;
-      } else {
-        // ✅ FIXED: QuantityDetail format - use new structure
-        const quantityDetail = quantityInput as QuantityDetail;
-        const unitMap = { ea: "ชิ้น", dsp: "แพ็ค", cs: "ลัง" };
-
-        // สร้าง log message จาก quantities ที่มีค่า > 0
-        const activeParts: string[] = [];
-        if (quantityDetail.cs > 0)
-          activeParts.push(`${quantityDetail.cs} ${unitMap.cs}`);
-        if (quantityDetail.dsp > 0)
-          activeParts.push(`${quantityDetail.dsp} ${unitMap.dsp}`);
-        if (quantityDetail.ea > 0)
-          activeParts.push(`${quantityDetail.ea} ${unitMap.ea}`);
-
-        logMessage = activeParts.join(" + ") || "0 ชิ้น";
-      }
-
-      console.log(
-        `✅ Added ${logMessage} of ${
-          product?.name
-        } (${finalBarcodeType.toUpperCase()}) using ${
-          usedMultiUnitAPI ? "Multi-Unit" : "Legacy"
-        } API`
-      );
-
-      // ✅ Log current inventory summary
-      console.log("📊 Current inventory summary:", {
-        totalItems: summary.totalItems,
-        totalCS: summary.quantityBreakdown?.totalCS || 0,
-        totalDSP: summary.quantityBreakdown?.totalDSP || 0,
-        totalEA: summary.quantityBreakdown?.totalEA || 0,
-        itemsWithMultipleUnits:
-          summary.quantityBreakdown?.itemsWithMultipleUnits || 0,
-      });
-    }
-
-    return success;
   };
 
   // ✅ New handler สำหรับเพิ่มสินค้าใหม่
@@ -441,7 +405,7 @@ export default function BarcodeDetectionPage() {
     setShowAddProductForm(true);
   };
 
-  // 🔍 ENHANCED DEBUG: Handler สำหรับบันทึกสินค้าใหม่ - รองรับครบ 3 หน่วย (CS, DSP, EA)
+  // ✅ Handler สำหรับบันทึกสินค้าใหม่ - รองรับครบ 3 หน่วย (CS, DSP, EA)
   const handleSaveNewProduct = async (productData: {
     barcode: string;
     productName: string;
@@ -452,32 +416,8 @@ export default function BarcodeDetectionPage() {
     countPieces: number;
   }): Promise<boolean> => {
     try {
-      // 🚀 ENHANCED DEBUG: Log ข้อมูลที่รับเข้ามา
       console.log("🚀 === START SAVING NEW PRODUCT ===");
-      console.log("📝 Input productData:", {
-        barcode: productData.barcode,
-        productName: productData.productName,
-        productGroup: productData.productGroup,
-        description: productData.description,
-        countCs: productData.countCs,
-        countDsp: productData.countDsp,
-        countPieces: productData.countPieces,
-        "typeof countCs": typeof productData.countCs,
-        "typeof countDsp": typeof productData.countDsp,
-        "typeof countPieces": typeof productData.countPieces,
-      });
-
-      // 🔍 DEBUG: ตรวจสอบว่ามีจำนวนอะไรบ้าง
-      const hasCs = productData.countCs > 0;
-      const hasDsp = productData.countDsp > 0;
-      const hasEa = productData.countPieces > 0;
-
-      console.log("📊 Quantity Check:", {
-        hasCs,
-        hasDsp,
-        hasEa,
-        totalUnitsWithQuantity: [hasCs, hasDsp, hasEa].filter(Boolean).length,
-      });
+      console.log("📝 Input productData:", productData);
 
       // ✅ Validate product group
       if (!isValidProductGroup(productData.productGroup)) {
@@ -501,23 +441,11 @@ export default function BarcodeDetectionPage() {
 
       console.log("🏭 Created newProduct:", newProduct);
 
-      let success = false;
+      // ✅ ใช้ Modern Multi-Unit API สำหรับบันทึกทุกหน่วย
+      if (addOrUpdateMultiUnitItem) {
+        console.log("🔥 Using Modern Multi-Unit API for all 3 units");
 
-      // 🔍 DEBUG: ตรวจสอบว่า addOrUpdateMultiUnitItem มีอยู่หรือไม่
-      console.log("🔧 Checking available methods:", {
-        hasAddOrUpdateMultiUnitItem:
-          typeof addOrUpdateMultiUnitItem === "function",
-        hasAddOrUpdateItem: typeof addOrUpdateItem === "function",
-      });
-
-      // ✅ Use Multi-Unit API for adding quantities - FIXED: รวมทุกหน่วยใน call เดียว
-      if (
-        addOrUpdateMultiUnitItem &&
-        typeof addOrUpdateMultiUnitItem === "function"
-      ) {
-        console.log("🔥 Using Multi-Unit API for all 3 units - FIXED VERSION");
-
-        // 🔧 สร้าง QuantityDetail รวมทุกหน่วยใน object เดียว
+        // สร้าง QuantityDetail รวมทุกหน่วยใน object เดียว
         const allUnitsQuantity: QuantityDetail = {
           cs: productData.countCs || 0,
           dsp: productData.countDsp || 0,
@@ -529,7 +457,7 @@ export default function BarcodeDetectionPage() {
           allUnitsQuantity
         );
 
-        // 🔍 เช็คว่ามีหน่วยไหนมีจำนวน > 0 บ้าง
+        // เช็คว่ามีหน่วยไหนมีจำนวน > 0 บ้าง
         const hasAnyQuantity =
           allUnitsQuantity.cs > 0 ||
           allUnitsQuantity.dsp > 0 ||
@@ -539,20 +467,20 @@ export default function BarcodeDetectionPage() {
           try {
             console.log("💾 Saving all units in single call...");
 
-            // 🔥 FIXED: เรียกใช้ครั้งเดียวด้วย QuantityDetail
-            const multiUnitSuccess = addOrUpdateMultiUnitItem(
+            // เรียกใช้ครั้งเดียวด้วย QuantityDetail
+            const success = addOrUpdateMultiUnitItem(
               newProduct,
               allUnitsQuantity, // ส่ง QuantityDetail ที่มีทุกหน่วย
-              "ea", // barcodeType หลัก (ไม่สำคัญเพราะมีทุกหน่วยใน QuantityDetail)
+              "ea", // barcodeType หลัก
               productData.productGroup
             );
 
-            console.log(`📦 Multi-Unit API Result: ${multiUnitSuccess}`);
+            console.log(`📦 Multi-Unit API Result: ${success}`);
 
-            if (multiUnitSuccess) {
+            if (success) {
               console.log("✅ Successfully saved all units in single item!");
 
-              // ✅ FIXED: Log แต่ละหน่วยที่บันทึก - เปลี่ยนจาก let เป็น const
+              // Log แต่ละหน่วยที่บันทึก
               const savedUnits: string[] = [];
               if (allUnitsQuantity.cs > 0)
                 savedUnits.push(`CS: ${allUnitsQuantity.cs} ลัง`);
@@ -562,168 +490,33 @@ export default function BarcodeDetectionPage() {
                 savedUnits.push(`EA: ${allUnitsQuantity.ea} ชิ้น`);
 
               console.log("📋 Saved units:", savedUnits.join(", "));
-              success = true;
+
+              // ปิด form
+              setShowAddProductForm(false);
+              setNewProductBarcode("");
+
+              // ปิด product slide และเริ่มสแกนใหม่
+              restartForNextScan();
+
+              return true;
             } else {
               console.warn("⚠️ Multi-Unit API returned false");
-              success = false;
+              return false;
             }
-          } catch (multiError) {
-            console.error("❌ Multi-Unit API Error:", multiError);
-            success = false;
+          } catch (error) {
+            console.error("❌ Multi-Unit API Error:", error);
+            return false;
           }
         } else {
           console.log("⏭️ No quantities to save (all units are 0)");
-          success = false;
+          return false;
         }
-
-        console.log("📊 Multi-Unit API Summary:", {
-          hasAnyQuantity,
-          success,
-          totalUnits: Object.values(allUnitsQuantity).filter((q) => q > 0)
-            .length,
-        });
       } else {
-        // ✅ FIXED: Fallback to legacy method - บันทึกทั้ง 3 หน่วย
-        console.log(
-          "🔄 Multi-Unit API not available, using enhanced legacy method..."
-        );
-
-        // ตรวจสอบว่ามีจำนวนอย่างน้อย 1 หน่วย
-        if (
-          productData.countCs > 0 ||
-          productData.countDsp > 0 ||
-          productData.countPieces > 0
-        ) {
-          // 🔥 NEW: บันทึกแต่ละหน่วยแยกกัน แทนที่จะรวมกัน
-          let legacySuccess = false;
-          // ✅ FIXED: เปลี่ยนจาก let เป็น const เพราะไม่ได้ reassign array ใหม่ แต่ push ข้อมูลเข้าไป
-          const savedUnits: string[] = [];
-
-          // 🔍 DEBUG: บันทึก CS หากมี
-          if (productData.countCs > 0) {
-            console.log(
-              `💼 Legacy: Attempting to save CS: ${productData.countCs} ลัง`
-            );
-            try {
-              const csSuccess = addOrUpdateItem(
-                newProduct,
-                productData.countCs,
-                "cs",
-                productData.productGroup
-              );
-              console.log(`📦 Legacy CS Save Result: ${csSuccess}`);
-              if (csSuccess) {
-                console.log(`✅ Legacy: Added CS: ${productData.countCs} ลัง`);
-                legacySuccess = true;
-                savedUnits.push(`CS: ${productData.countCs} ลัง`);
-              }
-            } catch (csError) {
-              console.error("❌ Legacy CS Save Error:", csError);
-            }
-          } else {
-            console.log("⏭️ Legacy: Skipping CS (count is 0)");
-          }
-
-          // 🔍 DEBUG: บันทึก DSP หากมี
-          if (productData.countDsp > 0) {
-            console.log(
-              `📦 Legacy: Attempting to save DSP: ${productData.countDsp} แพ็ค`
-            );
-            try {
-              const dspSuccess = addOrUpdateItem(
-                newProduct,
-                productData.countDsp,
-                "dsp",
-                productData.productGroup
-              );
-              console.log(`📦 Legacy DSP Save Result: ${dspSuccess}`);
-              if (dspSuccess) {
-                console.log(
-                  `✅ Legacy: Added DSP: ${productData.countDsp} แพ็ค`
-                );
-                legacySuccess = true;
-                savedUnits.push(`DSP: ${productData.countDsp} แพ็ค`);
-              }
-            } catch (dspError) {
-              console.error("❌ Legacy DSP Save Error:", dspError);
-            }
-          } else {
-            console.log("⏭️ Legacy: Skipping DSP (count is 0)");
-          }
-
-          // 🔍 DEBUG: บันทึก EA หากมี
-          if (productData.countPieces > 0) {
-            console.log(
-              `🔢 Legacy: Attempting to save EA: ${productData.countPieces} ชิ้น`
-            );
-            try {
-              const eaSuccess = addOrUpdateItem(
-                newProduct,
-                productData.countPieces,
-                "ea",
-                productData.productGroup
-              );
-              console.log(`🔢 Legacy EA Save Result: ${eaSuccess}`);
-              if (eaSuccess) {
-                console.log(
-                  `✅ Legacy: Added EA: ${productData.countPieces} ชิ้น`
-                );
-                legacySuccess = true;
-                savedUnits.push(`EA: ${productData.countPieces} ชิ้น`);
-              }
-            } catch (eaError) {
-              console.error("❌ Legacy EA Save Error:", eaError);
-            }
-          } else {
-            console.log("⏭️ Legacy: Skipping EA (count is 0)");
-          }
-
-          success = legacySuccess;
-
-          console.log("📊 Legacy Method Summary:", {
-            legacySuccess,
-            savedUnits,
-            totalSavedUnits: savedUnits.length,
-          });
-        }
-      }
-
-      // 🔍 FINAL DEBUG
-      console.log("🏁 === FINAL RESULT ===");
-      console.log("✅ Overall Success:", success);
-
-      if (success) {
-        console.log("🎉 Product saved successfully!");
-        console.log("📋 Summary:");
-        console.log(`   📦 Product: ${productData.productName}`);
-        console.log(`   📦 Product Group: ${productData.productGroup}`);
-        console.log(`   📦 CS: ${productData.countCs} ลัง`);
-        console.log(`   📦 DSP: ${productData.countDsp} แพ็ค`);
-        console.log(`   🔢 EA: ${productData.countPieces} ชิ้น`);
-
-        // ปิด form
-        setShowAddProductForm(false);
-        setNewProductBarcode("");
-
-        // ปิด product slide และเริ่มสแกนใหม่
-        restartForNextScan();
-
-        return true;
-      } else {
-        console.warn("⚠️ Save failed - No quantities saved or all units are 0");
-        console.log("🔍 Debug Info:");
-        console.log("   - Check if quantities are greater than 0");
-        console.log("   - Check if addOrUpdateMultiUnitItem function exists");
-        console.log("   - Check if addOrUpdateItem function exists");
-        console.log("   - Check console for any error messages");
+        console.error("❌ addOrUpdateMultiUnitItem function not available");
         return false;
       }
     } catch (error) {
       console.error("💥 ERROR in handleSaveNewProduct:", error);
-      console.error(
-        "Stack trace:",
-        error instanceof Error ? error.stack : "No stack trace available"
-      );
       return false;
     }
   };
@@ -734,7 +527,7 @@ export default function BarcodeDetectionPage() {
     setNewProductBarcode("");
   };
 
-  // ✅ FIXED: Handler for updating quantity details with materialCode support
+  // ✅ Handler for updating quantity details with materialCode support
   const handleUpdateItemQuantityDetail = (
     materialCode: string,
     quantityDetail: QuantityDetail
@@ -745,7 +538,7 @@ export default function BarcodeDetectionPage() {
       updateItemQuantityDetailExists: !!updateItemQuantityDetail,
     });
 
-    // ✅ Call the actual inventory manager function with materialCode
+    // Call the actual inventory manager function with materialCode
     if (updateItemQuantityDetail) {
       try {
         const success = updateItemQuantityDetail(materialCode, quantityDetail);
@@ -753,7 +546,7 @@ export default function BarcodeDetectionPage() {
         if (success) {
           console.log("✅ Quantity detail updated successfully");
 
-          // ✅ Log current inventory summary after update
+          // Log current inventory summary after update
           console.log("📊 Updated inventory summary:", {
             totalItems: summary.totalItems,
             totalCS: summary.quantityBreakdown?.totalCS || 0,
@@ -777,7 +570,52 @@ export default function BarcodeDetectionPage() {
     return false;
   };
 
-  // ✅ FIXED: Handle export with real export function - Updated to return Promise<void>
+  // ✅ FIXED: Modern legacy adapters for InventoryDisplay compatibility
+  const handleLegacyAddOrUpdateItem = (
+    product: Product,
+    quantityInput: number,
+    barcodeType?: "ea" | "dsp" | "cs",
+    directProductGroup?: string
+  ): boolean => {
+    console.log("🔄 Legacy adapter: converting to modern API");
+
+    // Convert legacy call to modern multi-unit API
+    return handleAddToInventory(
+      product,
+      quantityInput,
+      barcodeType,
+      directProductGroup
+    );
+  };
+
+  const handleLegacyUpdateItemQuantity = (
+    itemId: string,
+    newQuantity: number
+  ): boolean => {
+    console.log("🔄 Legacy adapter: updateItemQuantity", {
+      itemId,
+      newQuantity,
+    });
+
+    // Find item by ID and update using modern API
+    const item = inventory.find((item) => item.id === itemId);
+    if (!item) {
+      console.error("❌ Item not found:", itemId);
+      return false;
+    }
+
+    // Determine the primary unit to update
+    const activeUnits = (["cs", "dsp", "ea"] as const).filter(
+      (unit) => (item.quantities[unit] || 0) > 0
+    );
+
+    const primaryUnit = activeUnits.length > 0 ? activeUnits[0] : "ea";
+
+    // Use modern updateUnitQuantity
+    return updateUnitQuantity(item.materialCode, primaryUnit, newQuantity);
+  };
+
+  // ✅ Handle export with real export function
   const handleExportInventory = async (): Promise<void> => {
     if (!employee) {
       console.warn("⚠️ No employee data available for export");
@@ -790,7 +628,6 @@ export default function BarcodeDetectionPage() {
     console.log(`📦 Inventory items: ${inventory.length}`);
 
     try {
-      // ✅ ใช้ performRealExport แทน exportInventory
       const success = await performRealExport();
 
       if (success) {
@@ -822,7 +659,7 @@ export default function BarcodeDetectionPage() {
   const clearAllErrors = () => {
     clearError();
     clearInventoryError();
-    setExportError(null); // ✅ เพิ่ม clear export error
+    setExportError(null);
   };
 
   // Show login form if not authenticated
@@ -885,14 +722,14 @@ export default function BarcodeDetectionPage() {
             // Torch props
             torchOn={torchOn}
             onToggleTorch={toggleTorch}
-            // ✅ Updated Product props
+            // Product props
             product={product}
             detectedBarcodeType={detectedBarcodeType}
             isLoadingProduct={isLoadingProduct}
             productError={productError}
             lastDetectedCode={lastDetectedCode}
             scannedBarcode={lastDetectedCode}
-            // Product actions - ✅ Updated with Multi-Unit API
+            // Product actions
             onAddToInventory={handleAddToInventory}
             onAddNewProduct={handleAddNewProduct}
             restartForNextScan={restartForNextScan}
@@ -916,7 +753,7 @@ export default function BarcodeDetectionPage() {
           unsavedDataCount={unsavedDataCount}
         />
 
-        {/* ✅ Add New Product Form */}
+        {/* Add New Product Form */}
         <AddNewProductForm
           isVisible={showAddProductForm}
           barcode={newProductBarcode}
@@ -992,14 +829,14 @@ export default function BarcodeDetectionPage() {
                 // Torch props
                 torchOn={torchOn}
                 onToggleTorch={toggleTorch}
-                // ✅ Updated Product props
+                // Product props
                 product={product}
                 detectedBarcodeType={detectedBarcodeType}
                 isLoadingProduct={isLoadingProduct}
                 productError={productError}
                 lastDetectedCode={lastDetectedCode}
                 scannedBarcode={lastDetectedCode}
-                // Product actions - ✅ Updated with Multi-Unit API
+                // Product actions
                 onAddToInventory={handleAddToInventory}
                 onAddNewProduct={handleAddNewProduct}
                 restartForNextScan={restartForNextScan}
@@ -1066,7 +903,7 @@ export default function BarcodeDetectionPage() {
                       error={productError || undefined}
                       currentInventoryQuantity={currentInventoryQuantity}
                       isMobile={false}
-                      onAddToInventory={handleAddToInventory} // ✅ Updated with Multi-Unit API
+                      onAddToInventory={handleAddToInventory}
                     />
                   </div>
                 </div>
@@ -1116,13 +953,13 @@ export default function BarcodeDetectionPage() {
                 summary={summary}
                 isLoading={isLoadingInventory}
                 error={inventoryError || exportError}
-                // ✅ FIXED: ใช้ prop names ที่ถูกต้องตาม interface
-                onAddOrUpdateItem={addOrUpdateItem}
-                onUpdateItemQuantity={updateItemQuantity}
-                onUpdateItemQuantityDetail={handleUpdateItemQuantityDetail} // ✅ FIXED: Use wrapper function with materialCode
+                // ✅ FIXED: ใช้ legacy adapters แทน direct legacy methods
+                onAddOrUpdateItem={handleLegacyAddOrUpdateItem}
+                onUpdateItemQuantity={handleLegacyUpdateItemQuantity}
+                onUpdateItemQuantityDetail={handleUpdateItemQuantityDetail}
                 onRemoveItem={removeItem}
                 onClearInventory={clearInventory}
-                onExport={handleExportInventory} // ✅ ใช้ function ที่แก้ไขแล้ว
+                onExport={handleExportInventory}
                 onClearError={() => {
                   clearInventoryError();
                   setExportError(null);
@@ -1158,7 +995,7 @@ export default function BarcodeDetectionPage() {
         unsavedDataCount={unsavedDataCount}
       />
 
-      {/* ✅ Add New Product Form */}
+      {/* Add New Product Form */}
       <AddNewProductForm
         isVisible={showAddProductForm}
         barcode={newProductBarcode}

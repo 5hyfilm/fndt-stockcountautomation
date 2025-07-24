@@ -1,10 +1,9 @@
-// Path: ./src/hooks/useInventoryManager.tsx
+// Path: src/hooks/useInventoryManager.tsx - Fixed Import Exports (No Legacy Types)
 "use client";
 
-// ✅ FIXED: Import and re-export types from the correct location (types.ts)
-// ให้ import type จาก types.ts แทนที่จะ import จาก useInventoryManager ที่อาจจะไม่ได้ export
+// ✅ FIXED: Export only existing types (ลบ LegacyInventoryItem ออกแล้ว)
 export {
-  // ✅ Import types from types.ts (where they should be defined)
+  // ✅ Core types (ไม่มี LegacyInventoryItem แล้ว)
   type InventoryItem,
   type InventorySummary,
   type EmployeeContext,
@@ -12,7 +11,6 @@ export {
   type QuantityDetail,
   type MultiUnitQuantities,
   type QuantityInput,
-  type LegacyInventoryItem,
   type StorageConfig,
   type ExportOptions,
 } from "./inventory/types";
@@ -25,5 +23,5 @@ export {
   useInventoryStorage,
   useInventoryOperations,
   useInventorySummary,
-  useInventoryExport, // ✅ เปิดใช้งานอีกครั้งหลังจากแก้ conflict แล้ว
+  useInventoryExport,
 } from "./inventory";

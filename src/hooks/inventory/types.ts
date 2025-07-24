@@ -1,14 +1,14 @@
-// Path: src/hooks/inventory/types.ts - Phase 2: Fixed Interface Definition
+// Path: src/hooks/inventory/types.ts - Cleaned Version (No Legacy Code)
 import { Product } from "../../types/product";
 
-// ✅ NEW: Multi-unit quantities interface (ไม่มี remainder แล้ว)
+// ✅ Multi-unit quantities interface
 export interface MultiUnitQuantities {
   cs?: number; // ลัง
   dsp?: number; // แพ็ค
   ea?: number; // ชิ้น
 }
 
-// ✅ NEW: QuantityDetail interface for detailed quantity tracking
+// ✅ QuantityDetail interface for detailed quantity tracking
 export interface QuantityDetail {
   cs: number; // ลัง
   dsp: number; // แพ็ค
@@ -18,7 +18,7 @@ export interface QuantityDetail {
   lastModified?: string; // เวลาที่แก้ไขล่าสุด
 }
 
-// ✅ NEW: Simplified quantity input (รองรับทั้งแบบเก่าและใหม่)
+// ✅ Simplified quantity input
 export type QuantityInput =
   | number
   | {
@@ -56,26 +56,26 @@ export const isUnitQuantity = (
   );
 };
 
-// ✅ UPDATED: InventoryItem with multi-unit support
+// ✅ Modern InventoryItem interface (ไม่มี legacy fields)
 export interface InventoryItem {
   id: string;
 
-  // ✅ Product identification (ใช้ materialCode เป็นหลัก)
-  materialCode: string; // รหัสสินค้า (สำคัญ - ใช้รวม SKU)
+  // ✅ Product identification
+  materialCode: string; // รหัสสินค้า (หลัก - ใช้รวม SKU)
   productName: string;
   brand: string;
   category: string;
   size: string;
   unit: string;
 
-  // ✅ OLD: Keep for backward compatibility
+  // ✅ Barcode information
   barcode: string; // บาร์โค้ดหลัก (primary)
-  quantity: number; // จำนวนรวม (สำหรับ compatibility)
 
-  // ✅ NEW: Multi-unit quantities (ไม่มี remainder)
-  quantities: MultiUnitQuantities;
+  // ✅ Quantity management
+  quantity: number; // จำนวนรวมทั้งหมด (calculated field)
+  quantities: MultiUnitQuantities; // จำนวนแยกตามหน่วย (required)
 
-  // ✅ NEW: Optional detailed quantity tracking
+  // ✅ Optional detailed quantity tracking
   quantityDetail?: QuantityDetail;
 
   // ✅ Metadata
@@ -87,37 +87,12 @@ export interface InventoryItem {
   productGroup?: string;
   thaiDescription?: string;
 
-  // ✅ Barcode tracking (เก็บประเภทบาร์โค้ดที่เคยสแกน)
+  // ✅ Barcode tracking (เก็บบาร์โค้ดที่สแกนแต่ละประเภท)
   scannedBarcodes?: {
     cs?: string;
     dsp?: string;
     ea?: string;
   };
-
-  // ✅ Legacy support
-  barcodeType?: "cs" | "dsp" | "ea";
-}
-
-// ✅ NEW: Legacy inventory item interface for migration purposes
-export interface LegacyInventoryItem {
-  id: string;
-  materialCode?: string;
-  productName: string;
-  brand: string;
-  category: string;
-  size: string;
-  unit: string;
-  barcode: string;
-  quantity: number;
-  lastUpdated?: string;
-  productData?: Product;
-  addedBy?: string;
-  branchCode?: string;
-  branchName?: string;
-  productGroup?: string;
-  thaiDescription?: string;
-  barcodeType?: "cs" | "dsp" | "ea";
-  // Note: quantities field will be missing in legacy items
 }
 
 // ✅ Inventory summary interface
@@ -161,84 +136,21 @@ export interface ExportOptions {
   includeTotalColumn?: boolean; // รวม column จำนวนรวม
 }
 
-// ✅ Helper function: Get total quantity across all units
+// ✅ Helper function: Get total quantity across all units (ลบ legacy check)
 export const getTotalQuantityAllUnits = (item: InventoryItem): number => {
-  if (!item.quantities) {
-    return item.quantity || 0;
-  }
-
   const { cs = 0, dsp = 0, ea = 0 } = item.quantities;
   return cs + dsp + ea;
 };
 
-// ✅ FIXED: Helper function with proper typing - no more 'any'
-export const migrateOldInventoryItem = (
-  oldItem: LegacyInventoryItem | InventoryItem,
-  barcodeType: "cs" | "dsp" | "ea" = "ea"
-): InventoryItem => {
-  // Type guard: If already migrated (has quantities), return as is
-  if ("quantities" in oldItem && oldItem.quantities) {
-    return oldItem as InventoryItem;
-  }
-
-  // Cast to legacy item for migration
-  const legacyItem = oldItem as LegacyInventoryItem;
-
-  // Create new quantities structure
-  const quantities: MultiUnitQuantities = {
-    cs: 0,
-    dsp: 0,
-    ea: 0,
-  };
-
-  // Migrate based on barcode type
-  const quantity = legacyItem.quantity || 0;
-  quantities[barcodeType] = quantity;
-
-  return {
-    ...legacyItem,
-    materialCode:
-      legacyItem.materialCode || legacyItem.id || legacyItem.barcode,
-    quantities,
-    barcodeType, // Keep for reference
-    lastUpdated: legacyItem.lastUpdated || new Date().toISOString(),
-  };
-};
-
-// ✅ Type guard to check if item is legacy format
-export const isLegacyInventoryItem = (
-  item: unknown
-): item is LegacyInventoryItem => {
-  return (
-    typeof item === "object" &&
-    item !== null &&
-    "id" in item &&
-    "barcode" in item &&
-    "quantity" in item &&
-    !("quantities" in item)
-  );
-};
-
-// ✅ Type guard to check if item is modern format
-export const isModernInventoryItem = (item: unknown): item is InventoryItem => {
-  return (
-    typeof item === "object" &&
-    item !== null &&
-    "id" in item &&
-    "barcode" in item &&
-    "quantities" in item
-  );
-};
-
-// ✅ FIXED: Complete UseInventoryManagerReturn interface with all required methods
+// ✅ Clean UseInventoryManagerReturn interface (ไม่มี legacy methods)
 export interface UseInventoryManagerReturn {
-  // State
+  // ✅ State
   inventory: InventoryItem[];
   isLoading: boolean;
   error: string | null;
   summary: InventorySummary;
 
-  // ✅ NEW: Multi-unit operations (หลัก)
+  // ✅ Core multi-unit operations
   addOrUpdateMultiUnitItem: (
     product: Product,
     quantityInput: QuantityInput,
@@ -246,45 +158,29 @@ export interface UseInventoryManagerReturn {
     directProductGroup?: string
   ) => boolean;
 
-  // ✅ NEW: Update specific unit quantity
   updateUnitQuantity: (
     materialCode: string,
     unit: "cs" | "dsp" | "ea",
     newQuantity: number
   ) => boolean;
 
-  // ✅ FIXED: Update quantity detail method (ชื่อใหม่ที่ถูกต้อง)
   updateItemQuantityDetail: (
     materialCode: string,
     quantityDetail: QuantityDetail
   ) => boolean;
 
-  // ✅ FIXED: Add findItemByMaterialCode method
+  // ✅ Search and find operations
   findItemByMaterialCode: (materialCode: string) => InventoryItem | undefined;
-
-  // ✅ FIXED: Add findItemByBarcode method
   findItemByBarcode: (barcode: string) => InventoryItem | undefined;
-
-  // ✅ Legacy support (อาจจะเอาออกในอนาคต)
-  addOrUpdateItem: (
-    product: Product,
-    quantityInput: number,
-    barcodeType?: "cs" | "dsp" | "ea",
-    directProductGroup?: string
-  ) => boolean;
-
-  updateItemQuantity: (itemId: string, newQuantity: number) => boolean;
-  removeItem: (itemId: string) => boolean;
-  clearInventory: () => boolean;
   searchItems: (searchTerm: string) => InventoryItem[];
 
-  // ✅ FIXED: exportInventory method (return boolean, not Promise<void>)
+  // ✅ Core operations
+  removeItem: (itemId: string) => boolean;
+  clearInventory: () => boolean;
   exportInventory: () => boolean;
-
-  // ✅ FIXED: Add resetInventoryState method
   resetInventoryState: () => boolean;
 
-  // Utilities
+  // ✅ Utilities
   clearError: () => void;
   loadInventory: () => void;
 }

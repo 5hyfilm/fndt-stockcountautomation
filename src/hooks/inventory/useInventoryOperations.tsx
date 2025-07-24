@@ -1,4 +1,4 @@
-// Path: src/hooks/inventory/useInventoryOperations.tsx - Fixed with QuantityDetail Support
+// Path: src/hooks/inventory/useInventoryOperations.tsx - Cleaned Version (No Legacy Code)
 "use client";
 
 import { useCallback } from "react";
@@ -30,7 +30,7 @@ export const useInventoryOperations = ({
     return product.name || product.barcode || `MAT_${Date.now()}`;
   }, []);
 
-  // ✅ Find item by material code (ใหม่ - สำคัญ!)
+  // ✅ Find item by material code (หลัก)
   const findItemByMaterialCode = useCallback(
     (materialCode: string): InventoryItem | undefined => {
       return inventory.find((item) => item.materialCode === materialCode);
@@ -38,7 +38,7 @@ export const useInventoryOperations = ({
     [inventory]
   );
 
-  // ✅ Find item by barcode (เก่า - เก็บไว้เพื่อ compatibility)
+  // ✅ Find item by barcode (รองรับ multi-barcode)
   const findItemByBarcode = useCallback(
     (barcode: string): InventoryItem | undefined => {
       return inventory.find(
@@ -52,7 +52,7 @@ export const useInventoryOperations = ({
     [inventory]
   );
 
-  // ✅ FIXED: Add or update multi-unit item with QuantityDetail support
+  // ✅ Add or update multi-unit item with QuantityDetail support
   const addOrUpdateMultiUnitItem = useCallback(
     (
       product: Product,
@@ -63,7 +63,7 @@ export const useInventoryOperations = ({
       try {
         setError(null);
 
-        // ✅ FIXED: Parse quantity input with QuantityDetail support
+        // ✅ Parse quantity input with QuantityDetail support
         let quantities: MultiUnitQuantities = {};
 
         if (typeof quantityInput === "number") {
@@ -91,7 +91,7 @@ export const useInventoryOperations = ({
             );
           }
         } else if (isQuantityDetail(quantityInput)) {
-          // ✅ NEW: QuantityDetail input - รองรับครบ 3 หน่วย
+          // ✅ QuantityDetail input - รองรับครบ 3 หน่วย
           const quantityDetail = quantityInput as QuantityDetail;
           quantities = {
             cs: quantityDetail.cs,
@@ -238,7 +238,7 @@ export const useInventoryOperations = ({
     ]
   );
 
-  // ✅ NEW: Update specific unit quantity
+  // ✅ Update specific unit quantity
   const updateUnitQuantity = useCallback(
     (
       materialCode: string,
@@ -298,63 +298,7 @@ export const useInventoryOperations = ({
     [inventory, setInventory, saveInventory, setError, findItemByMaterialCode]
   );
 
-  // ✅ LEGACY: รองรับ API เก่า (จะค่อย ๆ เอาออก)
-  const addOrUpdateItem = useCallback(
-    (
-      product: Product,
-      quantityInput: number | QuantityDetail,
-      barcodeType: "cs" | "dsp" | "ea" = "ea",
-      directProductGroup?: string
-    ): boolean => {
-      console.log(
-        "⚠️ Using legacy addOrUpdateItem, consider migrating to addOrUpdateMultiUnitItem"
-      );
-      return addOrUpdateMultiUnitItem(
-        product,
-        quantityInput,
-        barcodeType,
-        directProductGroup
-      );
-    },
-    [addOrUpdateMultiUnitItem]
-  );
-
-  // ✅ LEGACY: Update item quantity (จะค่อย ๆ เอาออก)
-  const updateItemQuantity = useCallback(
-    (itemId: string, newQuantity: number): boolean => {
-      try {
-        console.log(
-          "⚠️ Using legacy updateItemQuantity, consider using updateUnitQuantity"
-        );
-
-        const existingItem = inventory.find((item) => item.id === itemId);
-        if (!existingItem) {
-          setError("ไม่พบรายการสินค้า");
-          return false;
-        }
-
-        // สำหรับ legacy, อัปเดตใน unit หลักที่มีข้อมูล
-        const activeUnits = Object.keys(existingItem.quantities) as Array<
-          "cs" | "dsp" | "ea"
-        >;
-        if (activeUnits.length === 0) return false;
-
-        const primaryUnit = activeUnits[0]; // ใช้ unit แรกที่พบ
-        return updateUnitQuantity(
-          existingItem.materialCode,
-          primaryUnit,
-          newQuantity
-        );
-      } catch (error) {
-        console.error("❌ Error in legacy updateItemQuantity:", error);
-        setError("เกิดข้อผิดพลาดในการอัพเดทจำนวน");
-        return false;
-      }
-    },
-    [inventory, updateUnitQuantity, setError]
-  );
-
-  // ✅ Remove item (ไม่เปลี่ยน)
+  // ✅ Remove item
   const removeItem = useCallback(
     (itemId: string): boolean => {
       try {
@@ -371,7 +315,7 @@ export const useInventoryOperations = ({
     [inventory, setInventory, saveInventory, setError]
   );
 
-  // ✅ Search items (อัปเดตให้ค้นหาทั้ง materialCode)
+  // ✅ Search items (รองรับ materialCode)
   const searchItems = useCallback(
     (searchTerm: string): InventoryItem[] => {
       const term = searchTerm.toLowerCase().trim();
@@ -391,18 +335,16 @@ export const useInventoryOperations = ({
   );
 
   return {
-    // ✅ NEW: Multi-unit operations
+    // ✅ Core multi-unit operations
     addOrUpdateMultiUnitItem,
     updateUnitQuantity,
-    findItemByMaterialCode,
 
-    // ✅ LEGACY: Backward compatibility
-    addOrUpdateItem,
-    updateItemQuantity,
+    // ✅ Search and find operations
+    findItemByMaterialCode,
     findItemByBarcode,
+    searchItems,
 
     // ✅ Core operations
     removeItem,
-    searchItems,
   };
 };
