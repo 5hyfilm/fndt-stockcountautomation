@@ -6,8 +6,7 @@ import { Product } from "../../types/product";
 import { EmployeeHeader } from "./EmployeeHeader";
 import { AppTitle } from "./AppTitle";
 import { TabNavigation } from "../navigation/TabNavigation";
-import { MobileStatusBar } from "../status/MobileStatusBar";
-import { DesktopStatusBar } from "../status/DesktopStatusBar";
+import { StatusBar } from "../status/StatusBar";
 
 interface AppHeaderProps {
   employeeName: string;
@@ -84,10 +83,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           isMobile={true}
         />
 
-        <MobileStatusBar
+        <StatusBar
           isStreaming={isStreaming}
           lastDetectedCode={lastDetectedCode}
           totalItems={totalItems}
+          isMobile={true}
         />
       </div>
     );
@@ -115,11 +115,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           isMobile={false}
         />
 
-        <DesktopStatusBar
+        <StatusBar
           isStreaming={isStreaming}
           lastDetectedCode={lastDetectedCode}
           product={product}
           totalItems={totalItems}
+          isMobile={false}
         />
       </div>
     </div>

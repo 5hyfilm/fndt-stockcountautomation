@@ -1,3 +1,3 @@
 // src/components/status/index.ts
-export { MobileStatusBar } from "./MobileStatusBar";
-export { DesktopStatusBar } from "./DesktopStatusBar";
+// ✅ Unified responsive component - replaces mobile/desktop variants
+export { StatusBar } from "./StatusBar";
