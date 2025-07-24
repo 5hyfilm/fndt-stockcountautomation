@@ -1,4 +1,4 @@
-// src/app/page.tsx - Updated with unified AppHeader
+// Path: src/app/page.tsx - Fixed: Remove totalSKUs props from AppHeader calls
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -689,21 +689,20 @@ export default function BarcodeDetectionPage() {
           itemCount={inventory.length}
         />
 
-        {/* ✅ Unified AppHeader - ส่ง isMobile prop เพื่อให้ logic เหมือนเดิม */}
+        {/* ✅ FIXED: Unified AppHeader without totalSKUs */}
         <AppHeader
           employeeName={employeeName}
           branchCode={branchCode}
           branchName={branchName}
           formatTimeRemaining={formatTimeRemaining}
           activeTab={activeTab}
-          totalSKUs={summary.totalProducts}
           isStreaming={isStreaming}
           lastDetectedCode={lastDetectedCode}
           product={product}
           totalItems={summary.totalItems}
           onLogout={showLogoutConfirmation}
           onTabChange={setActiveTab}
-          isMobile={isMobile} // ✅ ส่ง isMobile state จาก page.tsx
+          isMobile={isMobile}
         />
 
         {/* Main Content - Full Screen Scanner */}
@@ -779,21 +778,20 @@ export default function BarcodeDetectionPage() {
         itemCount={inventory.length}
       />
 
-      {/* ✅ Unified AppHeader - ใช้ logic การแสดงผลเดิมจาก page.tsx */}
+      {/* ✅ FIXED: Unified AppHeader without totalSKUs */}
       <AppHeader
         employeeName={employeeName}
         branchCode={branchCode}
         branchName={branchName}
         formatTimeRemaining={formatTimeRemaining}
         activeTab={activeTab}
-        totalSKUs={summary.totalProducts}
         isStreaming={isStreaming}
         lastDetectedCode={lastDetectedCode}
         product={product}
         totalItems={summary.totalItems}
         onLogout={showLogoutConfirmation}
         onTabChange={setActiveTab}
-        isMobile={isMobile} // ✅ ส่ง isMobile state จาก page.tsx
+        isMobile={isMobile}
       />
 
       {/* Main Content */}
