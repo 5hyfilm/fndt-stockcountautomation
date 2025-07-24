@@ -1,4 +1,4 @@
-// Path: src/app/page.tsx - Fixed Legacy Methods (No Legacy Code)
+// src/app/page.tsx - Updated with unified AppHeader
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -28,9 +28,8 @@ import {
 // ✅ Import new quantity types from Phase 2
 import { QuantityInput, QuantityDetail } from "../hooks/inventory/types";
 
-// Import new sub-components
-import { MobileAppHeader } from "../components/headers/MobileAppHeader";
-import { DesktopAppHeader } from "../components/headers/DesktopAppHeader";
+// ✅ Import unified AppHeader instead of separate mobile/desktop components
+import { AppHeader } from "../components/headers/AppHeader";
 import { AppFooter } from "../components/footer/AppFooter";
 import { QuickStats } from "../components/stats/QuickStats";
 import { ProductInfoSection } from "../components/sections/ProductInfoSection";
@@ -690,16 +689,21 @@ export default function BarcodeDetectionPage() {
           itemCount={inventory.length}
         />
 
-        {/* Header - แสดงปกติแม้ในโหมด full screen */}
-        <MobileAppHeader
+        {/* ✅ Unified AppHeader - ส่ง isMobile prop เพื่อให้ logic เหมือนเดิม */}
+        <AppHeader
           employeeName={employeeName}
+          branchCode={branchCode}
+          branchName={branchName}
+          formatTimeRemaining={formatTimeRemaining}
           activeTab={activeTab}
           totalSKUs={summary.totalProducts}
           isStreaming={isStreaming}
           lastDetectedCode={lastDetectedCode}
+          product={product}
           totalItems={summary.totalItems}
           onLogout={showLogoutConfirmation}
           onTabChange={setActiveTab}
+          isMobile={isMobile} // ✅ ส่ง isMobile state จาก page.tsx
         />
 
         {/* Main Content - Full Screen Scanner */}
@@ -775,34 +779,22 @@ export default function BarcodeDetectionPage() {
         itemCount={inventory.length}
       />
 
-      {/* Header - Responsive */}
-      {isMobile ? (
-        <MobileAppHeader
-          employeeName={employeeName}
-          activeTab={activeTab}
-          totalSKUs={summary.totalProducts}
-          isStreaming={isStreaming}
-          lastDetectedCode={lastDetectedCode}
-          totalItems={summary.totalItems}
-          onLogout={showLogoutConfirmation}
-          onTabChange={setActiveTab}
-        />
-      ) : (
-        <DesktopAppHeader
-          employeeName={employeeName}
-          branchCode={branchCode}
-          branchName={branchName}
-          formatTimeRemaining={formatTimeRemaining}
-          activeTab={activeTab}
-          totalSKUs={summary.totalProducts}
-          isStreaming={isStreaming}
-          lastDetectedCode={lastDetectedCode}
-          product={product}
-          totalItems={summary.totalItems}
-          onLogout={showLogoutConfirmation}
-          onTabChange={setActiveTab}
-        />
-      )}
+      {/* ✅ Unified AppHeader - ใช้ logic การแสดงผลเดิมจาก page.tsx */}
+      <AppHeader
+        employeeName={employeeName}
+        branchCode={branchCode}
+        branchName={branchName}
+        formatTimeRemaining={formatTimeRemaining}
+        activeTab={activeTab}
+        totalSKUs={summary.totalProducts}
+        isStreaming={isStreaming}
+        lastDetectedCode={lastDetectedCode}
+        product={product}
+        totalItems={summary.totalItems}
+        onLogout={showLogoutConfirmation}
+        onTabChange={setActiveTab}
+        isMobile={isMobile} // ✅ ส่ง isMobile state จาก page.tsx
+      />
 
       {/* Main Content */}
       <div className="flex-1">
