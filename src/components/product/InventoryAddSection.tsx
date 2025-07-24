@@ -268,12 +268,6 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
 
       {/* ✅ Summary display with multi-unit info */}
       <div className="text-xs text-gray-500 text-center space-y-1">
-        <div>
-          จะเพิ่ม:{" "}
-          <span className="font-medium text-gray-700">
-            {quantity} {unitConfig.label}
-          </span>
-        </div>
         <div className="flex items-center justify-center gap-1">
           <span>📦</span>
           <span>รายการจะรวมตาม Material Code</span>
