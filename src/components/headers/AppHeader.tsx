@@ -5,8 +5,7 @@ import React from "react";
 import { Product } from "../../types/product";
 import { EmployeeHeader } from "./EmployeeHeader";
 import { AppTitle } from "./AppTitle";
-import { MobileTabNavigation } from "../navigation/MobileTabNavigation";
-import { DesktopTabNavigation } from "../navigation/DesktopTabNavigation";
+import { TabNavigation } from "../navigation/TabNavigation";
 import { MobileStatusBar } from "../status/MobileStatusBar";
 import { DesktopStatusBar } from "../status/DesktopStatusBar";
 
@@ -78,10 +77,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
         <AppTitle compact={true} />
 
-        <MobileTabNavigation
+        <TabNavigation
           activeTab={activeTab}
           totalSKUs={totalSKUs}
           onTabChange={onTabChange}
+          isMobile={true}
         />
 
         <MobileStatusBar
@@ -108,10 +108,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
         <AppTitle compact={false} />
 
-        <DesktopTabNavigation
+        <TabNavigation
           activeTab={activeTab}
           totalSKUs={totalSKUs}
           onTabChange={onTabChange}
+          isMobile={false}
         />
 
         <DesktopStatusBar

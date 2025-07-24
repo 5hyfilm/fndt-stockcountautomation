@@ -1,3 +1,3 @@
 // src/components/navigation/index.ts
-export { MobileTabNavigation } from "./MobileTabNavigation";
-export { DesktopTabNavigation } from "./DesktopTabNavigation";
+// ✅ Unified responsive component - replaces mobile/desktop variants
+export { TabNavigation } from "./TabNavigation";
