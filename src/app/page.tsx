@@ -1,4 +1,4 @@
-// Path: src/app/page.tsx - Final Refactored (150 บรรทัด)
+// Path: src/app/page.tsx - Fixed Import (EmployeeInfo from types/auth)
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -6,7 +6,8 @@ import { useBarcodeDetection } from "../hooks/useBarcodeDetection";
 import { useInventoryManager } from "../hooks/useInventoryManager";
 import { useEmployeeAuth } from "../hooks/useEmployeeAuth";
 import { useInventoryExport } from "../hooks/inventory/useInventoryExport";
-import { EmployeeInfo } from "../components/auth/EmployeeBranchForm";
+// ✅ FIXED: Import EmployeeInfo from types/auth instead of component
+import { EmployeeInfo } from "@/types/auth";
 import { Product, ProductStatus } from "../types/product";
 import {
   getProductCategoryFromGroup,

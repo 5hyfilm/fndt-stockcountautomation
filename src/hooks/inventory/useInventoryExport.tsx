@@ -3,6 +3,7 @@
 
 import { useCallback } from "react";
 import { Product } from "../../types/product";
+import { EmployeeInfo } from "@/types/auth";
 
 interface InventoryItem {
   id: string;
@@ -35,11 +36,10 @@ interface InventoryItem {
   description?: string; // เพิ่ม field description
 }
 
-interface EmployeeContext {
-  employeeName: string;
-  branchCode: string;
-  branchName: string;
-}
+type EmployeeContext = Pick<
+  EmployeeInfo,
+  "employeeName" | "branchCode" | "branchName"
+>;
 
 interface ExportConfig {
   includeEmployeeInfo: boolean;

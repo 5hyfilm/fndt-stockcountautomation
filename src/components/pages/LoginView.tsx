@@ -2,7 +2,8 @@
 "use client";
 
 import React from "react";
-import { EmployeeBranchForm, EmployeeInfo } from "../auth/EmployeeBranchForm";
+import { EmployeeBranchForm } from "../auth/EmployeeBranchForm";
+import { EmployeeInfo } from "@/types/auth";
 
 interface LoginViewProps {
   onSubmit: (employeeInfo: EmployeeInfo) => Promise<void>;

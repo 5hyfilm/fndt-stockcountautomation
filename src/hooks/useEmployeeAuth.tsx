@@ -2,19 +2,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-
-export interface EmployeeInfo {
-  employeeName: string;
-  branchCode: string;
-  branchName: string;
-  timestamp: string;
-}
-
-export interface EmployeeSession {
-  employee: EmployeeInfo;
-  sessionId: string;
-  loginTime: string;
-}
+import { EmployeeInfo, EmployeeSession } from "@/types/auth";
 
 const STORAGE_KEY = "fn_employee_session";
 const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 hours in milliseconds

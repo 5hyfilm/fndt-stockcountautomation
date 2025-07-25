@@ -1,5 +1,6 @@
 // Path: src/hooks/inventory/types.ts - Cleaned Version (No Legacy Code)
 import { Product } from "../../types/product";
+import { Employee } from "@/types/auth";
 
 // ✅ Multi-unit quantities interface
 export interface MultiUnitQuantities {
@@ -111,13 +112,7 @@ export interface InventorySummary {
 }
 
 // ✅ Employee context interface
-export interface EmployeeContext {
-  id: string;
-  name: string;
-  branchCode: string;
-  branchName: string;
-}
-
+export type EmployeeContext = Employee;
 // ✅ Storage configuration
 export interface StorageConfig {
   storageKey: string;

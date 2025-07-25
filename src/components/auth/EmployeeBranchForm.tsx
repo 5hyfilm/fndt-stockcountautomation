@@ -5,12 +5,7 @@ import React, { useState } from "react";
 import { User, Building2, MapPin, Save, ArrowRight } from "lucide-react";
 import Image from "next/image";
 
-export interface EmployeeInfo {
-  employeeName: string;
-  branchCode: string;
-  branchName: string;
-  timestamp: string;
-}
+import { EmployeeInfo } from "@/types/auth";
 
 interface EmployeeBranchFormProps {
   onSubmit: (employeeInfo: EmployeeInfo) => void;
