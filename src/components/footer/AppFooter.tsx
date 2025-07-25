@@ -31,7 +31,7 @@ export const AppFooter: React.FC<AppFooterProps> = ({
           <span>🏢 {branchName}</span>
           {product && (
             <span>
-              🎯 สินค้าล่าสุด: {product.name} ({product.brand})
+              🎯 สินค้าล่าสุด: {product.productName} ({product.brand})
             </span>
           )}
           {totalItems > 0 && <span>📦 รวม Stock: {totalItems} ชิ้น</span>}

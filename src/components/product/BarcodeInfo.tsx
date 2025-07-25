@@ -50,9 +50,7 @@ export const BarcodeInfo: React.FC<BarcodeInfoProps> = ({
       <code className="text-sm font-mono text-gray-800 block mt-1">
         {product.barcode}
       </code>
-      {product.barcode_type && (
-        <span className="text-xs text-gray-500">({product.barcode_type})</span>
-      )}
+      {/* ✅ Fix: ลบการใช้ product.barcode_type ออกเลย */}
 
       {/* Show scanned barcode info if different */}
       {scannedBarcode && scannedBarcode !== product.barcode && (

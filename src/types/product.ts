@@ -1,96 +1,117 @@
-// Path: src/types/product.ts
-// 🎯 Consolidated Product Type Definitions - Single Source of Truth
-// All product-related types unified in one location
+// src/types/product.ts
+// 🛒 Product types with consolidated error handling
 
 import React from "react";
+// ✅ Import from consolidated errors
 
 // =========================================
-// 🏷️ Core Product Types
+// 🛍️ Core Product Types
 // =========================================
 
-export interface Product {
-  id: string;
-  barcode: string;
-  name: string;
-  name_en?: string;
-  category: ProductCategory;
-  brand: string;
-  description?: string;
-  size?: string;
-  unit?: string;
-  price?: number;
-  currency?: string;
-  sku?: string;
-  batch_number?: string;
-  expiry_date?: string;
-  manufacturing_date?: string;
-  nutrition_info?: NutritionInfo;
-  ingredients?: string[];
-  allergens?: string[];
-  storage_instructions?: string;
-  country_of_origin?: string;
-  barcode_type?: string;
-  image_url?: string;
-  status: ProductStatus;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface NutritionInfo {
-  serving_size?: string;
-  calories_per_serving?: number;
-  protein?: number;
-  carbohydrates?: number;
-  sugar?: number;
-  fat?: number;
-  saturated_fat?: number;
-  sodium?: number;
-  fiber?: number;
-  vitamin_c?: number;
-  calcium?: number;
-}
-
-export enum ProductCategory {
-  // ✅ Product Groups
-  STM = "STM", // Sterilized Milk
-  BB_GOLD = "BB_GOLD", // Bear Brand Gold
-  EVAP = "EVAP", // Evaporated
-  SBC = "SBC", // Sweetened Beverage Creamer
-  SCM = "SCM", // Sweetened Condensed Milk
-  MAGNOLIA_UHT = "MAGNOLIA_UHT", // Magnolia UHT
-  NUTRISOY = "NUTRISOY", // Nutriwell
-  GUMMY = "GUMMY", // Gummy candy
-
-  // ✅ General Categories
-  BEVERAGES = "beverages",
-  DAIRY = "dairy",
-  SNACKS = "snacks",
-  CANNED_FOOD = "canned_food",
-  INSTANT_NOODLES = "instant_noodles",
-  SAUCES = "sauces",
-  SEASONING = "seasoning",
-  FROZEN = "frozen",
-  BAKERY = "bakery",
-  CONFECTIONERY = "confectionery",
-  OTHER = "other",
-}
-
+/**
+ * Product status enumeration
+ */
 export enum ProductStatus {
   ACTIVE = "active",
+  INACTIVE = "inactive",
   DISCONTINUED = "discontinued",
   OUT_OF_STOCK = "out_of_stock",
   PENDING = "pending",
 }
 
+/**
+ * Product category enumeration
+ */
+export enum ProductCategory {
+  BEVERAGE = "beverage",
+  SNACK = "snack",
+  FOOD = "food",
+  PERSONAL_CARE = "personal_care",
+  HOUSEHOLD = "household",
+  HEALTH = "health",
+  OTHER = "other",
+}
+
+/**
+ * Main product interface
+ */
+export interface Product {
+  // Basic Info
+  id: string;
+  materialCode: string;
+  productName: string;
+  brand: string;
+  category: ProductCategory;
+  size: string;
+  unit: string;
+  status: ProductStatus;
+
+  // Pricing
+  price?: number;
+  currency?: string;
+  pricePerUnit?: number;
+
+  // Descriptions
+  thaiDescription?: string;
+  englishDescription?: string;
+  shortDescription?: string;
+
+  // Barcodes
+  barcode: string;
+  alternativeBarcodes?: string[];
+
+  // Categorization
+  productGroup?: string;
+  subCategory?: string;
+  department?: string;
+
+  // Metadata
+  createdAt?: string;
+  updatedAt?: string;
+  lastModifiedBy?: string;
+
+  // Nutrition (optional)
+  nutrition?: NutritionInfo;
+
+  // Additional Info
+  images?: string[];
+  tags?: string[];
+  attributes?: Record<string, string | number | boolean>;
+}
+
+/**
+ * Nutrition information
+ */
+export interface NutritionInfo {
+  servingSize?: string;
+  servingsPerContainer?: number;
+  calories?: number;
+  totalFat?: number;
+  saturatedFat?: number;
+  transFat?: number;
+  cholesterol?: number;
+  sodium?: number;
+  totalCarbohydrate?: number;
+  dietaryFiber?: number;
+  totalSugars?: number;
+  addedSugars?: number;
+  protein?: number;
+  vitaminD?: number;
+  calcium?: number;
+  iron?: number;
+  potassium?: number;
+}
+
 // =========================================
-// 📊 API Response Types
+// 🔍 API & Search Types
 // =========================================
 
 export interface ProductSearchParams {
   barcode?: string;
-  name?: string;
-  category?: ProductCategory;
+  materialCode?: string;
+  productName?: string;
   brand?: string;
+  category?: ProductCategory;
   status?: ProductStatus;
   limit?: number;
   offset?: number;
@@ -244,16 +265,6 @@ export interface UseProductValidatorReturn {
 }
 
 // =========================================
-// 🚫 Error Types
-// =========================================
-
-export interface ProductInfoError extends Error {
-  code: "VALIDATION_ERROR" | "FETCH_ERROR" | "CACHE_ERROR" | "NETWORK_ERROR";
-  retryable: boolean;
-  barcode?: string;
-}
-
-// =========================================
 // 🧩 Component Props Types
 // =========================================
 
@@ -336,8 +347,11 @@ export interface ProductDisplayOptions {
 }
 
 // =========================================
-// ✅ All Types Exported Above
+// 🔄 Backward Compatibility & Re-exports
 // =========================================
 
-// All product types are now consolidated in this single file
-// Types are exported individually throughout the file - no need for re-exports
+/**
+ * Export consolidated error types for compatibility
+ * ✅ Now using consolidated ProductError and ProductInfoError from errors.ts
+ */
+export type { ProductError, ProductInfoError } from "./errors";
