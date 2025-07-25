@@ -1,16 +1,14 @@
-// Path: ./src/hooks/camera/useCameraControl.tsx
+// src/hooks/camera/useCameraControl.tsx
+// 🎥 Camera control hook with proper type imports
+
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
-import { VideoConstraints } from "../../types/detection";
+import type { VideoConstraints, CameraError } from "./types"; // ✅ Import from consolidated types
 
-// Define proper error type instead of using any
-interface CameraError {
-  message: string;
-  name?: string;
-  code?: string;
-  cause?: unknown;
-}
+// =========================================
+// 🛡️ Error Handling Utilities
+// =========================================
 
 // Type guard to check if error has message property
 const isErrorWithMessage = (error: unknown): error is CameraError => {
@@ -39,33 +37,49 @@ const getErrorMessage = (error: unknown): string => {
   return "เกิดข้อผิดพลาดในการเปิดกล้อง";
 };
 
+// =========================================
+// 🪝 Camera Control Hook
+// =========================================
+
 export const useCameraControl = () => {
-  // Refs
+  // =========================================
+  // 📚 Refs
+  // =========================================
   const videoRef = useRef<HTMLVideoElement>(null!);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // State
+  // =========================================
+  // 🎛️ State
+  // =========================================
   const [isStreaming, setIsStreaming] = useState(false);
   const [errors, setErrors] = useState<string | null>(null);
-  const [torchOn, setTorchOn] = useState(false); // ⭐ เพิ่ม torch state
+  const [torchOn, setTorchOn] = useState(false);
   const [videoConstraints, setVideoConstraints] = useState<VideoConstraints>({
     width: { ideal: 1280 },
     height: { ideal: 720 },
     facingMode: "environment",
   });
 
-  // ⭐ Toggle torch function
+  // =========================================
+  // 🔦 Torch Control
+  // =========================================
+
   const toggleTorch = useCallback(() => {
-    if (!streamRef.current) return;
+    if (!streamRef.current) {
+      console.warn("No stream available for torch control");
+      return;
+    }
 
     try {
       const track = streamRef.current.getVideoTracks()[0];
-      if (track) {
+      if (track && track.getCapabilities && track.getCapabilities().torch) {
         const newTorchState = !torchOn;
         track.applyConstraints({
           advanced: [{ torch: newTorchState }],
         });
         setTorchOn(newTorchState);
+      } else {
+        console.warn("Torch not supported on this device");
       }
     } catch (error) {
       console.error("Error toggling torch:", error);
@@ -74,7 +88,10 @@ export const useCameraControl = () => {
     }
   }, [torchOn]);
 
-  // Start camera
+  // =========================================
+  // 📹 Camera Controls
+  // =========================================
+
   const startCamera = useCallback(async () => {
     try {
       setErrors(null);
@@ -97,7 +114,6 @@ export const useCameraControl = () => {
     } catch (error: unknown) {
       console.error("Error starting camera:", error);
 
-      // Use proper error handling instead of any
       const errorMessage =
         isErrorWithMessage(error) && error.name
           ? error.name === "NotAllowedError"
@@ -111,7 +127,6 @@ export const useCameraControl = () => {
     }
   }, [videoConstraints]);
 
-  // Stop camera
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
@@ -124,10 +139,9 @@ export const useCameraControl = () => {
     }
 
     setIsStreaming(false);
-    setTorchOn(false); // ⭐ Reset torch when stopping camera
+    setTorchOn(false);
   }, []);
 
-  // Switch camera
   const switchCamera = useCallback(() => {
     if (isStreaming) {
       stopCamera();
@@ -137,6 +151,10 @@ export const useCameraControl = () => {
       }));
     }
   }, [isStreaming, stopCamera]);
+
+  // =========================================
+  // ⚡ Effects
+  // =========================================
 
   // Auto-restart camera when constraints change
   useEffect(() => {
@@ -156,6 +174,10 @@ export const useCameraControl = () => {
     };
   }, []);
 
+  // =========================================
+  // 📤 Return Interface
+  // =========================================
+
   return {
     // Refs
     videoRef,
@@ -164,13 +186,13 @@ export const useCameraControl = () => {
     isStreaming,
     errors,
     videoConstraints,
-    torchOn, // ⭐ เพิ่ม torch state
+    torchOn,
 
     // Actions
     startCamera,
     stopCamera,
     switchCamera,
-    toggleTorch, // ⭐ เพิ่ม torch function
+    toggleTorch,
     setVideoConstraints,
   };
 };

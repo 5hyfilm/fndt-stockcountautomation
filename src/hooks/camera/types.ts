@@ -1,71 +1,25 @@
 // src/hooks/camera/types.ts
-export interface VideoConstraints {
-  width: { ideal: number };
-  height: { ideal: number };
-  facingMode: "environment" | "user";
-}
+// 🔄 Re-export camera types from central location
 
-export interface CameraState {
-  isStreaming: boolean;
-  facingMode: "environment" | "user";
-  resolution: {
-    width: number;
-    height: number;
-  };
-}
+// ⭐ Import all camera types from consolidated location
+export type {
+  VideoConstraints,
+  CameraFacing,
+  CameraState,
+  CameraCapabilities,
+  CameraSettings,
+  CameraError,
+  UseCameraControlReturn,
+  CameraViewfinderProps,
+  CameraControlsProps,
+  CameraPermissionState,
+  CameraInitOptions,
+  CameraStatus,
+  CameraStats,
+  CameraVideoConstraints,
+  CameraStreamState,
+  CameraAccessError,
+} from "../../types/camera";
 
-export interface CameraError extends Error {
-  name:
-    | "NotAllowedError"
-    | "NotFoundError"
-    | "NotReadableError"
-    | "OverconstrainedError"
-    | "SecurityError"
-    | "TypeError"
-    | "AbortError";
-}
-
-export interface CameraCapabilities {
-  facingMode?: string[];
-  width?: {
-    min: number;
-    max: number;
-  };
-  height?: {
-    min: number;
-    max: number;
-  };
-  frameRate?: {
-    min: number;
-    max: number;
-  };
-}
-
-export interface CameraSettings {
-  resolution: {
-    width: number;
-    height: number;
-  };
-  facingMode: "environment" | "user";
-  frameRate: number;
-  autoFocus: boolean;
-  torch?: boolean; // For devices that support flashlight
-}
-
-export type CameraFacing = "environment" | "user";
-
-export interface UseCameraControlReturn {
-  // Refs
-  videoRef: React.RefObject<HTMLVideoElement>;
-
-  // State
-  isStreaming: boolean;
-  errors: string | null;
-  videoConstraints: VideoConstraints;
-
-  // Actions
-  startCamera: () => Promise<void>;
-  stopCamera: () => void;
-  switchCamera: () => void;
-  setVideoConstraints: React.Dispatch<React.SetStateAction<VideoConstraints>>;
-}
+// 🎯 This file now serves as a convenience re-export
+// All actual type definitions are centralized in src/types/camera.ts
