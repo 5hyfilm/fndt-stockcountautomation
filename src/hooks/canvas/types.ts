@@ -1,7 +1,8 @@
-// src/hooks/canvas/types.ts
+// Path: src/hooks/canvas/types.ts
+// 🔧 Fixed Import - BarcodeType now from central types
+
 import { Detection } from "../detection/types";
-import { Product } from "../../types/product";
-import { BarcodeType } from "../product/types";
+import { Product, BarcodeType } from "../../types/product"; // ✅ FIXED: Import from central location
 
 export interface CanvasDrawingOptions {
   strokeColor: string;

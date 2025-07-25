@@ -1,5 +1,5 @@
-// src/hooks/types.ts
-// 🔄 Central re-export for all hook types
+// Path: src/hooks/types.ts
+// 🔧 Fixed - Re-export product types from central location
 
 // =========================================
 // 📚 Hook Type Re-exports
@@ -7,33 +7,56 @@
 
 export * from "./camera/types";
 export * from "./detection/types";
-export * from "./product/types";
 export * from "./canvas/types";
 export * from "./barcode/types";
 
+// ⭐ Product types now re-exported from central location
+export type {
+  // Core Product Types
+  Product,
+  NutritionInfo,
+
+  // API Response Types
+  ProductSearchParams,
+  ProductResponse,
+  ProductListResponse,
+  DebugInfo,
+
+  // Barcode Types
+  BarcodeValidationResult,
+
+  // Configuration Types
+  ProductInfoConfig,
+  FetchProductOptions,
+
+  // Cache Types
+  ProductCacheEntry,
+  ProductCacheStats,
+
+  // Hook Return Types
+  UseProductInfoReturn,
+  UseProductCacheProps,
+  UseProductFetcherProps,
+  UseProductCacheReturn,
+  UseProductFetcherReturn,
+  UseProductValidatorReturn,
+
+  // Error Types
+  ProductInfoError,
+} from "../types/product";
+
+// ⭐ Re-export product enums
+export { BarcodeType, ProductCategory, ProductStatus } from "../types/product";
+
 // =========================================
-// 🎯 Central Type Imports
+// 🎯 Central Type Imports for Combined Types
 // =========================================
 
-import type {
-  UseCameraControlReturn,
-  VideoConstraints,
-  CameraFacing,
-  CameraState,
-} from "../types/camera";
+import type { VideoConstraints, CameraFacing } from "../types/camera";
 
-import type {
-  UseDetectionProcessorReturn,
-  Detection,
-  BarcodeData,
-  Stats,
-} from "../types/detection";
+import type { Detection, Stats } from "../types/detection";
 
 import type { Product } from "../types/product"; // ✅ Import Product type
-
-// Placeholder imports for other hook types
-// import { UseProductLookupReturn } from "./product/types";
-import type { UseCanvasRendererReturn } from "./canvas/types";
 
 // =========================================
 // 🔗 Combined Hook Return Types
@@ -79,6 +102,7 @@ export interface UseBarcodeDetectionReturn {
   isLoadingProduct: boolean; // ✅ Fixed property name
   productError: string | null; // ✅ Fixed property name
   lastDetectedCode: string; // ✅ Added missing property
+  errors: string | null; // ✅ Fixed: Changed from string[] to string | null to match component expectations
 
   // =========================================
   // 🎨 Canvas Actions
@@ -90,73 +114,25 @@ export interface UseBarcodeDetectionReturn {
   // 🎛️ Enhanced Actions
   // =========================================
   manualScan: () => Promise<void>;
-  rescanCurrentView: () => Promise<void>;
+  rescanCurrentView: () => Promise<void>; // ✅ Added missing rescanCurrentView function
   restartForNextScan: () => void;
-
-  // =========================================
-  // 🚨 Error Handling
-  // =========================================
-  errors: string | null;
-  clearError: () => void;
+  clearError: () => void; // ✅ Added missing clearError function
 }
-
-// =========================================
-// ⚙️ Configuration Types
-// =========================================
 
 /**
- * Comprehensive barcode detection configuration
+ * Configuration for barcode detection hook
  */
 export interface BarcodeDetectionConfig {
-  camera: {
-    defaultFacingMode: CameraFacing;
-    resolution: {
-      width: number;
-      height: number;
-    };
-    autoStart: boolean;
-    enableTorch: boolean;
-  };
-  detection: {
-    autoProcess: boolean;
-    processInterval: number;
-    maxQueue: number;
-    enableDebouncing: boolean;
-    debounceDelay: number;
-    confidenceThreshold: number;
-  };
-  product: {
-    enableCaching: boolean;
-    cacheExpiry: number;
-    enableFallback: boolean;
-    retryAttempts: number;
-  };
-  canvas: {
-    enableDrawing: boolean;
-    theme: "light" | "dark";
-    showConfidence: boolean;
-    showBarcodeType: boolean;
-    overlayOpacity: number;
-  };
+  // Camera config
+  defaultFacingMode: CameraFacing;
+  enableTorch: boolean;
+
+  // Detection config
+  processInterval: number;
+  maxProcessingQueue: number;
+
+  // Product config
+  enableProductLookup: boolean;
+  enableCaching: boolean;
+  cacheExpiryMs: number;
 }
-
-// =========================================
-// 🎯 Re-export Core Types for Convenience
-// =========================================
-
-export type {
-  // Camera types
-  UseCameraControlReturn,
-  VideoConstraints,
-  CameraFacing,
-  CameraState,
-
-  // Detection types
-  UseDetectionProcessorReturn,
-  Detection,
-  BarcodeData,
-  Stats,
-
-  // Canvas types
-  UseCanvasRendererReturn,
-};
