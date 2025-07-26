@@ -102,9 +102,9 @@ const getProductCode = (item: InventoryItem): string => {
     item.brand === "สินค้าใหม่";
 
   if (isNewProduct) {
-    // สำหรับสินค้าใหม่: ใช้รหัสที่ผู้ใช้กรอก (เก็บใน productData.productName)
-    if (item.productData?.productName) {
-      return item.productData.productName;
+    // สำหรับสินค้าใหม่: ใช้รหัสที่ผู้ใช้กรอก (เก็บใน productData.name)
+    if (item.productData?.name) {
+      return item.productData.name;
     }
     // Fallback สำหรับสินค้าใหม่: ใช้ barcode
     if (item.barcode) {
@@ -424,9 +424,7 @@ export const InventoryListItem: React.FC<InventoryListItemProps> = ({
         <div className="flex-1 min-w-0">
           {/* Product description/name */}
           <h3 className="font-semibold text-gray-900 truncate text-sm sm:text-base leading-tight">
-            {item.productData?.thaiDescription ||
-              item.productData?.shortDescription ||
-              item.productName}
+            {item.productData?.description || item.productName}
           </h3>
 
           {/* Brand and Size - Responsive layout */}

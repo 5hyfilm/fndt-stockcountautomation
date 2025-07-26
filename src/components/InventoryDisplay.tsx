@@ -67,8 +67,8 @@ const getFgCode = (item: InventoryItem): string => {
 
   if (isNewProduct) {
     // ✅ สำหรับสินค้าใหม่: ใช้รหัสที่ผู้ใช้กรอก (เก็บใน productData.name) หรือ barcode
-    if (item.productData?.productName) {
-      return item.productData.productName.toString().toUpperCase();
+    if (item.productData?.name) {
+      return item.productData.name.toString().toUpperCase();
     }
     // Fallback สำหรับสินค้าใหม่: ใช้ barcode
     if (item.barcode) {

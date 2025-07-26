@@ -1,53 +1,43 @@
 // src/types/camera.ts
-// 🎥 Camera types with consolidated error handling
+// 🎯 Consolidated Camera Type Definitions - Single Source of Truth
 
 import React from "react";
-// ✅ Import from consolidated errors
-import type { CameraError } from "./errors";
 
 // =========================================
-// 📹 Basic Camera Types
+// 🎥 Core Camera Types
 // =========================================
 
 /**
- * Camera facing mode options
- */
-export type CameraFacing = "user" | "environment";
-
-/**
- * Camera state enumeration
- */
-export enum CameraState {
-  IDLE = "idle",
-  INITIALIZING = "initializing",
-  STREAMING = "streaming",
-  PAUSED = "paused",
-  ERROR = "error",
-  STOPPED = "stopped",
-}
-
-// =========================================
-// ⚙️ Camera Configuration Types
-// =========================================
-
-/**
- * Video constraints for camera configuration
+ * Video constraints for camera setup
  */
 export interface VideoConstraints {
-  width?: number | { min: number; max: number; ideal?: number };
-  height?: number | { min: number; max: number; ideal?: number };
-  aspectRatio?: number;
-  frameRate?: number | { min: number; max: number; ideal?: number };
-  facingMode?: CameraFacing | { exact: CameraFacing } | { ideal: CameraFacing };
-  deviceId?: string | { exact: string } | { ideal: string };
-  resizeMode?: "none" | "crop-and-scale";
-  zoom?: number | { min: number; max: number };
+  width: { ideal: number };
+  height: { ideal: number };
+  facingMode: "environment" | "user";
 }
 
 /**
- * Camera capabilities from getUserMedia
+ * Camera facing mode type
+ */
+export type CameraFacing = "environment" | "user";
+
+/**
+ * Current camera state
+ */
+export interface CameraState {
+  isStreaming: boolean;
+  facingMode: CameraFacing;
+  resolution: {
+    width: number;
+    height: number;
+  };
+}
+
+/**
+ * Camera capabilities from device
  */
 export interface CameraCapabilities {
+  facingMode?: string[];
   width?: {
     min: number;
     max: number;
@@ -56,22 +46,14 @@ export interface CameraCapabilities {
     min: number;
     max: number;
   };
-  aspectRatio?: {
-    min: number;
-    max: number;
-  };
   frameRate?: {
     min: number;
     max: number;
   };
-  facingMode?: string[];
-  resizeMode?: string[];
-  deviceId?: string;
-  groupId?: string;
 }
 
 /**
- * Advanced camera settings
+ * Camera settings configuration
  */
 export interface CameraSettings {
   resolution: {
@@ -82,11 +64,31 @@ export interface CameraSettings {
   frameRate: number;
   autoFocus: boolean;
   torch?: boolean; // For devices that support flashlight
-  zoom?: number;
-  exposureCompensation?: number;
-  whiteBalanceMode?: "auto" | "manual" | "continuous";
-  focusMode?: "auto" | "manual" | "continuous";
 }
+
+// =========================================
+// 🚨 Error Types
+// =========================================
+
+/**
+ * Camera-specific error types
+ */
+export interface CameraError extends Error {
+  name:
+    | "NotAllowedError"
+    | "NotFoundError"
+    | "NotReadableError"
+    | "OverconstrainedError"
+    | "SecurityError"
+    | "TypeError"
+    | "AbortError";
+}
+
+// =========================================
+// 📝 Note: Media Device Extensions
+// =========================================
+// Global media device type extensions are defined in src/types/global.d.ts
+// to avoid declaration conflicts and maintain proper global scope
 
 // =========================================
 // 🪝 Hook Return Types
@@ -103,13 +105,13 @@ export interface UseCameraControlReturn {
   isStreaming: boolean;
   errors: string | null;
   videoConstraints: VideoConstraints;
-  torchOn: boolean;
+  torchOn: boolean; // ✅ Fixed: Required instead of optional
 
   // Actions
   startCamera: () => Promise<void>;
   stopCamera: () => void;
   switchCamera: () => void;
-  toggleTorch: () => void;
+  toggleTorch: () => void; // ✅ Fixed: Required instead of optional
   setVideoConstraints: React.Dispatch<React.SetStateAction<VideoConstraints>>;
 }
 
@@ -137,7 +139,7 @@ export interface CameraViewfinderProps {
   canvasRef: React.RefObject<HTMLCanvasElement>;
   containerRef: React.RefObject<HTMLDivElement>;
   isStreaming: boolean;
-  detections: Detection[];
+  detections: Detection[]; // ✅ Fixed: Use proper Detection type instead of any[]
   onLoadedMetadata: () => void;
   fullScreen?: boolean;
   showGuideFrame?: boolean;
@@ -211,19 +213,10 @@ export interface CameraStats {
   lastUpdateTime: number;
 }
 
-// =========================================
-// 🔄 Backward Compatibility Types
-// =========================================
-
-/**
- * Export consolidated error type for compatibility
- * ✅ Now using consolidated CameraError from errors.ts
- */
-export type { CameraError } from "./errors";
-
-/**
- * Re-export core types for backwards compatibility
- */
-export type CameraVideoConstraints = VideoConstraints;
-export type CameraStreamState = CameraState;
-export type CameraAccessError = CameraError;
+// Export everything for easy importing
+export type {
+  // Re-export core types for backwards compatibility
+  VideoConstraints as CameraVideoConstraints,
+  CameraState as CameraStreamState,
+  CameraError as CameraAccessError,
+};

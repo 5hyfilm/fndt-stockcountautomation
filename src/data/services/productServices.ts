@@ -23,9 +23,9 @@ export const findProductByBarcode = async (
 
     if (match.matched && match.type) {
       console.log(
-        `✅ Product found: ${
-          product.productName
-        } (${match.type?.toUpperCase()}: ${match.barcode})`
+        `✅ Product found: ${product.name} (${match.type?.toUpperCase()}: ${
+          match.barcode
+        })`
       );
       console.log(`📦 Unit type: ${UNIT_TYPES[match.type!]}`);
 
@@ -64,7 +64,7 @@ export const searchProducts = async (params: {
   return products.filter((product) => {
     if (
       params.name &&
-      !product.productName.toLowerCase().includes(params.name.toLowerCase())
+      !product.name.toLowerCase().includes(params.name.toLowerCase())
     ) {
       return false;
     }

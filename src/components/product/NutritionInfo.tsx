@@ -12,38 +12,37 @@ interface NutritionInfoProps {
 export const NutritionInfo: React.FC<NutritionInfoProps> = ({ product }) => {
   const [showNutrition, setShowNutrition] = useState(false);
 
-  // ✅ Fix: ใช้ product.nutrition แทน product.nutrition_info
-  if (!product.nutrition) return null;
+  if (!product.nutrition_info) return null;
 
   const nutritionData = [
     {
       label: "แคลอรี่",
-      value: product.nutrition.calories, // ✅ Fix: calories แทน calories_per_serving
+      value: product.nutrition_info.calories_per_serving,
       unit: "kcal",
     },
     {
       label: "โปรตีน",
-      value: product.nutrition.protein, // ✅ ใช้ได้เลย
+      value: product.nutrition_info.protein,
       unit: "g",
     },
     {
       label: "คาร์โบไหเดรต",
-      value: product.nutrition.totalCarbohydrate, // ✅ Fix: totalCarbohydrate แทน carbohydrates
+      value: product.nutrition_info.carbohydrates,
       unit: "g",
     },
     {
       label: "น้ำตาล",
-      value: product.nutrition.totalSugars, // ✅ Fix: totalSugars แทน sugar
+      value: product.nutrition_info.sugar,
       unit: "g",
     },
     {
       label: "ไขมัน",
-      value: product.nutrition.totalFat, // ✅ Fix: totalFat แทน fat
+      value: product.nutrition_info.fat,
       unit: "g",
     },
     {
       label: "โซเดียม",
-      value: product.nutrition.sodium, // ✅ ใช้ได้เลย
+      value: product.nutrition_info.sodium,
       unit: "mg",
     },
   ].filter((item) => item.value !== undefined && item.value !== null);
@@ -66,10 +65,10 @@ export const NutritionInfo: React.FC<NutritionInfoProps> = ({ product }) => {
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="grid grid-cols-2 gap-3 text-sm">
             {/* Serving Size */}
-            {product.nutrition.servingSize && ( // ✅ Fix: servingSize แทน serving_size
+            {product.nutrition_info.serving_size && (
               <div className="col-span-2 text-center border-b border-green-200 pb-2 mb-2">
                 <span className="font-medium">
-                  ขนาดบริโภค: {product.nutrition.servingSize}
+                  ขนาดบริโภค: {product.nutrition_info.serving_size}
                 </span>
               </div>
             )}

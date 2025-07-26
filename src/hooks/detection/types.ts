@@ -1,41 +1,81 @@
 // src/hooks/detection/types.ts
-// 🔄 Re-export detection types from central location with consolidated error handling
+export interface Detection {
+  xmin: number;
+  ymin: number;
+  xmax: number;
+  ymax: number;
+  confidence: number;
+  class: number;
+}
 
-import React from "react";
+export interface Stats {
+  rotation: number;
+  method: string;
+  confidence: number;
+  fps: number;
+  lastProcessTime: number;
+}
 
-// ⭐ Import all detection types from consolidated location
-export type {
-  Detection,
-  Stats,
-  BarcodeData,
-  APIResponse,
-  ProcessingState,
-  DetectionResult,
-  UseBarcodeDetectionReturn,
-  UseDetectionProcessorReturn,
-  DetectionConfig,
-  DetectionArea,
-} from "../../types/detection";
+export interface BarcodeData {
+  data: string;
+  type: string;
+  timestamp?: string;
+  confidence?: number;
+  rotation_angle?: number;
+  decode_method?: string;
+  position?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
 
-// ✅ Import error types from consolidated errors (not from detection.ts)
-export type { DetectionError, ApiError } from "../../types/errors";
+export interface APIResponse {
+  success: boolean;
+  detections?: Detection[];
+  barcodes?: BarcodeData[];
+  error?: string;
+  confidence?: number;
+  rotation_angle?: number;
+  decode_method?: string;
+  filename?: string;
+  barcodes_found?: number;
+  mock?: boolean;
+}
 
-// =========================================
-// 🎯 Hook-specific interfaces (not in central types)
-// =========================================
+export interface ProcessingState {
+  isProcessing: boolean;
+  queue: number;
+  maxQueue: number;
+}
 
-/**
- * Props for useDetectionProcessor hook
- */
+export interface DetectionResult {
+  success: boolean;
+  data?: string;
+  confidence: number;
+  processingTime: number;
+  method: string;
+  error?: string;
+}
+
 export interface UseDetectionProcessorProps {
   videoRef: React.RefObject<HTMLVideoElement>;
   lastDetectedCode: string;
   updateBarcode: (barcode: string) => Promise<void>;
 }
 
-/**
- * Detection settings configuration
- */
+export interface UseDetectionProcessorReturn {
+  // State
+  detections: Detection[];
+  processingQueue: number;
+  stats: Stats;
+
+  // Actions
+  captureAndProcess: () => Promise<void>;
+  resetDetections: () => void;
+}
+
 export interface DetectionSettings {
   autoProcess: boolean;
   processInterval: number;
@@ -43,6 +83,3 @@ export interface DetectionSettings {
   confidence: number;
   enableRotationCorrection: boolean;
 }
-
-// 🎯 This file now serves as a convenience re-export with hook-specific types
-// Most type definitions are centralized in src/types/detection.ts and src/types/errors.ts

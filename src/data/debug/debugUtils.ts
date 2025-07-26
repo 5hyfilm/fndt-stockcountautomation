@@ -12,7 +12,7 @@ export const debugBarcodeMatching = async (testBarcode?: string) => {
     const sampleProducts = products.slice(0, 10);
     sampleProducts.forEach((product, index) => {
       const barcodes = product.barcodes;
-      console.log(`${index + 1}. ${product.productName} (${product.brand})`);
+      console.log(`${index + 1}. ${product.name} (${product.brand})`);
       console.log(`   EA: ${barcodes.ea || "N/A"}`);
       console.log(`   DSP: ${barcodes.dsp || "N/A"}`);
       console.log(`   CS: ${barcodes.cs || "N/A"}`);
@@ -30,7 +30,7 @@ export const debugBarcodeMatching = async (testBarcode?: string) => {
       for (const product of products.slice(0, 20)) {
         const match = findBarcodeMatch(testBarcode, product);
         if (match.matched) {
-          console.log(`✅ Match found: ${product.productName}`);
+          console.log(`✅ Match found: ${product.name}`);
           console.log(`   Type: ${match.type}`);
           console.log(`   Barcode: ${match.barcode}`);
           found = true;

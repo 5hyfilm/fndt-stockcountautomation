@@ -226,35 +226,17 @@ export default function BarcodeDetectionPage() {
     try {
       if (!isValidProductGroup(productData.productGroup)) return false;
 
-      // ✅ Create Product object with correct field names
       const newProduct: Product = {
-        // Required basic info
         id: `NEW_${Date.now()}`,
-        materialCode: `MAT_${Date.now()}`, // ✅ Add required materialCode
-        productName: productData.productName, // ✅ Fix: name → productName
+        barcode: productData.barcode,
+        name: productData.productName,
         brand: "สินค้าใหม่",
         category: getProductCategoryFromGroup(productData.productGroup),
-        size: "N/A", // ✅ Add required size field
-        unit: "ชิ้น", // ✅ Add required unit field
-        status: ProductStatus.ACTIVE,
-
-        // Barcodes
-        barcode: productData.barcode,
-
-        // Pricing (optional)
+        description: productData.description,
         price: 0,
-
-        // Descriptions (optional)
-        thaiDescription: productData.description,
-        shortDescription: productData.description,
-
-        // Categorization (optional)
-        productGroup: productData.productGroup,
-
-        // Metadata (optional)
-        createdAt: new Date().toISOString(), // ✅ Fix: created_at → createdAt
-        updatedAt: new Date().toISOString(), // ✅ Fix: updated_at → updatedAt
-        lastModifiedBy: employeeName || "System",
+        status: ProductStatus.ACTIVE,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
 
       if (addOrUpdateMultiUnitItem) {

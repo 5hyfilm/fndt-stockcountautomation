@@ -1,326 +1,293 @@
-// src/components/product/utils.tsx
-import { Product, ProductCategory, NutritionInfo } from "../../types/product";
+// Path: src/components/product/utils.tsx
+// 🔧 Fixed Import - CategoryStyling and NutritionItem now from central types
+
 import {
-  Package,
   Coffee,
-  Utensils,
+  Package,
+  Cookie,
+  Archive,
+  Wheat,
+  Soup,
+  ChefHat,
+  Refrigerator,
+  UtensilsCrossed,
   Droplets,
-  Heart,
-  Home,
-  HelpCircle,
+  Milk,
+  Crown,
+  Beaker,
 } from "lucide-react";
+import {
+  ProductCategory,
+  Product,
+  NutritionInfo,
+  CategoryStyling, // ✅ FIXED: Import from central types
+  NutritionItem, // ✅ FIXED: Import from central types
+} from "../../types/product";
 
-// ✅ Map ข้อมูลสินค้าเก่าให้เข้ากับ ProductCategory ใหม่
-function mapLegacyToNewCategory(legacyCategory: string): ProductCategory {
-  // Map legacy categories to new consolidated categories
-  const legacyMapping: Record<string, ProductCategory> = {
-    // Beverage mappings
-    STM: ProductCategory.BEVERAGE,
-    BB_GOLD: ProductCategory.BEVERAGE,
-    EVAP: ProductCategory.BEVERAGE,
-    SBC: ProductCategory.BEVERAGE,
-    SCM: ProductCategory.BEVERAGE,
-    MAGNOLIA_UHT: ProductCategory.BEVERAGE,
-    NUTRISOY: ProductCategory.BEVERAGE,
-    BEVERAGES: ProductCategory.BEVERAGE,
-    DAIRY: ProductCategory.BEVERAGE,
-
-    // Snack mappings
-    GUMMY: ProductCategory.SNACK,
-    SNACKS: ProductCategory.SNACK,
-    CONFECTIONERY: ProductCategory.SNACK,
-
-    // Food mappings
-    CANNED_FOOD: ProductCategory.FOOD,
-    BAKERY: ProductCategory.FOOD,
-    INSTANT_NOODLES: ProductCategory.FOOD,
-    SAUCES: ProductCategory.FOOD,
-    SEASONING: ProductCategory.FOOD,
-    FROZEN: ProductCategory.FOOD,
-
-    // Other mappings
-    PERSONAL_CARE: ProductCategory.PERSONAL_CARE,
-    HOUSEHOLD: ProductCategory.HOUSEHOLD,
-    HEALTH: ProductCategory.HEALTH,
-  };
-
-  return legacyMapping[legacyCategory] || ProductCategory.OTHER;
-}
-
-// ✅ Updated to use consolidated ProductCategory
-export const getCategoryIcon = (category: ProductCategory | string) => {
-  // Handle legacy categories by mapping them first
-  const normalizedCategory =
-    typeof category === "string" ? mapLegacyToNewCategory(category) : category;
-
-  switch (normalizedCategory) {
-    case ProductCategory.BEVERAGE:
+/**
+ * Get category icon based on product category
+ */
+export const getCategoryIcon = (category: ProductCategory) => {
+  switch (category) {
+    // ✅ Product Group Icons
+    case ProductCategory.STM:
       return <Coffee size={16} className="text-blue-500" />;
-    case ProductCategory.SNACK:
-      return <Package size={16} className="text-orange-500" />;
-    case ProductCategory.FOOD:
-      return <Utensils size={16} className="text-green-500" />;
-    case ProductCategory.PERSONAL_CARE:
-      return <Droplets size={16} className="text-pink-500" />;
-    case ProductCategory.HOUSEHOLD:
-      return <Home size={16} className="text-purple-500" />;
-    case ProductCategory.HEALTH:
-      return <Heart size={16} className="text-red-500" />;
+    case ProductCategory.BB_GOLD:
+      return <Crown size={16} className="text-yellow-500" />;
+    case ProductCategory.EVAP:
+      return <Droplets size={16} className="text-purple-500" />;
+    case ProductCategory.SBC:
+      return <Beaker size={16} className="text-green-500" />;
+    case ProductCategory.SCM:
+      return <Milk size={16} className="text-red-500" />;
+    case ProductCategory.MAGNOLIA_UHT:
+      return <Coffee size={16} className="text-indigo-500" />;
+    case ProductCategory.NUTRISOY:
+      return <Coffee size={16} className="text-teal-500" />;
+    case ProductCategory.GUMMY:
+      return <Cookie size={16} className="text-pink-500" />;
+
+    // Generic Categories
+    case ProductCategory.BEVERAGES:
+      return <Coffee size={16} className="text-blue-500" />;
+    case ProductCategory.DAIRY:
+      return <Droplets size={16} className="text-yellow-500" />;
+    case ProductCategory.SNACKS:
+      return <Cookie size={16} className="text-orange-500" />;
+    case ProductCategory.CANNED_FOOD:
+      return <Archive size={16} className="text-green-500" />;
+    case ProductCategory.BAKERY:
+      return <Wheat size={16} className="text-amber-500" />;
+    case ProductCategory.CONFECTIONERY:
+      return <Cookie size={16} className="text-pink-500" />;
+    case ProductCategory.INSTANT_NOODLES:
+      return <Soup size={16} className="text-red-500" />;
+    case ProductCategory.SAUCES:
+      return <ChefHat size={16} className="text-purple-500" />;
+    case ProductCategory.SEASONING:
+      return <UtensilsCrossed size={16} className="text-indigo-500" />;
+    case ProductCategory.FROZEN:
+      return <Refrigerator size={16} className="text-cyan-500" />;
+    case ProductCategory.OTHER:
+      return <Package size={16} className="text-gray-500" />;
     default:
-      return <HelpCircle size={16} className="text-gray-500" />;
+      return <Package size={16} className="text-gray-500" />;
   }
 };
 
-// ✅ Updated to use consolidated ProductCategory
-export const getCategoryColor = (category: ProductCategory | string) => {
-  // Handle legacy categories by mapping them first
-  const normalizedCategory =
-    typeof category === "string" ? mapLegacyToNewCategory(category) : category;
+/**
+ * Get category color classes based on product category
+ */
+export const getCategoryColor = (category: ProductCategory): string => {
+  switch (category) {
+    // Product Group Colors
+    case ProductCategory.STM:
+      return "bg-blue-50 text-blue-800 border-blue-200";
+    case ProductCategory.BB_GOLD:
+      return "bg-yellow-50 text-yellow-800 border-yellow-200";
+    case ProductCategory.EVAP:
+      return "bg-purple-50 text-purple-800 border-purple-200";
+    case ProductCategory.SBC:
+      return "bg-green-50 text-green-800 border-green-200";
+    case ProductCategory.SCM:
+      return "bg-red-50 text-red-800 border-red-200";
+    case ProductCategory.MAGNOLIA_UHT:
+      return "bg-indigo-50 text-indigo-800 border-indigo-200";
+    case ProductCategory.NUTRISOY:
+      return "bg-teal-50 text-teal-800 border-teal-200";
+    case ProductCategory.GUMMY:
+      return "bg-pink-50 text-pink-800 border-pink-200";
 
-  switch (normalizedCategory) {
-    case ProductCategory.BEVERAGE:
-      return "bg-blue-100 text-blue-800 border-blue-200";
-    case ProductCategory.SNACK:
-      return "bg-orange-100 text-orange-800 border-orange-200";
-    case ProductCategory.FOOD:
-      return "bg-green-100 text-green-800 border-green-200";
-    case ProductCategory.PERSONAL_CARE:
-      return "bg-pink-100 text-pink-800 border-pink-200";
-    case ProductCategory.HOUSEHOLD:
-      return "bg-purple-100 text-purple-800 border-purple-200";
-    case ProductCategory.HEALTH:
-      return "bg-red-100 text-red-800 border-red-200";
+    // Generic Category Colors
+    case ProductCategory.BEVERAGES:
+      return "bg-blue-50 text-blue-800 border-blue-200";
+    case ProductCategory.DAIRY:
+      return "bg-yellow-50 text-yellow-800 border-yellow-200";
+    case ProductCategory.SNACKS:
+      return "bg-orange-50 text-orange-800 border-orange-200";
+    case ProductCategory.CANNED_FOOD:
+      return "bg-green-50 text-green-800 border-green-200";
+    case ProductCategory.BAKERY:
+      return "bg-amber-50 text-amber-800 border-amber-200";
+    case ProductCategory.CONFECTIONERY:
+      return "bg-pink-50 text-pink-800 border-pink-200";
+    case ProductCategory.INSTANT_NOODLES:
+      return "bg-red-50 text-red-800 border-red-200";
+    case ProductCategory.SAUCES:
+      return "bg-purple-50 text-purple-800 border-purple-200";
+    case ProductCategory.SEASONING:
+      return "bg-indigo-50 text-indigo-800 border-indigo-200";
+    case ProductCategory.FROZEN:
+      return "bg-cyan-50 text-cyan-800 border-cyan-200";
+    case ProductCategory.OTHER:
+      return "bg-gray-50 text-gray-800 border-gray-200";
     default:
-      return "bg-gray-100 text-gray-800 border-gray-200";
+      return "bg-gray-50 text-gray-800 border-gray-200";
   }
 };
 
-// ✅ Updated to use consolidated ProductCategory with Thai translations
-export const getCategoryDisplayName = (
-  category: ProductCategory | string
-): string => {
-  // Handle legacy categories by mapping them first
-  const normalizedCategory =
-    typeof category === "string" ? mapLegacyToNewCategory(category) : category;
-
-  switch (normalizedCategory) {
-    case ProductCategory.BEVERAGE:
-      return "เครื่องดื่ม";
-    case ProductCategory.SNACK:
-      return "ขนมขบเคี้ยว";
-    case ProductCategory.FOOD:
-      return "อาหาร";
-    case ProductCategory.PERSONAL_CARE:
-      return "ผลิตภัณฑ์ดูแลผิว";
-    case ProductCategory.HOUSEHOLD:
-      return "ของใช้ในบ้าน";
-    case ProductCategory.HEALTH:
-      return "สุขภาพ";
-    default:
-      return "อื่นๆ";
-  }
+/**
+ * Get complete category styling (icon + colors)
+ */
+export const getCategoryStyling = (
+  category: ProductCategory
+): CategoryStyling => {
+  return {
+    icon: getCategoryIcon(category),
+    colorClass: getCategoryColor(category),
+  };
 };
 
-// ✅ Updated nutrition data formatter using consolidated NutritionInfo
-export const formatNutritionValue = (
-  nutrition: NutritionInfo,
-  key: keyof NutritionInfo,
-  unit: string = ""
-): string | null => {
-  const value = nutrition[key];
-  if (value === undefined || value === null) return null;
-  return `${value}${unit}`;
-};
+/**
+ * Format nutrition data for display with proper typing
+ */
+export const formatNutritionData = (
+  nutritionInfo: NutritionInfo | undefined
+): NutritionItem[] => {
+  if (!nutritionInfo || typeof nutritionInfo !== "object") return [];
 
-// ✅ Updated nutrition display helper using correct field names
-export const getNutritionDisplayItems = (nutrition: NutritionInfo) => {
-  return [
+  const nutritionItems: NutritionItem[] = [
     {
       label: "แคลอรี่",
-      value: nutrition.calories, // ✅ Fix: calories แทน calories_per_serving
+      value: nutritionInfo.calories_per_serving,
       unit: "kcal",
     },
     {
       label: "โปรตีน",
-      value: nutrition.protein,
+      value: nutritionInfo.protein,
       unit: "g",
     },
     {
       label: "คาร์โบไหเดรต",
-      value: nutrition.totalCarbohydrate, // ✅ Fix: totalCarbohydrate แทน carbohydrates
+      value: nutritionInfo.carbohydrates,
       unit: "g",
     },
     {
       label: "น้ำตาล",
-      value: nutrition.totalSugars, // ✅ Fix: totalSugars แทน sugar
+      value: nutritionInfo.sugar,
       unit: "g",
     },
     {
       label: "ไขมัน",
-      value: nutrition.totalFat, // ✅ Fix: totalFat แทน fat
+      value: nutritionInfo.fat,
       unit: "g",
     },
     {
       label: "ไขมันอิ่มตัว",
-      value: nutrition.saturatedFat, // ✅ Fix: saturatedFat แทน saturated_fat
+      value: nutritionInfo.saturated_fat,
       unit: "g",
     },
     {
       label: "โซเดียม",
-      value: nutrition.sodium,
+      value: nutritionInfo.sodium,
       unit: "mg",
     },
     {
-      label: "ใยอาหาร",
-      value: nutrition.dietaryFiber, // ✅ Fix: dietaryFiber แทน fiber
+      label: "ไฟเบอร์",
+      value: nutritionInfo.fiber,
       unit: "g",
     },
     {
-      label: "วิตามินดี",
-      value: nutrition.vitaminD, // ✅ Fix: vitaminD แทน vitamin_c
-      unit: "mcg",
+      label: "วิตามิน C",
+      value: nutritionInfo.vitamin_c,
+      unit: "mg",
     },
     {
       label: "แคลเซียม",
-      value: nutrition.calcium,
+      value: nutritionInfo.calcium,
       unit: "mg",
     },
-    {
-      label: "เหล็ก",
-      value: nutrition.iron,
-      unit: "mg",
-    },
-    {
-      label: "โปแตสเซียม",
-      value: nutrition.potassium,
-      unit: "mg",
-    },
-  ].filter((item) => item.value !== undefined && item.value !== null);
-};
+  ];
 
-// ✅ Check if product has nutritional information
-export const hasNutritionInfo = (product: Product): boolean => {
-  return !!(
-    product.nutrition &&
-    Object.values(product.nutrition).some(
-      (value) => value !== undefined && value !== null
-    )
-  ); // ✅ Fix: nutrition แทน nutrition_info
-};
-
-// ✅ Format product price with currency
-export const formatPrice = (
-  product: Product,
-  showCurrency: boolean = true
-): string => {
-  if (!product.price) return "ราคาไม่ระบุ";
-
-  const formattedPrice = product.price.toLocaleString("th-TH");
-  const currency = product.currency || "THB";
-
-  if (!showCurrency || currency === "THB") {
-    return `฿${formattedPrice}`;
-  }
-
-  return `${formattedPrice} ${currency}`;
-};
-
-// ✅ Format product status in Thai
-export const formatProductStatus = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    active: "ใช้งาน",
-    inactive: "ไม่ใช้งาน",
-    discontinued: "หยุดผลิต",
-    out_of_stock: "หมดสต็อก",
-    pending: "รอดำเนินการ",
-  };
-
-  return statusMap[status] || status;
-};
-
-// ✅ Get product status color
-export const getProductStatusColor = (status: string): string => {
-  switch (status) {
-    case "active":
-      return "bg-green-100 text-green-800 border-green-200";
-    case "inactive":
-      return "bg-red-100 text-red-800 border-red-200";
-    case "discontinued":
-      return "bg-yellow-100 text-yellow-800 border-yellow-200";
-    case "out_of_stock":
-      return "bg-orange-100 text-orange-800 border-orange-200";
-    case "pending":
-      return "bg-blue-100 text-blue-800 border-blue-200";
-    default:
-      return "bg-gray-100 text-gray-800 border-gray-200";
-  }
-};
-
-// ✅ Format serving size display
-export const formatServingSize = (servingSize?: string): string => {
-  if (!servingSize) return "ไม่ระบุ";
-  return servingSize;
-};
-
-// ✅ Check if product has complete information
-export const isCompleteProduct = (product: Product): boolean => {
-  return !!(
-    product.productName &&
-    product.brand &&
-    product.category &&
-    product.barcode &&
-    product.materialCode
+  // Return only items with valid values
+  return nutritionItems.filter(
+    (item) => item.value !== undefined && item.value !== null && item.value > 0
   );
 };
 
-// ✅ Generate product display summary
-export const getProductSummary = (product: Product): string => {
-  const parts: string[] = [];
-
-  if (product.brand) parts.push(product.brand);
-  if (product.size) parts.push(product.size);
-  if (product.unit) parts.push(product.unit);
-
-  return parts.join(" | ") || "ไม่มีข้อมูลเพิ่มเติม";
+/**
+ * Check if product has nutrition information
+ */
+export const hasNutritionInfo = (product: Product): boolean => {
+  return !!(
+    product.nutrition_info && Object.keys(product.nutrition_info).length > 0
+  );
 };
 
-// ✅ Format quantity with proper units
+/**
+ * Get formatted product size with unit
+ */
+export const getFormattedSize = (product: Product): string => {
+  if (!product.size && !product.unit) return "";
+  if (product.size && product.unit) return `${product.size} ${product.unit}`;
+  if (product.size) return product.size;
+  if (product.unit) return product.unit;
+  return "";
+};
+
+/**
+ * Format product price with currency
+ */
+export const getFormattedPrice = (product: Product): string => {
+  if (!product.price) return "";
+  const currency = product.currency || "฿";
+  return `${currency}${product.price.toLocaleString()}`;
+};
+
+/**
+ * Format price with currency (used by components)
+ */
+export const formatPrice = (price: number, currency?: string): string => {
+  if (!price) return "";
+  const currencySymbol = currency || "฿";
+  return `${currencySymbol}${price.toLocaleString()}`;
+};
+
+/**
+ * Format quantity with unit
+ */
 export const formatQuantity = (quantity: number, unit?: string): string => {
-  if (!quantity && quantity !== 0) return "0";
+  if (quantity === 0) return "0";
+  if (!unit) return quantity.toLocaleString();
 
-  const formattedQuantity = quantity.toLocaleString("th-TH");
-
-  if (!unit) return formattedQuantity;
-
-  // Thai unit translations
+  // Handle common unit translations
   const unitTranslations: Record<string, string> = {
-    piece: "ชิ้น",
+    units: "หน่วย",
     pieces: "ชิ้น",
-    pcs: "ชิ้น",
-    ea: "ชิ้น",
-    bottle: "ขวด",
-    bottles: "ขวด",
-    can: "กระป๋อง",
-    cans: "กระป๋อง",
-    pack: "แพ็ค",
     packs: "แพ็ค",
-    dsp: "แพ็ค",
-    box: "กล่อง",
     boxes: "กล่อง",
-    case: "ลัง",
-    cases: "ลัง",
-    cs: "ลัง",
-    kg: "กิโลกรัม",
-    g: "กรัม",
-    l: "ลิตร",
-    ml: "มิลลิลิตร",
-    litre: "ลิตร",
-    liter: "ลิตร",
-    gram: "กรัม",
-    kilogram: "กิโลกรัม",
+    bottles: "ขวด",
+    cans: "กระป๋อง",
   };
 
   const translatedUnit = unitTranslations[unit.toLowerCase()] || unit;
+  return `${quantity.toLocaleString()} ${translatedUnit}`;
+};
 
-  return `${formattedQuantity} ${translatedUnit}`;
+/**
+ * Format weight with appropriate unit
+ */
+export const formatWeight = (weight: number, unit: string = "g"): string => {
+  if (!weight) return "";
+
+  // Convert to appropriate unit for display
+  if (unit === "g" && weight >= 1000) {
+    return `${(weight / 1000).toFixed(1)} kg`;
+  }
+
+  return `${weight} ${unit}`;
+};
+
+/**
+ * Format volume with appropriate unit
+ */
+export const formatVolume = (volume: number, unit: string = "ml"): string => {
+  if (!volume) return "";
+
+  // Convert to appropriate unit for display
+  if (unit === "ml" && volume >= 1000) {
+    return `${(volume / 1000).toFixed(1)} L`;
+  }
+
+  return `${volume} ${unit}`;
 };

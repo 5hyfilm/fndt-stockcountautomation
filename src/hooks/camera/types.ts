@@ -1,5 +1,5 @@
 // src/hooks/camera/types.ts
-// 🔄 Re-export camera types from central location with consolidated error handling
+// 🔄 Re-export camera types from central location
 
 // ⭐ Import all camera types from consolidated location
 export type {
@@ -8,6 +8,7 @@ export type {
   CameraState,
   CameraCapabilities,
   CameraSettings,
+  CameraError,
   UseCameraControlReturn,
   CameraViewfinderProps,
   CameraControlsProps,
@@ -20,8 +21,5 @@ export type {
   CameraAccessError,
 } from "../../types/camera";
 
-// ✅ Import CameraError from consolidated errors (not from camera.ts)
-export type { CameraError } from "../../types/errors";
-
 // 🎯 This file now serves as a convenience re-export
-// All actual type definitions are centralized in src/types/camera.ts and src/types/errors.ts
+// All actual type definitions are centralized in src/types/camera.ts

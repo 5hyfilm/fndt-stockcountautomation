@@ -1,15 +1,11 @@
-// src/data/loaders/csvLoader.ts
+// ./src/data/loaders/csvLoader.ts
 import Papa from "papaparse";
-import { Product } from "../../types/product";
-import {
-  CSVProductRow,
-  csvRowToProduct,
-  validateCSVProductRow,
-} from "../types/csvTypes";
+import { ProductWithMultipleBarcodes, CSVProductRow } from "../types/csvTypes";
+import { csvRowToProduct } from "../utils/csvUtils";
 import { readCSVFile } from "../readers/csvReader";
 
-// ✅ Cache variables using Product type
-let csvProducts: Product[] = [];
+// Cache variables
+let csvProducts: ProductWithMultipleBarcodes[] = [];
 let csvLoaded = false;
 let csvLoading = false;
 
@@ -48,8 +44,9 @@ const getErrorMessage = (error: unknown): string => {
   return "เกิดข้อผิดพลาดในการโหลดข้อมูล CSV";
 };
 
-// ✅ Updated to return Product[] instead of ProductWithMultipleBarcodes[]
-export const loadCSVProducts = async (): Promise<Product[]> => {
+export const loadCSVProducts = async (): Promise<
+  ProductWithMultipleBarcodes[]
+> => {
   if (csvLoaded && csvProducts.length > 0) {
     console.log("📋 Using cached CSV products:", csvProducts.length);
     return csvProducts;
@@ -119,58 +116,17 @@ export const loadCSVProducts = async (): Promise<Product[]> => {
 
     console.log("📊 CSV parsed successfully:", parseResult.data.length, "rows");
 
-    // ✅ Updated to use Product[] type
-    const products: Product[] = [];
+    const products: ProductWithMultipleBarcodes[] = [];
     let successCount = 0;
     let errorCount = 0;
 
     parseResult.data.forEach((row, index) => {
       try {
-        // ✅ Validate row first
-        const validation = validateCSVProductRow(row);
-        if (!validation.isValid) {
-          console.warn(`Row ${index} validation failed:`, validation.errors);
-          errorCount++;
-          return;
-        }
-
-        // ✅ Convert CSV row to Product (no index parameter needed)
-        const productData = csvRowToProduct(row);
-
-        if (
-          productData &&
-          productData.materialCode &&
-          productData.productName
-        ) {
-          // ✅ Create complete Product object with required fields
-          const product: Product = {
-            id: productData.materialCode, // Use materialCode as ID
-            materialCode: productData.materialCode,
-            productName: productData.productName,
-            brand: productData.brand || "Unknown",
-            category: productData.category!,
-            size: productData.size || "N/A",
-            unit: productData.unit || "ชิ้น",
-            barcode: productData.barcode!,
-            status: productData.status || "active",
-
-            // Optional fields
-            price: productData.price,
-            thaiDescription: productData.thaiDescription,
-            productGroup: productData.productGroup,
-
-            // Timestamps
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-
-            // Handle multiple barcodes if needed
-            alternativeBarcodes: [], // Can be populated later if CSV has multiple barcode columns
-          };
-
+        const product = csvRowToProduct(row, index);
+        if (product) {
           products.push(product);
           successCount++;
         } else {
-          console.warn(`Row ${index} missing required fields:`, row);
           errorCount++;
         }
       } catch (rowError) {
@@ -191,19 +147,17 @@ export const loadCSVProducts = async (): Promise<Product[]> => {
       `✅ CSV products loaded successfully: ${products.length} products (${successCount} success, ${errorCount} errors)`
     );
 
-    // ✅ Log sample with correct property names
+    // Log sample of barcode types found
     const sampleWithBarcodes = products.slice(0, 3).map((p) => ({
-      productName: p.productName, // ✅ Fix: productName instead of name
-      barcode: p.barcode, // ✅ Fix: barcode instead of barcodes
-      alternativeBarcodes: p.alternativeBarcodes, // ✅ Multiple barcodes support
+      name: p.name,
+      barcodes: p.barcodes,
       brand: p.brand,
-      category: p.category,
-      productGroup: p.productGroup,
     }));
     console.log("🏷️ Sample products with barcodes:", sampleWithBarcodes);
 
     return products;
   } catch (error: unknown) {
+    // ✅ Fixed: Changed from 'any' to 'unknown'
     csvLoading = false;
     csvLoaded = false;
     csvProducts = [];
@@ -219,44 +173,4 @@ export const loadCSVProducts = async (): Promise<Product[]> => {
       throw new Error(`Product data loading failed: ${errorMessage}`);
     }
   }
-};
-
-// ✅ Helper function to add alternative barcodes to a product
-export const addAlternativeBarcode = (
-  product: Product,
-  barcode: string
-): Product => {
-  return {
-    ...product,
-    alternativeBarcodes: [...(product.alternativeBarcodes || []), barcode],
-  };
-};
-
-// ✅ Helper function to find product by any barcode (primary or alternative)
-export const findProductByAnyBarcode = (
-  products: Product[],
-  barcode: string
-): Product | undefined => {
-  return products.find(
-    (product) =>
-      product.barcode === barcode ||
-      product.alternativeBarcodes?.includes(barcode)
-  );
-};
-
-// ✅ Get cached products (for external use)
-export const getCachedProducts = (): Product[] => {
-  return csvProducts;
-};
-
-// ✅ Clear cache (for testing or refresh)
-export const clearProductCache = (): void => {
-  csvProducts = [];
-  csvLoaded = false;
-  csvLoading = false;
-};
-
-// ✅ Check if CSV is loaded
-export const isCSVLoaded = (): boolean => {
-  return csvLoaded && csvProducts.length > 0;
 };

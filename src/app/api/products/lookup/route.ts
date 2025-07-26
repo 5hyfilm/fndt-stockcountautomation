@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     const result = await findProductByBarcode(cleanBarcode);
 
     if (result?.product) {
-      console.log("✅ Product found:", result.product.productName);
+      console.log("✅ Product found:", result.product.name);
 
       return NextResponse.json({
         success: true,

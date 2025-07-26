@@ -1,21 +1,14 @@
-// src/hooks/product/useProductInfo.tsx
-// 🔧 Updated to use consolidated error types
+// Path: src/hooks/product/useProductInfo.tsx
+// 🔧 Fixed Import - Types now from central location
 
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import {
   Product,
   ProductInfoConfig,
   UseProductInfoReturn,
-} from "../../types/product";
-// ✅ Import from consolidated errors
-import {
-  isAppError,
-  createProductError,
-  ProductErrorCode,
-  getUserFriendlyMessage,
-} from "../../types/errors";
+} from "../../types/product"; // ✅ FIXED: Import from central location
 import { useProductCache } from "./useProductCache";
 import { useProductFetcher } from "./useProductFetcher";
 import { useProductValidator } from "./useProductValidator";
@@ -29,9 +22,41 @@ const DEFAULT_CONFIG: ProductInfoConfig = {
   debounceDelayMs: 300,
 };
 
-/**
- * Enhanced product info hook with consolidated error handling
- */
+// Define proper error type instead of using any
+interface ProductInfoError {
+  message: string;
+  name?: string;
+  code?: string;
+  cause?: unknown;
+}
+
+// Type guard to check if error has message property
+const isErrorWithMessage = (error: unknown): error is ProductInfoError => {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as Record<string, unknown>).message === "string"
+  );
+};
+
+// Helper function to get error message
+const getErrorMessage = (error: unknown): string => {
+  if (isErrorWithMessage(error)) {
+    return error.message;
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ";
+};
+
 export const useProductInfo = (
   config: ProductInfoConfig = DEFAULT_CONFIG
 ): UseProductInfoReturn => {
@@ -41,9 +66,6 @@ export const useProductInfo = (
   const [error, setError] = useState<string | null>(null);
   const [lastSearchedBarcode, setLastSearchedBarcode] = useState<string>("");
   const [retryCount, setRetryCount] = useState(0);
-
-  // ✅ Fix: Use useRef for debounce timeout
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sub-hooks
   const cache = useProductCache({
@@ -59,60 +81,7 @@ export const useProductInfo = (
 
   const validator = useProductValidator();
 
-  // ✅ Enhanced error handling with consolidated error types
-  const handleError = useCallback((error: unknown, barcode?: string) => {
-    console.error("Product fetch error:", error);
-
-    // Create appropriate product error
-    let productError;
-
-    if (isAppError(error)) {
-      productError = error;
-    } else if (error instanceof Error) {
-      // Map common error types to product error codes
-      if (error.message.includes("barcode")) {
-        productError = createProductError(
-          ProductErrorCode.INVALID_BARCODE,
-          "บาร์โค้ดไม่ถูกต้อง",
-          { barcode, cause: error }
-        );
-      } else if (error.message.includes("not found")) {
-        productError = createProductError(
-          ProductErrorCode.NOT_FOUND,
-          "ไม่พบข้อมูลสินค้า",
-          { barcode, cause: error }
-        );
-      } else {
-        productError = createProductError(
-          ProductErrorCode.FETCH_ERROR,
-          "เกิดข้อผิดพลาดในการดึงข้อมูลสินค้า",
-          { barcode, cause: error }
-        );
-      }
-    } else {
-      productError = createProductError(
-        ProductErrorCode.FETCH_ERROR,
-        "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ",
-        { barcode, cause: error }
-      );
-    }
-
-    setError(getUserFriendlyMessage(productError));
-  }, []);
-
-  // ✅ Cleanup effect for debounce timeout
-  useEffect(() => {
-    return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
-
+  // Clear product info
   const clearProduct = useCallback(() => {
     setProduct(null);
     setError(null);
@@ -120,53 +89,35 @@ export const useProductInfo = (
     setRetryCount(0);
   }, []);
 
-  // ✅ Enhanced fetch function with better error handling
+  // Clear error only
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  // Fetch product by barcode
   const fetchProductByBarcode = useCallback(
     async (barcode: string) => {
-      if (!barcode || barcode.trim() === "") {
-        handleError(
-          createProductError(
-            ProductErrorCode.VALIDATION_ERROR,
-            "กรุณาระบุบาร์โค้ด",
-            { barcode }
-          )
-        );
-        return;
-      }
-
-      // Validate barcode first
-      const normalizedBarcode = validator.normalizeBarcode(barcode);
-      const validation = validator.validateBarcode(normalizedBarcode);
-
-      if (!validation.isValid) {
-        handleError(
-          createProductError(
-            ProductErrorCode.INVALID_BARCODE,
-            validation.errors.join(", "),
-            {
-              barcode: normalizedBarcode,
-              context: {
-                validationErrors: validation.errors,
-                suggestions: validation.suggestions,
-              },
-            }
-          )
-        );
-        return;
-      }
-
-      setIsLoading(true);
-      setError(null);
-      setLastSearchedBarcode(normalizedBarcode);
+      if (!barcode) return;
 
       try {
+        setIsLoading(true);
+        setError(null);
+        setLastSearchedBarcode(barcode);
+
+        // Validate barcode first
+        const validation = validator.validateBarcode(barcode);
+        if (!validation.isValid) {
+          throw new Error(`Invalid barcode: ${validation.errors.join(", ")}`);
+        }
+
+        const normalizedBarcode = validator.normalizeBarcode(barcode);
+
         // Check cache first
         if (config.enableCaching) {
           const cachedProduct = cache.get(normalizedBarcode);
           if (cachedProduct) {
             setProduct(cachedProduct);
             setIsLoading(false);
-            setRetryCount(0);
             return;
           }
         }
@@ -175,63 +126,34 @@ export const useProductInfo = (
         const response = await fetcher.fetchProduct(normalizedBarcode);
 
         if (response.success && response.data) {
-          const productData = response.data;
-          setProduct(productData);
+          setProduct(response.data);
 
           // Cache the result
           if (config.enableCaching) {
-            cache.set(normalizedBarcode, productData);
+            cache.set(normalizedBarcode, response.data);
           }
-
-          setRetryCount(0);
         } else {
-          // API returned error
-          handleError(
-            createProductError(
-              ProductErrorCode.NOT_FOUND,
-              response.error || "ไม่พบข้อมูลสินค้า",
-              {
-                barcode: normalizedBarcode,
-                context: {
-                  apiResponse: response,
-                  debug: response.debug,
-                },
-              }
-            )
-          );
+          throw new Error(response.error || "Failed to fetch product");
         }
-      } catch (fetchError) {
-        // Network or other errors
-        handleError(fetchError, normalizedBarcode);
+      } catch (err) {
+        const errorMessage = getErrorMessage(err);
+        setError(errorMessage);
+        setProduct(null);
       } finally {
         setIsLoading(false);
       }
     },
-    [config, cache, fetcher, validator, handleError]
+    [validator, cache, fetcher, config.enableCaching]
   );
 
-  // ✅ Enhanced update barcode with debouncing
+  // Update barcode (used by detection)
   const updateBarcode = useCallback(
     (barcode: string) => {
-      if (!config.enableDebouncing) {
+      if (barcode !== lastSearchedBarcode) {
         fetchProductByBarcode(barcode);
-        return;
       }
-
-      // Clear existing timeout
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-
-      // Set new timeout
-      const timeout = setTimeout(() => {
-        fetchProductByBarcode(barcode);
-      }, config.debounceDelayMs);
-
-      // ✅ Fix: Store timeout reference using useRef pattern
-      debounceTimeoutRef.current = timeout;
     },
-    [fetchProductByBarcode, config.enableDebouncing, config.debounceDelayMs]
+    [fetchProductByBarcode, lastSearchedBarcode]
   );
 
   // Retry fetch

@@ -1,9 +1,8 @@
 // src/types/detection.ts
-// 🔍 Detection types with consolidated error handling
+// 🎯 Detection-specific types only (Camera types moved to src/types/camera.ts)
 
 import React from "react";
 import type { VideoConstraints } from "./camera";
-// ✅ Import from consolidated errors
 
 // =========================================
 // 📊 Detection Stats & Performance
@@ -92,6 +91,15 @@ export interface DetectionResult {
 }
 
 // =========================================
+// 🚨 Detection-specific Error Types
+// =========================================
+
+export interface ApiError extends Error {
+  status?: number;
+  code?: string;
+}
+
+// =========================================
 // 🪝 Detection Hook Return Types
 // =========================================
 
@@ -105,9 +113,10 @@ export interface UseBarcodeDetectionReturn {
   isStreaming: boolean;
   detections: Detection[];
   processingQueue: number;
+  // ❌ Removed lastDetectedCode - should come from productLookup hook
   stats: Stats;
   errors: string | null;
-  videoConstraints: VideoConstraints;
+  videoConstraints: VideoConstraints; // ✅ Import from camera types
 
   // Actions
   startCamera: () => Promise<void>;
@@ -155,18 +164,10 @@ export interface DetectionArea {
 }
 
 // =========================================
-// 🔄 Backward Compatibility & Re-exports
+// 🎯 Re-export Camera Types for Convenience
 // =========================================
 
-/**
- * Export consolidated error types for compatibility
- * ✅ Now using consolidated DetectionError and ApiError from errors.ts
- */
-export type { DetectionError, ApiError } from "./errors";
-
-/**
- * Re-export camera types that are commonly used with detection
- */
+// Re-export camera types that are commonly used with detection
 export type {
   VideoConstraints,
   CameraFacing,
