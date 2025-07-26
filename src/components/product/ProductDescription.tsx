@@ -12,7 +12,7 @@ interface ProductDescriptionProps {
 export const ProductDescription: React.FC<ProductDescriptionProps> = ({
   product,
 }) => {
-  if (!product.description) return null;
+  if (!product.thaiDescription && !product.shortDescription) return null;
 
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -21,7 +21,7 @@ export const ProductDescription: React.FC<ProductDescriptionProps> = ({
         <span className="text-sm font-medium text-blue-800">รายละเอียด</span>
       </div>
       <p className="text-gray-700 text-sm leading-relaxed">
-        {product.description}
+        {product.thaiDescription}
       </p>
     </div>
   );

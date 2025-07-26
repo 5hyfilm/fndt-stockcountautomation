@@ -19,10 +19,12 @@ export const ProductHeader: React.FC<ProductHeaderProps> = ({ product }) => {
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-lg lg:text-xl font-bold mb-1 leading-tight">
-            {product.name}
+            {product.productName}
           </h3>
-          {product.name_en && (
-            <p className="text-white/80 text-sm">{product.name_en}</p>
+          {product.englishDescription && (
+            <p className="text-white/80 text-sm">
+              {product.englishDescription}
+            </p>
           )}
           <div className="flex items-center gap-2 mt-2">
             <span

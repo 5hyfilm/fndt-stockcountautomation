@@ -4,7 +4,7 @@
 import React from "react";
 import { Weight, Archive, DollarSign } from "lucide-react";
 import { Product } from "../../types/product";
-import { formatPrice, formatQuantity } from "./utils";
+import { formatQuantity } from "./utils";
 
 // Extended interface for products with additional properties
 interface ExtendedProduct extends Product {
@@ -98,7 +98,9 @@ export const ProductBasicInfo: React.FC<ProductBasicInfoProps> = ({
             <span className="text-sm text-green-700">ราคา</span>
           </div>
           <p className="font-semibold text-green-600 text-lg">
-            {formatPrice(product.price, product.currency)}
+            <span>
+              {formatQuantity(currentInventoryQuantity, product.unit)}
+            </span>
           </p>
         </div>
       )}
