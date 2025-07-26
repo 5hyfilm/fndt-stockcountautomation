@@ -9,13 +9,11 @@ import {
   InventorySummary,
 } from "../hooks/inventory/types";
 import { Product } from "../types/product";
-import {
-  InventoryControls,
-  InventoryList,
-  ConfirmDeleteDialog,
-  ErrorAlert,
-  LoadingSpinner,
-} from "./inventory";
+import { InventoryControls } from "./inventory/InventoryControls";
+import { InventoryList } from "./inventory/InventoryList";
+import { ConfirmDeleteDialog } from "./inventory/ConfirmDeleteDialog";
+import { ErrorAlert } from "./inventory/ErrorAlert";
+import { LoadingSpinner } from "./inventory/LoadingSpinner";
 import {
   UnitFilterType,
   filterInventoryByUnitType,
