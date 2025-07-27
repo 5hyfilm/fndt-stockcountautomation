@@ -1,4 +1,4 @@
-// Path: src/hooks/index.ts
+// src/hooks/index.ts
 
 // =========================================
 // 🪝 Main Hooks
@@ -11,11 +11,10 @@ export { useLogoutConfirmation } from "./useLogoutConfirmation";
 // =========================================
 // 📚 Sub-module Hooks & Types
 // =========================================
-export * from "./camera";
+export * from "./camera/useCameraControl";
 export * from "./detection";
 export * from "./product";
 export * from "./canvas";
-// export * from "./barcode"; // 🚫 REMOVED - no actual hooks, only types
 export * from "./inventory";
 
 // =========================================
@@ -25,9 +24,3 @@ export type {
   UseBarcodeDetectionReturn,
   BarcodeDetectionConfig,
 } from "./types";
-
-// =========================================
-// 🔄 Barcode Types Now Available Through Central Types
-// =========================================
-// Barcode types now imported directly from:
-// import { BarcodeFormat, BarcodeValidation } from '../types/barcode'
