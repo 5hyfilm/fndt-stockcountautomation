@@ -1,11 +1,9 @@
-// Path: src/hooks/types.ts
-// 🔧 Fixed - Re-export product types from central location
+// src/hooks/types.ts
 
 // =========================================
 // 📚 Hook Type Re-exports
 // =========================================
 
-export * from "./camera/types";
 export * from "./detection/types";
 export * from "./canvas/types";
 export * from "./../types/barcode";
@@ -53,10 +51,8 @@ export { BarcodeType, ProductCategory, ProductStatus } from "../types/product";
 // =========================================
 
 import type { VideoConstraints, CameraFacing } from "../types/camera";
-
 import type { Detection, Stats } from "../types/detection";
-
-import type { Product } from "../types/product"; // ✅ Import Product type
+import type { Product } from "../types/product";
 
 // =========================================
 // 🔗 Combined Hook Return Types
@@ -78,11 +74,11 @@ export interface UseBarcodeDetectionReturn {
   // =========================================
   isStreaming: boolean;
   videoConstraints: VideoConstraints;
-  torchOn: boolean; // ✅ Fixed: Required instead of optional
+  torchOn: boolean;
   startCamera: () => Promise<void>;
   stopCamera: () => void;
   switchCamera: () => void;
-  toggleTorch: () => void; // ✅ Fixed: Required instead of optional
+  toggleTorch: () => void;
   setVideoConstraints: React.Dispatch<React.SetStateAction<VideoConstraints>>;
 
   // =========================================
@@ -95,17 +91,16 @@ export interface UseBarcodeDetectionReturn {
   resetDetections: () => void;
 
   // =========================================
-  // 🛒 Product Lookup State (Fixed property names)
+  // 🛒 Product Lookup State & Actions
   // =========================================
-  product: Product | null; // ✅ Fixed: Use proper Product type instead of any
-  detectedBarcodeType: "ea" | "dsp" | "cs" | null; // ✅ Fixed type
-  isLoadingProduct: boolean; // ✅ Fixed property name
-  productError: string | null; // ✅ Fixed property name
-  lastDetectedCode: string; // ✅ Added missing property
-  errors: string | null; // ✅ Fixed: Changed from string[] to string | null to match component expectations
+  lastDetectedCode: string;
+  product: Product | null;
+  detectedBarcodeType: "ea" | "dsp" | "cs" | null;
+  productError: string | null;
+  isLoadingProduct: boolean;
 
   // =========================================
-  // 🎨 Canvas Actions
+  // 🎨 Canvas & Drawing
   // =========================================
   drawDetections: () => void;
   updateCanvasSize: () => void;
@@ -114,25 +109,32 @@ export interface UseBarcodeDetectionReturn {
   // 🎛️ Enhanced Actions
   // =========================================
   manualScan: () => Promise<void>;
-  rescanCurrentView: () => Promise<void>; // ✅ Added missing rescanCurrentView function
+  rescanCurrentView: () => Promise<void>;
   restartForNextScan: () => void;
-  clearError: () => void; // ✅ Added missing clearError function
+
+  // =========================================
+  // 🚨 Error Handling
+  // =========================================
+  errors: string | null;
+  clearError: () => void;
 }
 
-/**
- * Configuration for barcode detection hook
- */
+// =========================================
+// ⚙️ Configuration Types
+// =========================================
+
 export interface BarcodeDetectionConfig {
-  // Camera config
-  defaultFacingMode: CameraFacing;
-  enableTorch: boolean;
-
-  // Detection config
-  processInterval: number;
-  maxProcessingQueue: number;
-
-  // Product config
-  enableProductLookup: boolean;
-  enableCaching: boolean;
-  cacheExpiryMs: number;
+  autoStart?: boolean;
+  autoProcess?: boolean;
+  processInterval?: number;
+  maxQueue?: number;
+  enableDebouncing?: boolean;
+  debounceDelay?: number;
+  confidenceThreshold?: number;
+  enableRotationCorrection?: boolean;
+  defaultFacingMode?: CameraFacing;
+  defaultResolution?: {
+    width: number;
+    height: number;
+  };
 }

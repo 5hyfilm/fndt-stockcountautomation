@@ -1,16 +1,14 @@
 // src/hooks/camera/useCameraControl.tsx
-// 🎥 Camera control hook with proper type imports
 
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
-import type { VideoConstraints, CameraError } from "./types"; // ✅ Import from consolidated types
+import type { VideoConstraints, CameraError } from "../../types/camera";
 
 // =========================================
 // 🛡️ Error Handling Utilities
 // =========================================
 
-// Type guard to check if error has message property
 const isErrorWithMessage = (error: unknown): error is CameraError => {
   return (
     typeof error === "object" &&
@@ -20,7 +18,6 @@ const isErrorWithMessage = (error: unknown): error is CameraError => {
   );
 };
 
-// Helper function to get error message
 const getErrorMessage = (error: unknown): string => {
   if (isErrorWithMessage(error)) {
     return error.message;
@@ -42,15 +39,9 @@ const getErrorMessage = (error: unknown): string => {
 // =========================================
 
 export const useCameraControl = () => {
-  // =========================================
-  // 📚 Refs
-  // =========================================
   const videoRef = useRef<HTMLVideoElement>(null!);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // =========================================
-  // 🎛️ State
-  // =========================================
   const [isStreaming, setIsStreaming] = useState(false);
   const [errors, setErrors] = useState<string | null>(null);
   const [torchOn, setTorchOn] = useState(false);
@@ -60,37 +51,22 @@ export const useCameraControl = () => {
     facingMode: "environment",
   });
 
-  // =========================================
-  // 🔦 Torch Control
-  // =========================================
-
-  const toggleTorch = useCallback(() => {
-    if (!streamRef.current) {
-      console.warn("No stream available for torch control");
-      return;
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => {
+        track.stop();
+      });
+      streamRef.current = null;
     }
 
-    try {
-      const track = streamRef.current.getVideoTracks()[0];
-      if (track && track.getCapabilities && track.getCapabilities().torch) {
-        const newTorchState = !torchOn;
-        track.applyConstraints({
-          advanced: [{ torch: newTorchState }],
-        });
-        setTorchOn(newTorchState);
-      } else {
-        console.warn("Torch not supported on this device");
-      }
-    } catch (error) {
-      console.error("Error toggling torch:", error);
-      // Reset torch state if failed
-      setTorchOn(false);
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
-  }, [torchOn]);
 
-  // =========================================
-  // 📹 Camera Controls
-  // =========================================
+    setIsStreaming(false);
+    setTorchOn(false);
+    setErrors(null);
+  }, []);
 
   const startCamera = useCallback(async () => {
     try {
@@ -101,94 +77,66 @@ export const useCameraControl = () => {
         audio: false,
       });
 
-      const video = videoRef.current;
-      if (video) {
-        video.srcObject = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
         streamRef.current = stream;
         setIsStreaming(true);
-
-        await new Promise<void>((resolve) => {
-          video.onloadedmetadata = () => resolve();
-        });
       }
-    } catch (error: unknown) {
-      console.error("Error starting camera:", error);
-
-      const errorMessage =
-        isErrorWithMessage(error) && error.name
-          ? error.name === "NotAllowedError"
-            ? "กรุณาอนุญาตการใช้งานกล้อง"
-            : error.name === "NotFoundError"
-            ? "ไม่พบกล้องในอุปกรณ์"
-            : `เกิดข้อผิดพลาด: ${error.message}`
-          : getErrorMessage(error);
-
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
       setErrors(errorMessage);
+      console.error("Camera access error:", error);
     }
   }, [videoConstraints]);
 
-  const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-
-    const video = videoRef.current;
-    if (video) {
-      video.srcObject = null;
-    }
-
-    setIsStreaming(false);
-    setTorchOn(false);
-  }, []);
-
   const switchCamera = useCallback(() => {
+    const newFacingMode =
+      videoConstraints.facingMode === "environment" ? "user" : "environment";
+
+    setVideoConstraints((prev) => ({
+      ...prev,
+      facingMode: newFacingMode,
+    }));
+
     if (isStreaming) {
       stopCamera();
-      setVideoConstraints((prev) => ({
-        ...prev,
-        facingMode: prev.facingMode === "environment" ? "user" : "environment",
-      }));
+      setTimeout(() => {
+        startCamera();
+      }, 100);
     }
-  }, [isStreaming, stopCamera]);
+  }, [videoConstraints.facingMode, isStreaming, stopCamera, startCamera]);
 
-  // =========================================
-  // ⚡ Effects
-  // =========================================
+  const toggleTorch = useCallback(async () => {
+    if (!streamRef.current) return;
 
-  // Auto-restart camera when constraints change
-  useEffect(() => {
-    if (isStreaming) {
-      stopCamera();
-      setTimeout(() => startCamera(), 100);
+    try {
+      const videoTrack = streamRef.current.getVideoTracks()[0];
+      const capabilities = videoTrack.getCapabilities?.();
+
+      if (capabilities?.torch) {
+        const newTorchState = !torchOn;
+        await videoTrack.applyConstraints({
+          advanced: [{ torch: newTorchState }],
+        });
+        setTorchOn(newTorchState);
+      }
+    } catch (error) {
+      console.error("Torch toggle error:", error);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoConstraints.facingMode]);
+  }, [torchOn]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
+      stopCamera();
     };
-  }, []);
-
-  // =========================================
-  // 📤 Return Interface
-  // =========================================
+  }, [stopCamera]);
 
   return {
-    // Refs
     videoRef,
-
-    // State
     isStreaming,
     errors,
     videoConstraints,
     torchOn,
-
-    // Actions
     startCamera,
     stopCamera,
     switchCamera,
