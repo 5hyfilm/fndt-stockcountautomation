@@ -1,5 +1,4 @@
-// src/hooks/index.ts
-// 🔄 Fixed export conflicts - explicit exports only
+// Path: src/hooks/index.ts
 
 // =========================================
 // 🪝 Main Hooks
@@ -16,24 +15,19 @@ export * from "./camera";
 export * from "./detection";
 export * from "./product";
 export * from "./canvas";
-export * from "./barcode";
+// export * from "./barcode"; // 🚫 REMOVED - no actual hooks, only types
 export * from "./inventory";
 
 // =========================================
 // 🎯 Explicit Exports from types.ts (No Conflicts)
 // =========================================
-// Only export unique combined types
 export type {
   UseBarcodeDetectionReturn,
   BarcodeDetectionConfig,
 } from "./types";
 
 // =========================================
-// 🔄 Core Types Available Through Sub-modules
+// 🔄 Barcode Types Now Available Through Central Types
 // =========================================
-// These are already exported through their respective modules:
-// - VideoConstraints, CameraFacing, etc. from "./camera"
-// - Detection, BarcodeData, Stats, etc. from "./detection"
-// - Product types from "./product"
-// - Canvas types from "./canvas"
-// - Barcode types from "./barcode"
+// Barcode types now imported directly from:
+// import { BarcodeFormat, BarcodeValidation } from '../types/barcode'

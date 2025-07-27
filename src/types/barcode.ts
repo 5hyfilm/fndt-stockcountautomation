@@ -1,4 +1,5 @@
-// ./src/hooks/barcode/types.ts
+// Path: src/types/barcode.ts
+
 export interface BarcodeFormat {
   name: string;
   pattern: RegExp;
@@ -13,7 +14,6 @@ export interface BarcodeValidation {
   suggestions?: string[];
 }
 
-// แก้ไข: ใช้ generic constraints แทน any
 export interface DebouncedFunction<T extends (...args: unknown[]) => unknown> {
   (...args: Parameters<T>): void;
   cancel: () => void;
@@ -50,7 +50,6 @@ export interface UseBarcodeDebounceOptions {
   trailing?: boolean;
 }
 
-// แก้ไข: ใช้ generic constraints แทน any
 export interface UseBarcodeDebounceReturn<
   T extends (...args: unknown[]) => unknown
 > {

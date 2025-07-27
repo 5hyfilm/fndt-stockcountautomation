@@ -8,7 +8,7 @@
 export * from "./camera/types";
 export * from "./detection/types";
 export * from "./canvas/types";
-export * from "./barcode/types";
+export * from "./../types/barcode";
 
 // ⭐ Product types now re-exported from central location
 export type {
