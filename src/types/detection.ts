@@ -100,8 +100,14 @@ export interface ApiError extends Error {
 }
 
 // =========================================
-// 🪝 Detection Hook Return Types
+// 🪝 Detection Hook Props & Return Types
 // =========================================
+
+export interface UseDetectionProcessorProps {
+  videoRef: React.RefObject<HTMLVideoElement>;
+  lastDetectedCode: string;
+  updateBarcode: (barcode: string) => Promise<void>;
+}
 
 export interface UseBarcodeDetectionReturn {
   // Refs
@@ -113,10 +119,9 @@ export interface UseBarcodeDetectionReturn {
   isStreaming: boolean;
   detections: Detection[];
   processingQueue: number;
-  // ❌ Removed lastDetectedCode - should come from productLookup hook
   stats: Stats;
   errors: string | null;
-  videoConstraints: VideoConstraints; // ✅ Import from camera types
+  videoConstraints: VideoConstraints;
 
   // Actions
   startCamera: () => Promise<void>;

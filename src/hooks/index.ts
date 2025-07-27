@@ -12,7 +12,7 @@ export { useLogoutConfirmation } from "./useLogoutConfirmation";
 // 📚 Sub-module Hooks & Types
 // =========================================
 export * from "./camera/useCameraControl";
-export * from "./detection";
+export { useDetectionProcessor } from "./detection/useDetectionProcessor";
 export * from "./product";
 export { useCanvasRenderer } from "./canvas/useCanvasRenderer";
 export * from "./inventory";

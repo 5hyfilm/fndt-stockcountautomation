@@ -1,11 +1,11 @@
-// Path: src/hooks/types.ts
+// src/hooks/types.ts
 
 // =========================================
 // 📚 Hook Type Re-exports
 // =========================================
 
-export * from "./detection/types";
-export * from "../types/canvas"; // ✅ Updated: Import from central types location
+export * from "../types/detection";
+export * from "../types/canvas";
 export * from "../types/barcode";
 
 // ⭐ Product types now re-exported from central location
@@ -28,14 +28,14 @@ export type {
   UseProductFetcherReturn,
   UseProductValidatorReturn,
   ProductInfoError,
-  ProductUnitType, // ✅ Added ProductUnitType export
+  ProductUnitType,
 } from "../types/product";
 
 export {
   BarcodeType,
   ProductCategory,
   ProductStatus,
-  PRODUCT_UNIT_TYPES, // ✅ Added constant export
+  PRODUCT_UNIT_TYPES,
 } from "../types/product";
 
 // =========================================
@@ -52,7 +52,7 @@ import type { Product, ProductUnitType } from "../types/product";
 
 /**
  * Combined return type for useBarcodeDetection hook
- * ✅ FIXED: Updated to match actual implementation
+ * ✅ UPDATED: Complete interface matching actual implementation
  */
 export interface UseBarcodeDetectionReturn {
   // =========================================
@@ -67,49 +67,53 @@ export interface UseBarcodeDetectionReturn {
   // =========================================
   isStreaming: boolean;
   videoConstraints: VideoConstraints;
-  torchOn: boolean;
   startCamera: () => Promise<void>;
   stopCamera: () => void;
   switchCamera: () => void;
+  setVideoConstraints: (constraints: VideoConstraints) => void;
+
+  // =========================================
+  // 🔦 Torch Control
+  // =========================================
+  torchOn: boolean;
   toggleTorch: () => void;
-  setVideoConstraints: React.Dispatch<React.SetStateAction<VideoConstraints>>;
 
   // =========================================
   // 🔍 Detection State & Actions
   // =========================================
   detections: Detection[];
-  processingQueue: number; // ✅ FIXED: Added missing property
+  processingQueue: number;
   stats: Stats;
-  captureAndProcess: () => Promise<void>; // ✅ FIXED: Added missing property
+  captureAndProcess: () => Promise<void>;
   resetDetections: () => void;
-  lastDetectedCode: string; // ✅ FIXED: Changed from string | null to string
+  lastDetectedCode: string;
 
   // =========================================
-  // 🛒 Product State & Actions
+  // 🛒 Product Lookup State
   // =========================================
   product: Product | null;
-  detectedBarcodeType: "ea" | "dsp" | "cs" | null;
-  isLoadingProduct: boolean; // ✅ FIXED: Added missing property
-  productError: string | null; // ✅ FIXED: Added missing property
+  detectedBarcodeType: ProductUnitType | null;
+  isLoadingProduct: boolean;
+  productError: string | null;
   clearProduct: () => void;
 
   // =========================================
   // 🎨 Canvas Actions
   // =========================================
-  updateCanvasSize: () => void;
   drawDetections: () => void;
+  updateCanvasSize: () => void;
 
   // =========================================
   // 🎛️ Enhanced Actions
   // =========================================
   manualScan: () => Promise<void>;
   rescanCurrentView: () => Promise<void>;
-  restartForNextScan: () => void; // ✅ FIXED: Added missing property
+  restartForNextScan: () => void;
 
   // =========================================
   // 🚨 Error Handling
   // =========================================
-  errors: string | null; // ✅ FIXED: Added missing property
+  errors: string | null;
   clearError: () => void;
 }
 
@@ -143,17 +147,9 @@ export interface BarcodeDetectionConfig {
 // 🔄 Additional Hook Types (if needed)
 // =========================================
 
-export interface UseDetectionProcessorReturn {
-  detections: Detection[];
-  processingQueue: number;
-  stats: Stats;
-  captureAndProcess: () => Promise<void>;
-  resetDetections: () => void;
-}
-
 export interface UseProductLookupReturn {
   product: Product | null;
-  detectedBarcodeType: ProductUnitType | null; // ✅ Changed to ProductUnitType
+  detectedBarcodeType: ProductUnitType | null;
   isLoadingProduct: boolean;
   productError: string | null;
   lastDetectedCode: string;
