@@ -50,7 +50,7 @@ python(3) app.py
 ```
 ├── src/
 │   ├── app/api/detect-barcode/    # Barcode detection API
-│   ├── components/headers/        # Header components
+│   ├── components/                # Components
 │   ├── hooks/                     # React hooks
 │   └── types/                     # TypeScript definitions
 ├── backend/
