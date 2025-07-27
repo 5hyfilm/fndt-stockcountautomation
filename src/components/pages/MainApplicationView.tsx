@@ -17,7 +17,7 @@ import { ErrorDisplay } from "../ErrorDisplay";
 import { CameraSection } from "../CameraSection";
 import { ProductInfoSection } from "../sections/ProductInfoSection";
 import { QuickStats } from "../stats/QuickStats";
-import { InventoryDisplay } from "../InventoryDisplay";
+import { InventoryDisplay } from "../inventory/InventoryDisplay";
 import { LogoutConfirmationModal } from "../modals/LogoutConfirmationModal";
 import { AddNewProductForm } from "../forms/AddNewProductForm";
 

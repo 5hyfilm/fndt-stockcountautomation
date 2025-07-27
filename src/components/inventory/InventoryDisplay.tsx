@@ -7,17 +7,14 @@ import {
   InventoryItem,
   QuantityDetail,
   InventorySummary,
-} from "../hooks/inventory/types";
-import { Product } from "../types/product";
-import { InventoryControls } from "./inventory/InventoryControls";
-import { InventoryList } from "./inventory/InventoryList";
-import { ConfirmDeleteDialog } from "./inventory/ConfirmDeleteDialog";
-import { ErrorAlert } from "./inventory/ErrorAlert";
-import { LoadingSpinner } from "./inventory/LoadingSpinner";
-import {
-  UnitFilterType,
-  filterInventoryByUnitType,
-} from "./inventory/UnitTypeFilter";
+} from "../../hooks/inventory/types";
+import { Product } from "../../types/product";
+import { InventoryControls } from "./InventoryControls";
+import { InventoryList } from "./InventoryList";
+import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
+import { ErrorAlert } from "./ErrorAlert";
+import { LoadingSpinner } from "./LoadingSpinner";
+import { UnitFilterType, filterInventoryByUnitType } from "./UnitTypeFilter";
 
 interface InventoryDisplayProps {
   inventory: InventoryItem[];
