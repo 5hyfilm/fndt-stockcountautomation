@@ -1,24 +1,24 @@
-// src/components/ProductInfo.tsx - Updated with QuantityInput Support
+// src/components/product/ProductInfo.tsx - Updated with QuantityInput Support
 "use client";
 
 import React, { useState } from "react";
-import { Product } from "../types/product";
-import { QuantityInput } from "../hooks/inventory/types"; // ✅ Import QuantityInput
+import { Product } from "../../types/product";
+import { QuantityInput } from "../../hooks/inventory/types"; // ✅ Import QuantityInput
 
 // Import sub-components
-import { ProductHeader } from "./product/ProductHeader";
-import { ProductBasicInfo } from "./product/ProductBasicInfo";
-import { InventoryAddSection } from "./product/InventoryAddSection";
-import { ProductDescription } from "./product/ProductDescription";
-import { BarcodeInfo } from "./product/BarcodeInfo";
-import { ProductDetails } from "./product/ProductDetails";
-import { NutritionInfo } from "./product/NutritionInfo";
+import { ProductHeader } from "./ProductHeader";
+import { ProductBasicInfo } from "./ProductBasicInfo";
+import { InventoryAddSection } from "./InventoryAddSection";
+import { ProductDescription } from "./ProductDescription";
+import { BarcodeInfo } from "./BarcodeInfo";
+import { ProductDetails } from "./ProductDetails";
+import { NutritionInfo } from "./NutritionInfo";
 import {
   LoadingState,
   ErrorState,
   WaitingScanState,
   ProductNotFoundState,
-} from "./product/EmptyStates";
+} from "./EmptyStates";
 
 interface ProductInfoProps {
   product: Product | null;
