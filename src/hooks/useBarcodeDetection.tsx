@@ -1,6 +1,4 @@
-// src/hooks/useBarcodeDetection.tsx
-// 🎯 Main barcode detection hook with consolidated types
-
+// Path: src/hooks/useBarcodeDetection.tsx
 "use client";
 
 import { useCallback } from "react";
@@ -8,30 +6,22 @@ import { useCameraControl } from "./camera/useCameraControl";
 import { useProductLookup } from "./product/useProductLookup";
 import { useDetectionProcessor } from "./detection/useDetectionProcessor";
 import { useCanvasRenderer } from "./canvas/useCanvasRenderer";
-import type { UseBarcodeDetectionReturn } from "./types"; // ✅ Import from consolidated types
-
-// =========================================
-// 🪝 Main Barcode Detection Hook
-// =========================================
+import type { UseBarcodeDetectionReturn } from "./types";
 
 export const useBarcodeDetection = (): UseBarcodeDetectionReturn => {
   // =========================================
   // 🎥 Camera Control
   // =========================================
-
   const camera = useCameraControl();
 
   // =========================================
   // 🛒 Product Lookup with Callback
   // =========================================
-
-  // 🔥 Create callback for when product is found
   const handleProductFound = useCallback(() => {
     console.log("🎯 Product found! Stopping camera...");
     camera.stopCamera();
   }, [camera]);
 
-  // Pass callback to productLookup
   const productLookup = useProductLookup({
     onProductFound: handleProductFound,
   });
@@ -39,13 +29,11 @@ export const useBarcodeDetection = (): UseBarcodeDetectionReturn => {
   // =========================================
   // 🎨 Canvas Rendering
   // =========================================
-
   const canvas = useCanvasRenderer();
 
   // =========================================
   // 🔍 Detection Processing
   // =========================================
-
   const detection = useDetectionProcessor({
     videoRef: camera.videoRef,
     lastDetectedCode: productLookup.lastDetectedCode,
@@ -55,19 +43,16 @@ export const useBarcodeDetection = (): UseBarcodeDetectionReturn => {
   // =========================================
   // 🎛️ Combined Actions
   // =========================================
-
-  // Combined error handling
   const clearError = useCallback(() => {
-    // Clear product data and reset detection
     productLookup.clearProduct();
   }, [productLookup]);
 
-  // Enhanced draw detections with all required params
+  // ✅ FIXED: Updated parameter name to match new canvas interface
   const drawDetections = useCallback(() => {
     canvas.drawDetections(
       detection.detections,
       productLookup.product,
-      productLookup.detectedBarcodeType,
+      productLookup.detectedBarcodeType, // This is ProductUnitType, not BarcodeType
       camera.videoRef
     );
   }, [
@@ -78,7 +63,6 @@ export const useBarcodeDetection = (): UseBarcodeDetectionReturn => {
     camera.videoRef,
   ]);
 
-  // Manual scan function for inventory tab
   const manualScan = useCallback(async () => {
     if (!camera.isStreaming) {
       await camera.startCamera();
@@ -90,33 +74,28 @@ export const useBarcodeDetection = (): UseBarcodeDetectionReturn => {
     }
   }, [camera, detection]);
 
-  // Force rescan current view
   const rescanCurrentView = useCallback(async () => {
     if (camera.isStreaming) {
       await detection.captureAndProcess();
     }
   }, [camera, detection]);
 
-  // Enhanced stop camera that resets everything
   const stopCamera = useCallback(() => {
     camera.stopCamera();
     detection.resetDetections();
   }, [camera, detection]);
 
-  // 🔄 Restart for next scan (clear everything and prepare for next scan)
   const restartForNextScan = useCallback(() => {
     console.log("🔄 Restarting for next scan...");
     productLookup.clearCurrentDetection();
     detection.resetDetections();
-    // Don't auto-start camera - let user start manually
   }, [productLookup, detection]);
 
   // =========================================
   // 📤 Return Combined Interface
   // =========================================
-
   return {
-    // 📚 Refs (from camera and canvas)
+    // 📚 Refs
     videoRef: camera.videoRef,
     canvasRef: canvas.canvasRef,
     containerRef: canvas.containerRef,
@@ -129,7 +108,7 @@ export const useBarcodeDetection = (): UseBarcodeDetectionReturn => {
     switchCamera: camera.switchCamera,
     setVideoConstraints: camera.setVideoConstraints,
 
-    // 🔦 Torch control (if available)
+    // 🔦 Torch control
     torchOn: camera.torchOn,
     toggleTorch: camera.toggleTorch,
 
@@ -139,13 +118,14 @@ export const useBarcodeDetection = (): UseBarcodeDetectionReturn => {
     stats: detection.stats,
     captureAndProcess: detection.captureAndProcess,
     resetDetections: detection.resetDetections,
+    lastDetectedCode: productLookup.lastDetectedCode,
 
-    // 🛒 Product lookup state (✅ Fixed property names)
+    // 🛒 Product lookup state
     product: productLookup.product,
-    detectedBarcodeType: productLookup.detectedBarcodeType, // "ea" | "dsp" | "cs" | null
-    isLoadingProduct: productLookup.isLoadingProduct, // ✅ Fixed name
-    productError: productLookup.productError, // ✅ Fixed name
-    lastDetectedCode: productLookup.lastDetectedCode, // ✅ From productLookup, not detection
+    detectedBarcodeType: productLookup.detectedBarcodeType, // ProductUnitType
+    isLoadingProduct: productLookup.isLoadingProduct,
+    productError: productLookup.productError,
+    clearProduct: productLookup.clearProduct, // ✅ FIXED: Added missing property
 
     // 🎨 Canvas actions
     drawDetections,
@@ -157,7 +137,7 @@ export const useBarcodeDetection = (): UseBarcodeDetectionReturn => {
     restartForNextScan,
 
     // 🚨 Combined error handling
-    errors: camera.errors || productLookup.productError, // ✅ Fixed property name
+    errors: camera.errors || productLookup.productError,
     clearError,
   };
 };

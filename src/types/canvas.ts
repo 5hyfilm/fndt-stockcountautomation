@@ -1,8 +1,8 @@
-// Path: src/hooks/canvas/types.ts
-// 🔧 Fixed Import - BarcodeType now from central types
+// Path: src/types/canvas.ts
+// 🎨 Canvas Types - Moved from hooks/canvas/types.ts
 
-import { Detection } from "../detection/types";
-import { Product, BarcodeType } from "../../types/product"; // ✅ FIXED: Import from central location
+import { Detection } from "./detection";
+import { Product, ProductUnitType } from "./product";
 
 export interface CanvasDrawingOptions {
   strokeColor: string;
@@ -34,7 +34,7 @@ export interface DetectionDrawingParams {
   coordinates: CanvasCoordinates;
   options: CanvasDrawingOptions;
   product?: Product | null;
-  barcodeType?: BarcodeType | null;
+  unitType?: ProductUnitType | null; // ✅ Changed from barcodeType to unitType
 }
 
 export interface UseCanvasRendererReturn {
@@ -47,7 +47,7 @@ export interface UseCanvasRendererReturn {
   drawDetections: (
     detections: Detection[],
     product: Product | null,
-    detectedBarcodeType: BarcodeType | null,
+    detectedUnitType: ProductUnitType | null, // ✅ Changed parameter name and type
     videoRef: React.RefObject<HTMLVideoElement>
   ) => void;
 }

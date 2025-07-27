@@ -341,3 +341,39 @@ export interface ProductDisplayOptions {
 
 // All product types are now consolidated in this single file
 // Types are exported individually throughout the file - no need for re-exports
+
+export type ProductUnitType = "ea" | "dsp" | "cs";
+
+export const PRODUCT_UNIT_TYPES = {
+  EA: "ea" as const, // Each (ชิ้น)
+  DSP: "dsp" as const, // Display Pack (แพ็ค)
+  CS: "cs" as const, // Case/Carton (ลัง)
+} as const;
+
+export interface ProductUnitInfo {
+  type: ProductUnitType;
+  label: string;
+  shortLabel: string;
+  description: string;
+}
+
+export const PRODUCT_UNIT_CONFIG: Record<ProductUnitType, ProductUnitInfo> = {
+  ea: {
+    type: "ea",
+    label: "ชิ้น",
+    shortLabel: "EA",
+    description: "หน่วยละชิ้น",
+  },
+  dsp: {
+    type: "dsp",
+    label: "แพ็ค",
+    shortLabel: "DSP",
+    description: "หน่วยแพ็ค/ห่อ",
+  },
+  cs: {
+    type: "cs",
+    label: "ลัง",
+    shortLabel: "CS",
+    description: "หน่วยลัง/กล่อง",
+  },
+};

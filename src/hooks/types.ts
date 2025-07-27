@@ -1,58 +1,50 @@
-// src/hooks/types.ts
+// Path: src/hooks/types.ts
 
 // =========================================
 // 📚 Hook Type Re-exports
 // =========================================
 
 export * from "./detection/types";
-export * from "./canvas/types";
-export * from "./../types/barcode";
+export * from "../types/canvas"; // ✅ Updated: Import from central types location
+export * from "../types/barcode";
 
 // ⭐ Product types now re-exported from central location
 export type {
-  // Core Product Types
   Product,
   NutritionInfo,
-
-  // API Response Types
   ProductSearchParams,
   ProductResponse,
   ProductListResponse,
   DebugInfo,
-
-  // Barcode Types
   BarcodeValidationResult,
-
-  // Configuration Types
   ProductInfoConfig,
   FetchProductOptions,
-
-  // Cache Types
   ProductCacheEntry,
   ProductCacheStats,
-
-  // Hook Return Types
   UseProductInfoReturn,
   UseProductCacheProps,
   UseProductFetcherProps,
   UseProductCacheReturn,
   UseProductFetcherReturn,
   UseProductValidatorReturn,
-
-  // Error Types
   ProductInfoError,
+  ProductUnitType, // ✅ Added ProductUnitType export
 } from "../types/product";
 
-// ⭐ Re-export product enums
-export { BarcodeType, ProductCategory, ProductStatus } from "../types/product";
+export {
+  BarcodeType,
+  ProductCategory,
+  ProductStatus,
+  PRODUCT_UNIT_TYPES, // ✅ Added constant export
+} from "../types/product";
 
 // =========================================
 // 🎯 Central Type Imports for Combined Types
 // =========================================
 
-import type { VideoConstraints, CameraFacing } from "../types/camera";
+import type { VideoConstraints } from "../types/camera";
 import type { Detection, Stats } from "../types/detection";
-import type { Product } from "../types/product";
+import type { Product, ProductUnitType } from "../types/product";
 
 // =========================================
 // 🔗 Combined Hook Return Types
@@ -60,6 +52,7 @@ import type { Product } from "../types/product";
 
 /**
  * Combined return type for useBarcodeDetection hook
+ * ✅ FIXED: Updated to match actual implementation
  */
 export interface UseBarcodeDetectionReturn {
   // =========================================
@@ -85,37 +78,38 @@ export interface UseBarcodeDetectionReturn {
   // 🔍 Detection State & Actions
   // =========================================
   detections: Detection[];
-  processingQueue: number;
+  processingQueue: number; // ✅ FIXED: Added missing property
   stats: Stats;
-  captureAndProcess: () => Promise<void>;
+  captureAndProcess: () => Promise<void>; // ✅ FIXED: Added missing property
   resetDetections: () => void;
+  lastDetectedCode: string; // ✅ FIXED: Changed from string | null to string
 
   // =========================================
-  // 🛒 Product Lookup State & Actions
+  // 🛒 Product State & Actions
   // =========================================
-  lastDetectedCode: string;
   product: Product | null;
   detectedBarcodeType: "ea" | "dsp" | "cs" | null;
-  productError: string | null;
-  isLoadingProduct: boolean;
+  isLoadingProduct: boolean; // ✅ FIXED: Added missing property
+  productError: string | null; // ✅ FIXED: Added missing property
+  clearProduct: () => void;
 
   // =========================================
-  // 🎨 Canvas & Drawing
+  // 🎨 Canvas Actions
   // =========================================
-  drawDetections: () => void;
   updateCanvasSize: () => void;
+  drawDetections: () => void;
 
   // =========================================
   // 🎛️ Enhanced Actions
   // =========================================
   manualScan: () => Promise<void>;
   rescanCurrentView: () => Promise<void>;
-  restartForNextScan: () => void;
+  restartForNextScan: () => void; // ✅ FIXED: Added missing property
 
   // =========================================
   // 🚨 Error Handling
   // =========================================
-  errors: string | null;
+  errors: string | null; // ✅ FIXED: Added missing property
   clearError: () => void;
 }
 
@@ -124,17 +118,46 @@ export interface UseBarcodeDetectionReturn {
 // =========================================
 
 export interface BarcodeDetectionConfig {
-  autoStart?: boolean;
-  autoProcess?: boolean;
-  processInterval?: number;
-  maxQueue?: number;
-  enableDebouncing?: boolean;
-  debounceDelay?: number;
-  confidenceThreshold?: number;
-  enableRotationCorrection?: boolean;
-  defaultFacingMode?: CameraFacing;
-  defaultResolution?: {
-    width: number;
-    height: number;
+  // Detection settings
+  confidenceThreshold: number;
+  maxDetections: number;
+  processInterval: number;
+
+  // Camera settings
+  defaultVideoConstraints: VideoConstraints;
+
+  // Product lookup settings
+  enableProductLookup: boolean;
+  cacheProducts: boolean;
+
+  // Canvas settings
+  enableCanvas: boolean;
+  canvasSettings: {
+    strokeColor: string;
+    fillColor: string;
+    lineWidth: number;
   };
+}
+
+// =========================================
+// 🔄 Additional Hook Types (if needed)
+// =========================================
+
+export interface UseDetectionProcessorReturn {
+  detections: Detection[];
+  processingQueue: number;
+  stats: Stats;
+  captureAndProcess: () => Promise<void>;
+  resetDetections: () => void;
+}
+
+export interface UseProductLookupReturn {
+  product: Product | null;
+  detectedBarcodeType: ProductUnitType | null; // ✅ Changed to ProductUnitType
+  isLoadingProduct: boolean;
+  productError: string | null;
+  lastDetectedCode: string;
+  updateBarcode: (barcode: string) => Promise<void>;
+  clearProduct: () => void;
+  clearCurrentDetection: () => void;
 }
