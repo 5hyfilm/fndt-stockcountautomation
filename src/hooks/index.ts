@@ -14,7 +14,7 @@ export { useLogoutConfirmation } from "./useLogoutConfirmation";
 export * from "./camera/useCameraControl";
 export * from "./detection";
 export * from "./product";
-export * from "./canvas";
+export { useCanvasRenderer } from "./canvas/useCanvasRenderer";
 export * from "./inventory";
 
 // =========================================
