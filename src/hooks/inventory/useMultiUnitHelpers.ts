@@ -1,5 +1,5 @@
 // Path: src/hooks/inventory/useMultiUnitHelpers.ts - Cleaned Version (No Legacy Code)
-import { InventoryItem, MultiUnitQuantities } from "./types";
+import { InventoryItem, MultiUnitQuantities } from "../../types/inventory";
 
 export type UnitType = "ea" | "dsp" | "cs";
 

@@ -3,7 +3,7 @@
 
 import React from "react";
 import { Package2, Package, Archive, Grid3X3 } from "lucide-react";
-import { InventoryItem } from "../../hooks/inventory/types";
+import { InventoryItem } from "../../types/inventory";
 
 export type UnitFilterType = "all" | "ea" | "dsp" | "cs" | "multi";
 

@@ -1,8 +1,8 @@
-// Path: ./src/hooks/inventory/index.ts
+// Path: src/hooks/inventory/index.ts
 // ✅ FIXED: ลำดับการ export ที่ถูกต้องตาม dependency chain
 
 // 1. ✅ Export types ก่อน (ไม่มี dependencies)
-export * from "./types";
+export * from "../../types/inventory";
 
 // 2. ✅ Export storage utilities (ขึ้นอยู่กับ types เท่านั้น)
 export * from "./useInventoryStorage";

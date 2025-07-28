@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { Archive, Plus, Minus, Check, Package2 } from "lucide-react";
 import { Product } from "../../types/product";
-import { QuantityInput } from "../../hooks/inventory/types";
+import { QuantityInput } from "../../types/inventory";
 
 interface InventoryAddSectionProps {
   product: Product;

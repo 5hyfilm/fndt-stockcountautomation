@@ -13,7 +13,7 @@ import {
   getProductCategoryFromGroup,
   isValidProductGroup,
 } from "../data/types/csvTypes";
-import { QuantityInput, QuantityDetail } from "../hooks/inventory/types";
+import { QuantityInput, QuantityDetail } from "../types/inventory";
 import { useLogoutConfirmation } from "../hooks/useLogoutConfirmation";
 
 // ✅ Import Page Components

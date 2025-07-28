@@ -4,7 +4,7 @@
 import React from "react";
 import { Product } from "../../types/product";
 import { Detection } from "../../types/detection";
-import { QuantityInput, QuantityDetail } from "../../hooks/inventory/types";
+import { QuantityInput, QuantityDetail } from "../../types/inventory";
 import {
   InventorySummary,
   InventoryItem,

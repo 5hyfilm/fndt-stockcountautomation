@@ -13,7 +13,7 @@ export {
   type QuantityInput,
   type StorageConfig,
   type ExportOptions,
-} from "./inventory/types";
+} from "../types/inventory";
 
 // ✅ Import the main hook from useInventoryManager.tsx
 export { useInventoryManager } from "./inventory/useInventoryManager";

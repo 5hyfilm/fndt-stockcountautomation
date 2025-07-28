@@ -4,7 +4,7 @@
 import React from "react";
 import { Product } from "../../types/product";
 import { Detection } from "../../types/detection";
-import { QuantityInput } from "../../hooks/inventory/types";
+import { QuantityInput } from "../../types/inventory";
 import { InventorySummary } from "../../hooks/useInventoryManager";
 import { ExportSuccessToast } from "../ExportSuccessToast";
 import { AppHeader } from "../headers/AppHeader";

@@ -14,7 +14,7 @@ import {
   Package2,
   Clock,
 } from "lucide-react";
-import { InventoryItem, QuantityDetail } from "../../hooks/inventory/types";
+import { InventoryItem, QuantityDetail } from "../../types/inventory";
 
 interface InventoryListItemProps {
   item: InventoryItem;

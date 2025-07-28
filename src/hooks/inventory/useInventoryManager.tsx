@@ -8,7 +8,7 @@ import {
   UseInventoryManagerReturn,
   QuantityDetail,
   StorageConfig,
-} from "./types";
+} from "../../types/inventory";
 import { useInventoryStorage } from "./useInventoryStorage";
 import { useInventoryOperations } from "./useInventoryOperations";
 

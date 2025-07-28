@@ -8,7 +8,7 @@ import {
   QuantityInput,
   isQuantityDetail,
   isSimpleQuantity,
-} from "./types";
+} from "../../types/inventory";
 import { Product } from "../../types/product";
 
 interface ValidationResult {

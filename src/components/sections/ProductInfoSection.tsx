@@ -5,7 +5,7 @@ import React from "react";
 import { Package } from "lucide-react";
 import { ProductInfo } from "../product/ProductInfo";
 import { Product } from "../../types/product";
-import { QuantityInput } from "../../hooks/inventory/types"; // ✅ Import QuantityInput
+import { QuantityInput } from "../../types/inventory"; // ✅ Import QuantityInput
 
 interface ProductInfoSectionProps {
   product: Product | null;

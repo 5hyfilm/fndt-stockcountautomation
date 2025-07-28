@@ -1,4 +1,4 @@
-// Path: src/components/InventoryDisplay.tsx - Enhanced with Collapsible Controls
+// Path: src/components/inventory/InventoryDisplay.tsx - Enhanced with Collapsible Controls
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -7,7 +7,7 @@ import {
   InventoryItem,
   QuantityDetail,
   InventorySummary,
-} from "../../hooks/inventory/types";
+} from "../../types/inventory";
 import { Product } from "../../types/product";
 import { InventoryControls } from "./InventoryControls";
 import { InventoryList } from "./InventoryList";

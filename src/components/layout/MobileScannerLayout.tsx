@@ -6,7 +6,7 @@ import { CameraSection } from "../CameraSection";
 import { MobileProductSlide } from "./MobileProductSlide";
 import { Detection } from "../../types/detection";
 import { Product } from "../../types/product";
-import { QuantityInput } from "../../hooks/inventory/types";
+import { QuantityInput } from "../../types/inventory";
 
 interface MobileScannerLayoutProps {
   // Camera props

@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { InventoryItem, InventorySummary } from "./types";
+import { InventoryItem, InventorySummary } from "../../types/inventory";
 
 interface UseInventorySummaryProps {
   inventory: InventoryItem[];

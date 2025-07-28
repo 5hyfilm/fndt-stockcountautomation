@@ -3,7 +3,7 @@
 
 import React, { useState } from "react";
 import { Product } from "../../types/product";
-import { QuantityInput } from "../../hooks/inventory/types"; // ✅ Import QuantityInput
+import { QuantityInput } from "../../types/inventory"; // ✅ Import QuantityInput
 
 // Import sub-components
 import { ProductHeader } from "./ProductHeader";

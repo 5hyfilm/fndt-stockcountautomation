@@ -5,7 +5,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { X, Plus } from "lucide-react";
 import { Product } from "../../types/product";
 import { ProductInfo } from "../product/ProductInfo";
-import { QuantityInput } from "../../hooks/inventory/types";
+import { QuantityInput } from "../../types/inventory";
 
 interface MobileProductSlideProps {
   isVisible: boolean;
