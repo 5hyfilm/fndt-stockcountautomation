@@ -2,30 +2,23 @@
 "use client";
 
 import React, { useEffect } from "react";
-// ✅ Import AppHeaderProps type เพื่อแก้ไข TypeScript errors (no-explicit-any)
 import { AppHeader, AppHeaderProps } from "../headers/AppHeader";
 import { Product } from "../../types/product";
+// ✅ FIXED: Import Employee from central types instead of duplicate interface
+import { Employee } from "../../types/auth";
 
-// ✅ ใช้ type ที่สอดคล้องกับ project (ไม่ duplicate)
-interface EmployeeInfo {
-  employeeName: string;
-  branchCode: string;
-  branchName: string;
-  timestamp: string;
-}
-
-// ✅ Simplified props - ลบ logic ที่ซับซ้อนออก
+// ✅ Simplified props - ลบ duplicate EmployeeInfo interface
 interface MobileLayoutProps {
-  employee: EmployeeInfo;
+  employee: Employee; // ✅ Use central Employee type
   onLogout: () => void;
   children: React.ReactNode;
 
   // Layout control
   fullScreenMode?: boolean;
   hideHeaderInFullScreen?: boolean;
-  isMobile?: boolean; // ✅ รับ prop แทนการ detect เอง
+  isMobile?: boolean;
 
-  // AppHeader props - pass through to header (ลบ totalSKUs แล้ว)
+  // AppHeader props - pass through to header
   activeTab?: "scanner" | "inventory";
   isStreaming?: boolean;
   lastDetectedCode?: string;
@@ -39,11 +32,11 @@ interface MobileLayoutProps {
   contentClassName?: string;
 }
 
-// ✅ Full Screen Layout Component - แยกออกมาเพื่อความชัดเจน
+// ✅ Full Screen Layout Component
 const FullScreenLayout: React.FC<{
   children: React.ReactNode;
   hideHeader: boolean;
-  headerProps?: AppHeaderProps; // ✅ แก้ไขจาก any เป็น AppHeaderProps
+  headerProps?: AppHeaderProps;
 }> = ({ children, hideHeader, headerProps }) => (
   <div
     className="min-h-screen w-full bg-black flex flex-col"
@@ -66,10 +59,10 @@ const FullScreenLayout: React.FC<{
   </div>
 );
 
-// ✅ Regular Layout Component - แยกออกมาเพื่อความชัดเจน
+// ✅ Regular Layout Component
 const RegularLayout: React.FC<{
   children: React.ReactNode;
-  headerProps: AppHeaderProps; // ✅ แก้ไขจาก any เป็น AppHeaderProps
+  headerProps: AppHeaderProps;
   isMobile: boolean;
   className?: string;
   contentClassName?: string;
@@ -91,16 +84,16 @@ const RegularLayout: React.FC<{
   </div>
 );
 
-// ✅ Main MobileLayout Component - Simplified และ Complete
+// ✅ Main MobileLayout Component - Fixed Employee Types
 export const MobileLayout: React.FC<MobileLayoutProps> = ({
   employee,
   onLogout,
   children,
   fullScreenMode = false,
   hideHeaderInFullScreen = true,
-  isMobile = true, // ✅ Default เป็น mobile (ตามชื่อ component)
+  isMobile = true,
 
-  // AppHeader props (ลบ totalSKUs แล้ว)
+  // AppHeader props
   activeTab = "scanner",
   isStreaming = false,
   lastDetectedCode,
@@ -113,23 +106,18 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
   className,
   contentClassName,
 }) => {
-  // ✅ Handle full screen mode body styles (Simplified)
+  // ✅ Handle full screen mode body styles
   useEffect(() => {
     if (fullScreenMode) {
-      // Add full screen class for CSS targeting
       document.body.classList.add("fullscreen-mode");
-
-      // Prevent scrolling in full screen
       document.body.style.overflow = "hidden";
       document.documentElement.style.overflow = "hidden";
     } else {
-      // Remove full screen styling
       document.body.classList.remove("fullscreen-mode");
       document.body.style.overflow = "";
       document.documentElement.style.overflow = "";
     }
 
-    // Cleanup on unmount
     return () => {
       document.body.classList.remove("fullscreen-mode");
       document.body.style.overflow = "";
@@ -137,9 +125,9 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
     };
   }, [fullScreenMode]);
 
-  // ✅ Create header props object (DRY principle) - ลบ totalSKUs
-  const headerProps = {
-    employeeName: employee.employeeName,
+  // ✅ FIXED: Create header props with proper Employee interface mapping
+  const headerProps: AppHeaderProps = {
+    employeeName: employee.name, // ✅ Map Employee.name to employeeName for header
     branchCode: employee.branchCode,
     branchName: employee.branchName,
     formatTimeRemaining,
@@ -177,5 +165,5 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
   );
 };
 
-// ✅ Export types สำหรับใช้ใน components อื่น (Fixed TypeScript errors - no any types)
-export type { MobileLayoutProps, EmployeeInfo };
+// ✅ REMOVED: Duplicate EmployeeInfo interface export
+export type { MobileLayoutProps };

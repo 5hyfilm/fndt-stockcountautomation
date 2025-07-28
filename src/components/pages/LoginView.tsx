@@ -3,10 +3,11 @@
 
 import React from "react";
 import { EmployeeBranchForm } from "../auth/EmployeeBranchForm";
-import { EmployeeInfo } from "@/types/auth";
+// ✅ FIXED: Import EmployeeFormData to maintain compatibility
+import { EmployeeFormData } from "../../types/auth";
 
 interface LoginViewProps {
-  onSubmit: (employeeInfo: EmployeeInfo) => Promise<void>;
+  onSubmit: (employeeFormData: EmployeeFormData) => Promise<void>; // ✅ Use EmployeeFormData for compatibility
   isLoading?: boolean;
   error?: string | null;
 }
