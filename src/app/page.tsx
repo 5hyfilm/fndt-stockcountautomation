@@ -1,4 +1,4 @@
-// Path: src/app/page.tsx - Fixed Import (EmployeeInfo from types/auth)
+// Path: src/app/page.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -6,8 +6,8 @@ import { useBarcodeDetection } from "../hooks/useBarcodeDetection";
 import { useInventoryManager } from "../hooks/useInventoryManager";
 import { useEmployeeAuth } from "../hooks/useEmployeeAuth";
 import { useInventoryExport } from "../hooks";
-// ✅ FIXED: Import EmployeeInfo from types/auth instead of component
-import { EmployeeInfo } from "@/types/auth";
+// ✅ FIXED: Import EmployeeFormData from types/auth instead of EmployeeInfo
+import { EmployeeFormData } from "@/types/auth";
 import { Product, ProductStatus } from "../types/product";
 import {
   getProductCategoryFromGroup,
@@ -121,7 +121,8 @@ export default function BarcodeDetectionPage() {
     inventory,
     employeeContext: employee
       ? {
-          employeeName: employee.employeeName,
+          name: employee.name, // ✅ FIXED: Include name property (required by Pick<Employee>)
+          employeeName: employee.name, // ✅ FIXED: Include employeeName (backward compatibility)
           branchCode: employee.branchCode,
           branchName: employee.branchName,
         }
@@ -170,10 +171,10 @@ export default function BarcodeDetectionPage() {
   ]);
 
   // Handlers
-  const handleEmployeeLogin = async (employeeInfo: EmployeeInfo) => {
+  const handleEmployeeLogin = async (employeeData: EmployeeFormData) => {
     try {
-      await login(employeeInfo);
-      console.log("✅ Employee logged in:", employeeInfo.employeeName);
+      await login(employeeData);
+      console.log("✅ Employee logged in:", employeeData.name); // ✅ FIXED: Use employeeData.name
     } catch (error) {
       console.error("❌ Login failed:", error);
     }

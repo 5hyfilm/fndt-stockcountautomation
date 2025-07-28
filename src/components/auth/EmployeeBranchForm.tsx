@@ -1,14 +1,14 @@
-// src/components/auth/EmployeeBranchForm.tsx
+// Path: src/components/auth/EmployeeBranchForm.tsx
 "use client";
 
 import React, { useState } from "react";
 import { User, Building2, MapPin, Save, ArrowRight } from "lucide-react";
 import Image from "next/image";
 
-import { EmployeeInfo } from "@/types/auth";
+import { EmployeeFormData } from "@/types/auth";
 
 interface EmployeeBranchFormProps {
-  onSubmit: (employeeInfo: EmployeeInfo) => void;
+  onSubmit: (employeeData: EmployeeFormData) => void;
   isLoading?: boolean;
 }
 
@@ -72,14 +72,14 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
       return;
     }
 
-    const employeeInfo: EmployeeInfo = {
-      employeeName: employeeName.trim(),
+    // ✅ FIXED: Use EmployeeFormData structure with 'name' instead of 'employeeName'
+    const employeeData: EmployeeFormData = {
+      name: employeeName.trim(), // ✅ FIXED: Use 'name' field
       branchCode: branchCode.trim(),
       branchName: branchName.trim(),
-      timestamp: new Date().toISOString(),
     };
 
-    onSubmit(employeeInfo);
+    onSubmit(employeeData);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -92,7 +92,7 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
   const handleBranchCodeChange = (value: string) => {
     // กรองเอาเฉพาะตัวเลข และจำกัดความยาว
     const numericValue = normalizeBranchCode(value);
-    const limitedValue = numericValue.slice(0, 10); // จำกัดไม่เกิน 6 หลัก
+    const limitedValue = numericValue.slice(0, 10); // จำกัดไม่เกิน 10 หลัก
 
     setBranchCode(limitedValue);
 
@@ -196,7 +196,7 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
                 errors.branchCode ? "border-red-300" : "border-gray-300"
               }`}
               disabled={isLoading}
-              maxLength={10} // ✅ จำกัดความยาวสูงสุด 6 หลัก
+              maxLength={10} // ✅ จำกัดความยาวสูงสุด 10 หลัก
             />
             {errors.branchCode && (
               <p className="text-red-500 text-xs mt-1">{errors.branchCode}</p>
