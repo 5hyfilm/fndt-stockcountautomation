@@ -24,7 +24,12 @@ export { useProductFetcher } from "./product/useProductFetcher";
 export { useProductValidator } from "./product/useProductValidator";
 
 export { useCanvasRenderer } from "./canvas/useCanvasRenderer";
-export * from "./inventory";
+
+// ✅ Individual inventory exports (แทน barrel export)
+export { useInventoryStorage } from "./inventory/useInventoryStorage";
+export { useInventoryOperations } from "./inventory/useInventoryOperations";
+export { useInventorySummary } from "./inventory/useInventorySummary";
+export { useInventoryExport } from "./inventory/useInventoryExport";
 
 // =========================================
 // 🎯 Explicit Exports from types.ts (No Conflicts)

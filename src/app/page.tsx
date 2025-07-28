@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { useBarcodeDetection } from "../hooks/useBarcodeDetection";
 import { useInventoryManager } from "../hooks/useInventoryManager";
 import { useEmployeeAuth } from "../hooks/useEmployeeAuth";
-import { useInventoryExport } from "../hooks/inventory/useInventoryExport";
+import { useInventoryExport } from "../hooks";
 // ✅ FIXED: Import EmployeeInfo from types/auth instead of component
 import { EmployeeInfo } from "@/types/auth";
 import { Product, ProductStatus } from "../types/product";

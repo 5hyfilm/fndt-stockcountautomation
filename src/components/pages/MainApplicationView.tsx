@@ -5,10 +5,7 @@ import React from "react";
 import { Product } from "../../types/product";
 import { Detection } from "../../types/detection";
 import { QuantityInput, QuantityDetail } from "../../types/inventory";
-import {
-  InventorySummary,
-  InventoryItem,
-} from "../../hooks/useInventoryManager";
+import { InventorySummary, InventoryItem } from "../../types/inventory";
 import { ExportSuccessToast } from "../ExportSuccessToast";
 import { AppHeader } from "../headers/AppHeader";
 import { AppFooter } from "../footer/AppFooter";

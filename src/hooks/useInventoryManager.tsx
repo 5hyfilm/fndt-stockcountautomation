@@ -19,9 +19,7 @@ export {
 export { useInventoryManager } from "./inventory/useInventoryManager";
 
 // ✅ Import additional utility hooks
-export {
-  useInventoryStorage,
-  useInventoryOperations,
-  useInventorySummary,
-  useInventoryExport,
-} from "./inventory";
+export { useInventoryStorage } from "./inventory/useInventoryStorage";
+export { useInventoryOperations } from "./inventory/useInventoryOperations";
+export { useInventorySummary } from "./inventory/useInventorySummary";
+export { useInventoryExport } from "./inventory/useInventoryExport";
