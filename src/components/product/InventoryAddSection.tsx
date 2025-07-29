@@ -172,7 +172,7 @@ export const InventoryAddSection: React.FC<InventoryAddSectionProps> = ({
       {/* Product Info Summary */}
       <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
         <div className="text-sm">
-          <div className="font-medium text-blue-900">{product.name}</div>
+          {/* <div className="font-medium text-blue-900">{product.name}</div> */}
           <div className="text-blue-700 text-xs mt-1">
             Material Code: {product.id || product.barcode}
           </div>
