@@ -4,119 +4,165 @@
 import React, { useState } from "react";
 import { User, Building2, MapPin, Save, ArrowRight } from "lucide-react";
 import Image from "next/image";
-// ✅ FIXED: Import from relative path for consistency
 import { EmployeeFormData } from "../../types/auth";
 
 interface EmployeeBranchFormProps {
-  onSubmit: (employeeData: EmployeeFormData) => void; // ✅ Keep EmployeeFormData for compatibility
+  onSubmit: (employeeData: EmployeeFormData) => void;
   isLoading?: boolean;
 }
+
+// Input sanitization utilities
+const sanitizeInput = (input: string): string => {
+  return input
+    .replace(/<[^>]*>/g, "") // Remove HTML tags
+    .replace(/[<>\"'&]/g, (match) => {
+      // Escape dangerous characters
+      const escapeMap: { [key: string]: string } = {
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#x27;",
+        "&": "&amp;",
+      };
+      return escapeMap[match] || match;
+    })
+    .replace(/javascript:/gi, "") // Remove javascript: protocol
+    .replace(/on\w+\s*=/gi, "") // Remove event handlers
+    .trim();
+};
+
+const sanitizeNameInput = (input: string): string => {
+  const sanitized = sanitizeInput(input);
+  // Allow only Thai, English, numbers, spaces, dots, hyphens
+  return sanitized.replace(/[^ก-๙a-zA-Z0-9\s.\-]/g, "").slice(0, 100);
+};
+
+const sanitizeBranchName = (input: string): string => {
+  const sanitized = sanitizeInput(input);
+  // Allow Thai, English, numbers, spaces, common punctuation
+  return sanitized.replace(/[^ก-๙a-zA-Z0-9\s.\-(),]/g, "").slice(0, 150);
+};
+
+// Validation utilities
+const validateNameInput = (name: string): string | null => {
+  const trimmed = name.trim();
+
+  if (!trimmed) return "กรุณากรอกชื่อพนักงาน";
+  if (trimmed.length < 2) return "ชื่อพนักงานต้องมีอย่างน้อย 2 ตัวอักษร";
+  if (trimmed.length > 100) return "ชื่อพนักงานไม่ควรเกิน 100 ตัวอักษร";
+
+  // Check for suspicious patterns
+  if (/script|alert|onerror|onload|javascript/i.test(trimmed)) {
+    return "ชื่อพนักงานมีรูปแบบที่ไม่อนุญาต";
+  }
+
+  // Must contain at least one letter
+  if (!/[ก-๙a-zA-Z]/.test(trimmed)) {
+    return "ชื่อพนักงานต้องมีตัวอักษรอย่างน้อย 1 ตัว";
+  }
+
+  return null;
+};
+
+const validateBranchName = (branchName: string): string | null => {
+  const trimmed = branchName.trim();
+
+  if (!trimmed) return "กรุณากรอกชื่อสาขา";
+  if (trimmed.length < 2) return "ชื่อสาขาต้องมีอย่างน้อย 2 ตัวอักษร";
+  if (trimmed.length > 150) return "ชื่อสาขาไม่ควรเกิน 150 ตัวอักษร";
+
+  // Check for suspicious patterns
+  if (/script|alert|onerror|onload|javascript/i.test(trimmed)) {
+    return "ชื่อสาขามีรูปแบบที่ไม่อนุญาต";
+  }
+
+  // Must contain at least one letter
+  if (!/[ก-๙a-zA-Z]/.test(trimmed)) {
+    return "ชื่อสาขาต้องมีตัวอักษรอย่างน้อย 1 ตัว";
+  }
+
+  return null;
+};
+
+const validateBranchCode = (branchCode: string): string | null => {
+  const trimmed = branchCode.trim();
+
+  if (!trimmed) return "กรุณากรอกรหัสสาขา";
+  if (!/^\d+$/.test(trimmed)) return "รหัสสาขาต้องเป็นตัวเลข 0-9 เท่านั้น";
+  if (trimmed.length < 3) return "รหัสสาขาต้องมีอย่างน้อย 3 หลัก";
+  if (trimmed.length > 10) return "รหัสสาขาไม่ควรเกิน 10 หลัก";
+
+  return null;
+};
 
 export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
   onSubmit,
   isLoading = false,
 }) => {
-  // ✅ FIXED: Rename state variables to match Employee interface
-  const [name, setName] = useState(""); // ✅ Changed from employeeName to name
+  const [name, setName] = useState("");
   const [branchCode, setBranchCode] = useState("");
   const [branchName, setBranchName] = useState("");
-
-  // ✅ FIXED: Update error keys to match Employee interface
   const [errors, setErrors] = useState<{
-    name?: string; // ✅ Changed from employeeName to name
+    name?: string;
     branchCode?: string;
     branchName?: string;
   }>({});
 
-  // ✅ Helper function สำหรับตรวจสอบตัวเลขเท่านั้น
-  const isNumericOnly = (value: string): boolean => {
-    return /^\d*$/.test(value);
-  };
-
-  // ✅ Normalize รหัสสาขา (เอาเฉพาะตัวเลข)
   const normalizeBranchCode = (value: string): string => {
-    return value.replace(/[^0-9]/g, "");
+    return value.replace(/[^0-9]/g, "").slice(0, 10);
   };
 
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
 
-    // ✅ FIXED: Update validation for 'name' field
-    if (!name.trim()) {
-      newErrors.name = "กรุณากรอกชื่อพนักงาน";
-    } else if (name.trim().length < 2) {
-      newErrors.name = "ชื่อพนักงานต้องมีอย่างน้อย 2 ตัวอักษร";
-    }
+    const nameError = validateNameInput(name);
+    if (nameError) newErrors.name = nameError;
 
-    // ✅ ตรวจสอบรหัสสาขา - เพิ่ม validation สำหรับตัวเลขเท่านั้น
-    if (!branchCode.trim()) {
-      newErrors.branchCode = "กรุณากรอกรหัสสาขา";
-    } else if (!isNumericOnly(branchCode.trim())) {
-      newErrors.branchCode = "รหัสสาขาต้องเป็นตัวเลข 0-9 เท่านั้น";
-    } else if (branchCode.trim().length < 3) {
-      newErrors.branchCode = "รหัสสาขาต้องมีอย่างน้อย 3 หลัก";
-    } else if (branchCode.trim().length > 10) {
-      newErrors.branchCode = "รหัสสาขาไม่ควรเกิน 10 หลัก";
-    }
+    const branchCodeError = validateBranchCode(branchCode);
+    if (branchCodeError) newErrors.branchCode = branchCodeError;
 
-    // ตรวจสอบชื่อสาขา
-    if (!branchName.trim()) {
-      newErrors.branchName = "กรุณากรอกชื่อสาขา";
-    } else if (branchName.trim().length < 2) {
-      newErrors.branchName = "ชื่อสาขาต้องมีอย่างน้อย 2 ตัวอักษร";
-    }
+    const branchNameError = validateBranchName(branchName);
+    if (branchNameError) newErrors.branchName = branchNameError;
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
-    if (!validateForm()) {
-      return;
-    }
+  const handleSubmit = (): void => {
+    if (!validateForm()) return;
 
-    // ✅ FIXED: Return EmployeeFormData to maintain compatibility with existing logic
     const employeeFormData: EmployeeFormData = {
-      name: name.trim(), // ✅ Use 'name' field as per EmployeeFormData type
-      branchCode: branchCode.trim(),
-      branchName: branchName.trim(),
+      name: sanitizeNameInput(name),
+      branchCode: normalizeBranchCode(branchCode),
+      branchName: sanitizeBranchName(branchName),
     };
 
     onSubmit(employeeFormData);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleSubmit();
-    }
+  const handleKeyPress = (e: React.KeyboardEvent): void => {
+    if (e.key === "Enter") handleSubmit();
   };
 
-  // ✅ FIXED: Update handler names and error clearing
-  const handleNameChange = (value: string) => {
-    setName(value);
-    // Clear name error when user starts typing
+  const handleNameChange = (value: string): void => {
+    const sanitized = sanitizeNameInput(value);
+    setName(sanitized);
     if (errors.name) {
       setErrors((prev) => ({ ...prev, name: undefined }));
     }
   };
 
-  // ✅ ปรับปรุง handleBranchCodeChange ให้กรอกได้เฉพาะตัวเลข
-  const handleBranchCodeChange = (value: string) => {
-    // กรองเอาเฉพาะตัวเลข และจำกัดความยาว
-    const numericValue = normalizeBranchCode(value);
-    const limitedValue = numericValue.slice(0, 10); // จำกัดไม่เกิน 10 หลัก
-
-    setBranchCode(limitedValue);
-
-    // Clear branch code error when user starts typing
+  const handleBranchCodeChange = (value: string): void => {
+    const normalized = normalizeBranchCode(value);
+    setBranchCode(normalized);
     if (errors.branchCode) {
       setErrors((prev) => ({ ...prev, branchCode: undefined }));
     }
   };
 
-  const handleBranchNameChange = (value: string) => {
-    setBranchName(value);
-    // Clear branch name error when user starts typing
+  const handleBranchNameChange = (value: string): void => {
+    const sanitized = sanitizeBranchName(value);
+    setBranchName(sanitized);
     if (errors.branchName) {
       setErrors((prev) => ({ ...prev, branchName: undefined }));
     }
@@ -125,7 +171,6 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
   return (
     <div className="min-h-screen bg-gradient-to-br from-fn-green/10 to-fn-red/10 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md">
-        {/* Header */}
         <div className="bg-gradient-to-r from-fn-green to-fn-red/80 text-white p-6 rounded-t-2xl">
           <div className="text-center">
             <Image
@@ -143,9 +188,7 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
           </div>
         </div>
 
-        {/* Form */}
         <div className="p-6 space-y-4">
-          {/* ✅ FIXED: Employee Name Input - updated labels and handlers */}
           <div>
             <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
               <User size={16} className="mr-2 text-fn-green" />
@@ -157,6 +200,7 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
               onChange={(e) => handleNameChange(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="กรอกชื่อของคุณ"
+              maxLength={100}
               className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors ${
                 errors.name ? "border-red-300" : "border-gray-300"
               }`}
@@ -167,7 +211,6 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
             )}
           </div>
 
-          {/* Branch Code Input */}
           <div>
             <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
               <Building2 size={16} className="mr-2 text-fn-green" />
@@ -181,6 +224,7 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
               placeholder="กรอกรหัสสาขา (เช่น 001, 1234)"
               inputMode="numeric"
               pattern="[0-9]*"
+              maxLength={10}
               className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors ${
                 errors.branchCode ? "border-red-300" : "border-gray-300"
               }`}
@@ -191,7 +235,6 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
             )}
           </div>
 
-          {/* Branch Name Input */}
           <div>
             <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
               <MapPin size={16} className="mr-2 text-fn-green" />
@@ -203,17 +246,22 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
               onChange={(e) => handleBranchNameChange(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="กรอกชื่อสาขา (เช่น สาขาสีลม, สาขาบางนา)"
+              maxLength={150}
               className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors ${
                 errors.branchName ? "border-red-300" : "border-gray-300"
               }`}
               disabled={isLoading}
             />
+            {branchName.length > 100 && (
+              <p className="text-yellow-600 text-xs mt-1">
+                ความยาว: {branchName.length}/150 ตัวอักษร
+              </p>
+            )}
             {errors.branchName && (
               <p className="text-red-500 text-xs mt-1">{errors.branchName}</p>
             )}
           </div>
 
-          {/* ✅ FIXED: Submit Button - update disabled condition */}
           <button
             onClick={handleSubmit}
             disabled={isLoading || !name || !branchCode || !branchName}
@@ -234,7 +282,6 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
           </button>
         </div>
 
-        {/* Footer */}
         <div className="px-6 pb-6">
           <div className="text-center text-xs text-gray-500">
             <p>© 2025 F&N Inventory Management System</p>
