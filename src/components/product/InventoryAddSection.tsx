@@ -36,7 +36,7 @@ const UNIT_CONFIG = {
     label: "ลัง",
     shortLabel: "CS",
     icon: Archive,
-    color: "bg-orange-100 text-orange-700",
+    color: "bg-purple-100 text-purple-700",
   },
 };
 
