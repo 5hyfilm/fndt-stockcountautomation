@@ -4,11 +4,11 @@
 import React, { useState } from "react";
 import { User, Building2, MapPin, Save, ArrowRight } from "lucide-react";
 import Image from "next/image";
-
-import { EmployeeFormData } from "@/types/auth";
+// ✅ FIXED: Import from relative path for consistency
+import { EmployeeFormData } from "../../types/auth";
 
 interface EmployeeBranchFormProps {
-  onSubmit: (employeeData: EmployeeFormData) => void;
+  onSubmit: (employeeData: EmployeeFormData) => void; // ✅ Keep EmployeeFormData for compatibility
   isLoading?: boolean;
 }
 
@@ -16,11 +16,14 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
   onSubmit,
   isLoading = false,
 }) => {
-  const [employeeName, setEmployeeName] = useState("");
+  // ✅ FIXED: Rename state variables to match Employee interface
+  const [name, setName] = useState(""); // ✅ Changed from employeeName to name
   const [branchCode, setBranchCode] = useState("");
   const [branchName, setBranchName] = useState("");
+
+  // ✅ FIXED: Update error keys to match Employee interface
   const [errors, setErrors] = useState<{
-    employeeName?: string;
+    name?: string; // ✅ Changed from employeeName to name
     branchCode?: string;
     branchName?: string;
   }>({});
@@ -38,11 +41,11 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
   const validateForm = () => {
     const newErrors: typeof errors = {};
 
-    // ตรวจสอบชื่อพนักงาน
-    if (!employeeName.trim()) {
-      newErrors.employeeName = "กรุณากรอกชื่อพนักงาน";
-    } else if (employeeName.trim().length < 2) {
-      newErrors.employeeName = "ชื่อพนักงานต้องมีอย่างน้อย 2 ตัวอักษร";
+    // ✅ FIXED: Update validation for 'name' field
+    if (!name.trim()) {
+      newErrors.name = "กรุณากรอกชื่อพนักงาน";
+    } else if (name.trim().length < 2) {
+      newErrors.name = "ชื่อพนักงานต้องมีอย่างน้อย 2 ตัวอักษร";
     }
 
     // ✅ ตรวจสอบรหัสสาขา - เพิ่ม validation สำหรับตัวเลขเท่านั้น
@@ -72,19 +75,28 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
       return;
     }
 
-    // ✅ FIXED: Use EmployeeFormData structure with 'name' instead of 'employeeName'
-    const employeeData: EmployeeFormData = {
-      name: employeeName.trim(), // ✅ FIXED: Use 'name' field
+    // ✅ FIXED: Return EmployeeFormData to maintain compatibility with existing logic
+    const employeeFormData: EmployeeFormData = {
+      name: name.trim(), // ✅ Use 'name' field as per EmployeeFormData type
       branchCode: branchCode.trim(),
       branchName: branchName.trim(),
     };
 
-    onSubmit(employeeData);
+    onSubmit(employeeFormData);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       handleSubmit();
+    }
+  };
+
+  // ✅ FIXED: Update handler names and error clearing
+  const handleNameChange = (value: string) => {
+    setName(value);
+    // Clear name error when user starts typing
+    if (errors.name) {
+      setErrors((prev) => ({ ...prev, name: undefined }));
     }
   };
 
@@ -119,98 +131,70 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
             <Image
               src="/fn-logo.png"
               alt="F&N Logo"
-              width={64}
-              height={64}
-              className="mx-auto mb-3 object-contain"
+              width={60}
+              height={60}
+              className="mx-auto mb-3"
               priority
             />
-            <h1 className="text-xl font-bold mb-1">ระบบเช็ค Stock สินค้า</h1>
-            <p className="text-white/90 text-sm">F&N Inventory Management</p>
+            <h1 className="text-xl font-bold">ระบบจัดการสินค้าคงคลัง</h1>
+            <p className="text-sm text-white/90 mt-1">
+              กรุณากรอกข้อมูลพนักงานและสาขา
+            </p>
           </div>
         </div>
 
         {/* Form */}
-        <div className="p-6 space-y-6">
-          <div className="text-center mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              ข้อมูลพนักงานและสาขา
-            </h2>
-            <p className="text-gray-600 text-sm">
-              กรุณากรอกข้อมูลก่อนเริ่มใช้งานระบบ
-            </p>
-          </div>
-
-          {/* Employee Name */}
+        <div className="p-6 space-y-4">
+          {/* ✅ FIXED: Employee Name Input - updated labels and handlers */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <User size={16} className="inline mr-2" />
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+              <User size={16} className="mr-2 text-fn-green" />
               ชื่อพนักงาน
             </label>
             <input
               type="text"
-              value={employeeName}
-              onChange={(e) => {
-                setEmployeeName(e.target.value);
-                setErrors((prev) => ({ ...prev, employeeName: undefined }));
-              }}
+              value={name}
+              onChange={(e) => handleNameChange(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="กรอกชื่อ-นามสกุล"
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-fn-green transition-colors ${
-                errors.employeeName ? "border-red-300" : "border-gray-300"
+              placeholder="กรอกชื่อของคุณ"
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors ${
+                errors.name ? "border-red-300" : "border-gray-300"
               }`}
               disabled={isLoading}
             />
-            {errors.employeeName && (
-              <p className="text-red-500 text-xs mt-1">{errors.employeeName}</p>
+            {errors.name && (
+              <p className="text-red-500 text-xs mt-1">{errors.name}</p>
             )}
           </div>
 
-          {/* ✅ Branch Code Input - ปรับปรุงให้กรอกได้เฉพาะตัวเลข */}
+          {/* Branch Code Input */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Building2 size={16} className="inline mr-2" />
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+              <Building2 size={16} className="mr-2 text-fn-green" />
               รหัสสาขา
             </label>
             <input
               type="text"
-              inputMode="numeric" // ✅ แสดง numeric keyboard บนมือถือ
-              pattern="[0-9]*" // ✅ HTML5 pattern สำหรับตัวเลขเท่านั้น
               value={branchCode}
               onChange={(e) => handleBranchCodeChange(e.target.value)}
-              onKeyPress={(e) => {
-                // ✅ ป้องกันการพิมพ์ตัวอักษรที่ไม่ใช่ตัวเลข
-                if (
-                  !/[0-9]/.test(e.key) &&
-                  e.key !== "Backspace" &&
-                  e.key !== "Delete" &&
-                  e.key !== "Enter"
-                ) {
-                  e.preventDefault();
-                }
-                if (e.key === "Enter") {
-                  handleSubmit();
-                }
-              }}
-              placeholder="กรอกรหัสสาขา เช่น 001, 002"
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-fn-green transition-colors ${
+              onKeyPress={handleKeyPress}
+              placeholder="กรอกรหัสสาขา (เช่น 001, 1234)"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors ${
                 errors.branchCode ? "border-red-300" : "border-gray-300"
               }`}
               disabled={isLoading}
-              maxLength={10} // ✅ จำกัดความยาวสูงสุด 10 หลัก
             />
             {errors.branchCode && (
               <p className="text-red-500 text-xs mt-1">{errors.branchCode}</p>
             )}
-            {/* ✅ เพิ่มคำแนะนำ */}
-            <p className="text-gray-500 text-xs mt-1">
-              ใส่ได้เฉพาะตัวเลข 0-9 (3-10 หลัก)
-            </p>
           </div>
 
           {/* Branch Name Input */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <MapPin size={16} className="inline mr-2" />
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+              <MapPin size={16} className="mr-2 text-fn-green" />
               ชื่อสาขา
             </label>
             <input
@@ -218,8 +202,8 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
               value={branchName}
               onChange={(e) => handleBranchNameChange(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="กรอกชื่อสาขา เช่น สาขาสยามพารากอน"
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-fn-green focus:border-fn-green transition-colors ${
+              placeholder="กรอกชื่อสาขา (เช่น สาขาสีลม, สาขาบางนา)"
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-fn-green focus:border-transparent transition-colors ${
                 errors.branchName ? "border-red-300" : "border-gray-300"
               }`}
               disabled={isLoading}
@@ -229,10 +213,10 @@ export const EmployeeBranchForm: React.FC<EmployeeBranchFormProps> = ({
             )}
           </div>
 
-          {/* Submit Button */}
+          {/* ✅ FIXED: Submit Button - update disabled condition */}
           <button
             onClick={handleSubmit}
-            disabled={isLoading || !employeeName || !branchCode || !branchName}
+            disabled={isLoading || !name || !branchCode || !branchName}
             className="w-full bg-gradient-to-r from-fn-green to-fn-red/80 text-white py-3 px-6 rounded-lg font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
           >
             {isLoading ? (

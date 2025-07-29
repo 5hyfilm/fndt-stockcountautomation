@@ -1,15 +1,7 @@
 # requirements.txt
 # Core web framework
-flask>=2.3.0
-flask-cors>=4.0.0
-flask-limiter>=3.5.0
-onnxruntime>=1.16.0
-opencv-python>=4.8.0
-numpy>=1.24.0
-pyzbar>=0.1.9
-Pillow>=10.0.0
-werkzeug>=2.3.0
-
+flask==2.3.3
+flask-cors==4.0.0
 
 # Deep Learning & Computer Vision
 # torch==2.0.1

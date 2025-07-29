@@ -5,7 +5,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Employee, EmployeeFormData, EmployeeSession } from "@/types/auth";
 
 const STORAGE_KEY = "fn_employee_session";
-const SESSION_DURATION = 3 * 60 * 60 * 1000; // 8 hours in milliseconds
+const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
 
 export const useEmployeeAuth = () => {
   const [session, setSession] = useState<EmployeeSession | null>(null);
